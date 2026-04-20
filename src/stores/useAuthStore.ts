@@ -43,10 +43,16 @@ export const useAuthStore = create<AuthState>()(
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (error: any) {
           let errorMessage = 'فشل تسجيل الدخول';
-          if (error.code === 'auth/invalid-credential') {
+          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
           } else if (error.code === 'auth/too-many-requests') {
             errorMessage = 'محاولات كثيرة خاطئة. يرجى المحاولة لاحقاً';
+          } else if (error.code === 'auth/configuration-not-found' || String(error.message).includes('CONFIGURATION_NOT_FOUND')) {
+            errorMessage = 'تفعيل Email/Password مطلوب من Firebase Console → Authentication → Sign-in method';
+          } else if (error.code === 'auth/network-request-failed') {
+            errorMessage = 'فشل الاتصال بالشبكة. تحقّق من الإنترنت.';
+          } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/api-key-not-valid') {
+            errorMessage = 'مفتاح Firebase غير صالح — تحقّق من الإعدادات.';
           }
           set({ error: errorMessage, isLoading: false });
           throw error;

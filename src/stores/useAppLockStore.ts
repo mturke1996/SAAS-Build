@@ -50,22 +50,31 @@ export const useAppLockStore = create<AppLockState>()(
 
       initAppLockSync: () => {
         const docRef = doc(db, 'settings', SETTINGS_DOC);
-        const unsubscribe = onSnapshot(docRef, (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            set({
-              pinCode: data.pinCode || '',
-              isLocked: data.isLocked || false,
-              isAppLockReady: true,
-              ownerId: data.ownerId || null,
-              unlockedModules: data.unlockedModules || ['expenses', 'workers'],
-              exemptUsers: data.exemptUsers || []
-            });
-          } else {
-            // No settings doc: no lock configured, still mark ready
-            set({ isAppLockReady: true });
+        const unsubscribe = onSnapshot(
+          docRef,
+          (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              set({
+                pinCode: data.pinCode || '',
+                isLocked: data.isLocked || false,
+                isAppLockReady: true,
+                ownerId: data.ownerId || null,
+                unlockedModules: data.unlockedModules || ['expenses', 'workers'],
+                exemptUsers: data.exemptUsers || []
+              });
+            } else {
+              // No settings doc: no lock configured, still mark ready
+              set({ isAppLockReady: true });
+            }
+          },
+          (err) => {
+            // On Firestore error (rules / network / missing db) — mark ready
+            // so the UI doesn't stay in the restrictive loading state forever.
+            console.warn('[AppLock] Firestore sync failed, falling back to unlocked:', err?.code || err?.message);
+            set({ isAppLockReady: true, isLocked: false });
           }
-        });
+        );
         return unsubscribe;
       },
 
@@ -110,11 +119,9 @@ export const useAppLockStore = create<AppLockState>()(
       canAccess: (module) => {
         const { isLocked, isAppLockReady, ownerId, unlockedModules, unlockedUsers, exemptUsers } = get();
         const userId = useAuthStore.getState().user?.id;
-        // While app lock settings are still loading, block restricted modules to prevent flash
-        if (!isAppLockReady) {
-          // Allow only the default unlocked modules during loading
-          return unlockedModules.includes(module);
-        }
+        // During initial load, be permissive so the UI renders all modules.
+        // Access is re-evaluated the moment the lock settings arrive.
+        if (!isAppLockReady) return true;
         if (!isLocked) return true; // everything allowed if no pin
         if (userId && userId === ownerId) return true; // Admin/Owner always has full access
         if (userId && exemptUsers.includes(userId)) return true; // Exempt users have full access
