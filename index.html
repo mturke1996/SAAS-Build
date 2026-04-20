@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <link rel="mask-icon" href="/brand/favicon.svg" color="#6D28D9" />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Description + color identity -->
+    <meta name="description" content="نظام إدارة متكامل — فواتير، عملاء، مدفوعات، تقارير احترافية." />
+    <meta name="theme-color" content="#6D28D9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B0A14" media="(prefers-color-scheme: dark)" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         iOS / iPhone PWA — full "add to home screen" experience
+         Ref: Apple HIG + iOS 16+ supports SVG for all icon slots.
+    ═══════════════════════════════════════════════════════════════ -->
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/brand/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/brand/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/brand/apple-touch-icon.svg" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="تطبيقك" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="تطبيقك" />
+    <meta name="format-detection" content="telephone=no, address=no, email=no" />
+
+    <!-- Prevent link highlight flash on iOS -->
+    <meta name="msapplication-tap-highlight" content="no" />
+
+    <!-- Pre-paint background so transitions/cold-start feel instant -->
+    <style>
+      :root { color-scheme: light dark; }
+      html, body {
+        background: #f8f7fb;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #0B0A14; }
+      }
+      /* Hide tap flash on iOS */
+      * { -webkit-tap-highlight-color: transparent; }
+      /* Loader splash — visible only before JS mounts */
+      #root:empty::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(60% 60% at 50% 35%, rgba(139,92,246,0.18), transparent 70%),
+          var(--splash-bg, #f8f7fb);
+      }
+      @media (prefers-color-scheme: dark) {
+        #root:empty::before {
+          background:
+            radial-gradient(60% 60% at 50% 35%, rgba(139,92,246,0.25), transparent 70%),
+            #0B0A14;
+        }
+      }
+      #root { min-height: 100dvh; }
+    </style>
+
+    <!-- Fonts: Tajawal (Arabic), Inter (Latin), Outfit (numerics) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>تطبيقك</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

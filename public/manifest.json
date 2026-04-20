@@ -1,0 +1,42 @@
+{
+  "name": "تطبيقك — نظام إدارة متكامل",
+  "short_name": "تطبيقك",
+  "description": "فواتير، عملاء، مدفوعات، ومستندات احترافية.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#f8f7fb",
+  "theme_color": "#6D28D9",
+  "dir": "rtl",
+  "lang": "ar",
+  "orientation": "portrait",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    { "src": "/brand/favicon.svg",          "sizes": "any",    "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brand/logo.svg",             "sizes": "any",    "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brand/apple-touch-icon.svg", "sizes": "180x180","type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brand/apple-touch-icon.svg", "sizes": "512x512","type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "فاتورة جديدة",
+      "short_name": "فاتورة",
+      "description": "إنشاء فاتورة جديدة بسرعة",
+      "url": "/invoices/new",
+      "icons": [{ "src": "/brand/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "العملاء",
+      "url": "/clients",
+      "icons": [{ "src": "/brand/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "المدفوعات",
+      "url": "/payments",
+      "icons": [{ "src": "/brand/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

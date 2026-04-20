@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// ============================================================================
+//  Firestore security rules for "company-test-adafd"
+// ============================================================================
+//  DEVELOPMENT-ready: any authenticated user can read/write every document.
+//
+//  Deploy with:  firebase deploy --only firestore:rules
+//
+//  For production, lock down per-collection and validate the shape of writes.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Authenticated users get full read/write to all documents.
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

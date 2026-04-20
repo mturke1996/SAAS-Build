@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="55%" stop-color="#6D28D9"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.25" cy="0.2" r="0.7">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.35)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- iOS adds its own rounded-square mask, so fill whole viewBox -->
+  <rect width="180" height="180" fill="url(#bg)"/>
+  <rect width="180" height="180" fill="url(#glow)"/>
+
+  <g fill="none" stroke="#F3F0FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" transform="translate(0, 5)">
+    <path d="M46 110 L90 56"/>
+    <path d="M90 56 L134 110"/>
+    <path d="M62 92 L118 92"/>
+  </g>
+  <circle cx="90" cy="61" r="10" fill="#F59E0B"/>
+</svg>
