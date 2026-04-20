@@ -104,8 +104,10 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-behavior: smooth;
   color-scheme: light dark;
+  /* NOTE: scroll-behavior removed from html — it was making every
+     programmatic scroll (route change, focus, anchor) slow. Use
+     `behavior: 'smooth'` per-call when actually needed. */
 }
 
 html[dir='rtl'] body { font-family: var(--brand-font-arabic); }
@@ -201,25 +203,23 @@ button, a, [role='button'], [data-press] {
   touch-action: manipulation;
 }
 
-/* Prevent iOS input zoom */
+/* Prevent iOS input zoom (keyboard wont zoom on focus) */
 @media (max-width: 640px) {
-  input, textarea, select { font-size: 16px !important; }
+  input, textarea, select { font-size: 16px; }
   /* 44x44 minimum touch targets */
   button, a, [role='button'], .MuiIconButton-root, .MuiButton-root { min-height: 44px; }
 }
 
-/* ── Standalone PWA (iPhone add-to-home-screen) ── */
+/* ── Standalone PWA (iPhone add-to-home-screen) ──
+   CRITICAL: Do NOT add `padding-bottom: var(--sa-bottom)` on body here —
+   the MobileBottomNav already consumes the bottom safe-area via its own
+   `pb-[max(4px,env(safe-area-inset-bottom))]`. Adding it on body too
+   caused a visible double-gap above the home indicator. */
 @media all and (display-mode: standalone) {
   html, body {
-    /* Disable rubber-band overscroll */
     overscroll-behavior: none;
     height: 100dvh;
-    /* Keep fixed elements above the home indicator */
-    padding-bottom: var(--sa-bottom);
   }
-  /* Content never slides under the top status bar on translucent mode */
-  .pwa-safe-top { padding-top: var(--sa-top); }
-  /* Prevent pull-to-refresh gesture */
   body { overscroll-behavior-y: contain; }
 }
 

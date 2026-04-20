@@ -199,29 +199,28 @@ export const UsersPage = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: '#f4f6f4', pb: 10, fontFamily: 'Tajawal, sans-serif' }}>
+    <Box sx={{ pb: 10, fontFamily: 'Tajawal, sans-serif' }}>
       
       {/* ── Ultra Premium Header ── */}
       <Box
         sx={{
           background: theme.palette.mode === 'light'
-            ? 'linear-gradient(145deg, #2a3a2a 0%, #1f291f 100%)'
-            : 'linear-gradient(145deg, #151a15 0%, #1a221a 100%)',
-          /* Safari/PWA Safe Area Fix for iPhone 16 Pro Max */
-          pt: 'calc(max(env(safe-area-inset-top), 60px) + 16px)',
+            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
+            : 'linear-gradient(135deg, #0F0D1C 0%, #1B0F3B 100%)',
+          pt: 3,
           pb: 4,
           px: 2.5,
           position: 'relative',
           overflow: 'hidden',
-          borderBottomLeftRadius: 36,
-          borderBottomRightRadius: 36,
-          boxShadow: '0 12px 32px rgba(42,58,42,0.15)',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          boxShadow: '0 12px 32px rgba(109,40,217,0.18)',
         }}
       >
         {/* Subtle glowing orb in background */}
         <Box sx={{
           position: 'absolute', top: -40, right: -40, width: 200, height: 200,
-          background: 'radial-gradient(circle, rgba(200,192,176,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
 
@@ -229,22 +228,9 @@ export const UsersPage = () => {
           
           {/* Top Navigation Row */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3.5}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton 
-                onClick={() => navigate('/')} 
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.08)', color: 'white', 
-                  backdropFilter: 'blur(10px)', width: 42, height: 42,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', transform: 'scale(1.05)' },
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                <ArrowBack fontSize="small" />
-              </IconButton>
-              <Typography variant="h5" fontWeight={900} sx={{ color: 'white', letterSpacing: '-0.3px', fontSize: '1.35rem' }}>
-                الموظفين
-              </Typography>
-            </Stack>
+            <Typography variant="h5" fontWeight={900} sx={{ color: 'white', letterSpacing: '-0.3px', fontSize: '1.35rem' }}>
+              الموظفين
+            </Typography>
 
             <Button
               variant="contained"
@@ -255,9 +241,9 @@ export const UsersPage = () => {
                 setDialogOpen(true);
               }}
               sx={{
-                bgcolor: '#c8c0b0', color: '#1f291f', fontWeight: 800, borderRadius: 3, 
-                px: 2.5, py: 1, fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(200,192,176,0.3)',
-                '&:hover': { bgcolor: '#e0d8c8', transform: 'translateY(-2px)' },
+                bgcolor: '#ffffff', color: '#6D28D9', fontWeight: 800, borderRadius: 3, 
+                px: 2.5, py: 1, fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                '&:hover': { bgcolor: '#F5F3FF', transform: 'translateY(-2px)' },
               }}
             >
               موظف جديد
@@ -272,8 +258,8 @@ export const UsersPage = () => {
                 border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)',
                 display: 'flex', alignItems: 'center', gap: 1.5 
               }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'rgba(200,192,176,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <SupervisedUserCircle sx={{ color: '#c8c0b0', fontSize: 20 }} />
+                <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'rgba(245,158,11,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <SupervisedUserCircle sx={{ color: '#FBBF24', fontSize: 20 }} />
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>إجمالي الحسابات</Typography>
@@ -310,7 +296,7 @@ export const UsersPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
-              startAdornment: <Search sx={{ color: '#8b7e6a', mr: 1.5, ml: 0.5, fontSize: 22 }} />,
+              startAdornment: <Search sx={{ color: '#6D6883', mr: 1.5, ml: 0.5, fontSize: 22 }} />,
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
@@ -341,8 +327,8 @@ export const UsersPage = () => {
                 <Avatar 
                   sx={{ 
                     width: 46, height: 46, borderRadius: 2.5, 
-                    bgcolor: user.role === 'admin' ? alpha('#2a3a2a', 0.08) : alpha('#8b7e6a', 0.08), 
-                    color: user.role === 'admin' ? '#2a3a2a' : '#8b7e6a', 
+                    bgcolor: user.role === 'admin' ? alpha('#6D28D9', 0.1) : alpha('#F59E0B', 0.12), 
+                    color: user.role === 'admin' ? '#6D28D9' : '#B45309', 
                     fontWeight: 900, fontSize: '1.1rem' 
                   }}
                 >
@@ -351,14 +337,14 @@ export const UsersPage = () => {
                 
                 <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" alignItems="center" spacing={1} mb={0.3}>
-                    <Typography fontWeight={800} sx={{ fontSize: '0.95rem', color: '#1f291f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography fontWeight={800} sx={{ fontSize: '0.95rem', color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {user.displayName}
                     </Typography>
                     {user.role === 'admin' && (
-                      <VerifiedUser sx={{ fontSize: 14, color: '#4a5d4a' }} />
+                      <VerifiedUser sx={{ fontSize: 14, color: '#6D28D9' }} />
                     )}
                   </Stack>
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b7e6a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} dir="ltr">
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} dir="ltr">
                     {user.email}
                   </Typography>
                 </Box>
@@ -369,8 +355,9 @@ export const UsersPage = () => {
                 <IconButton 
                   onClick={() => handleEditClick(user)} 
                   sx={{ 
-                    width: 38, height: 38, borderRadius: 2.5, bgcolor: '#f4f6f4', color: '#4a5d4a',
-                    '&:hover': { bgcolor: '#e8ece8' } 
+                    width: 38, height: 38, borderRadius: 2.5,
+                    bgcolor: 'rgba(109,40,217,0.08)', color: '#6D28D9',
+                    '&:hover': { bgcolor: 'rgba(109,40,217,0.14)' } 
                   }}
                 >
                   <Edit sx={{ fontSize: 18 }} />
@@ -378,8 +365,9 @@ export const UsersPage = () => {
                 <IconButton 
                   onClick={() => handleDeleteUser(user.id)} 
                   sx={{ 
-                    width: 38, height: 38, borderRadius: 2.5, bgcolor: '#fcf0f0', color: '#d64545',
-                    '&:hover': { bgcolor: '#fae4e4' } 
+                    width: 38, height: 38, borderRadius: 2.5,
+                    bgcolor: 'rgba(225,29,72,0.08)', color: '#E11D48',
+                    '&:hover': { bgcolor: 'rgba(225,29,72,0.14)' } 
                   }}
                 >
                   <Delete sx={{ fontSize: 18 }} />
@@ -417,16 +405,16 @@ export const UsersPage = () => {
           {/* Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3.5 }}>
             <Box>
-              <Typography variant="h5" fontWeight={900} mb={0.5} color="#1f291f">
+              <Typography variant="h5" fontWeight={900} mb={0.5} color="#1b1424">
                 {editingUserId ? 'تحديث السجلات' : 'إضافة موظف 👤'}
               </Typography>
-              <Typography variant="body2" color="#8b7e6a" fontWeight={600}>
+              <Typography variant="body2" color="#6D6883" fontWeight={600}>
                 {editingUserId ? 'تعديل الصلاحيات أو البيانات الأساسية' : 'إنشاء حساب جديد لمنح الوصول'}
               </Typography>
             </Box>
             <IconButton 
               onClick={() => setDialogOpen(false)} 
-              sx={{ bgcolor: '#f4f6f4', color: '#1f291f', width: 34, height: 34, '&:hover': { bgcolor: '#e8ece8' } }}
+              sx={{ bgcolor: '#F5F3FF', color: '#1b1424', width: 34, height: 34, '&:hover': { bgcolor: '#EDE4FF' } }}
             >
               <Close sx={{ fontSize: 18 }} />
             </IconButton>
@@ -435,40 +423,40 @@ export const UsersPage = () => {
           <Stack spacing={2.5}>
             {/* Input Groups */}
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#4a5d4a" mb={1}>الاسم الكامل</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>الاسم الكامل</Typography>
               <TextField
                 fullWidth variant="outlined" placeholder="محمد أحمد..."
                 value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: '#8b7e6a' }} /></InputAdornment> }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#f4f6f4', '& fieldset': { border: 'none' }, '&:focus-within': { bgcolor: 'white', '& fieldset': { border: '2px solid #4a5d4a' } } } }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: '#6D6883' }} /></InputAdornment> }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#F5F3FF', '& fieldset': { border: 'none' }, '&:focus-within': { bgcolor: 'white', '& fieldset': { border: '2px solid #6D28D9' } } } }}
               />
             </Box>
 
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#4a5d4a" mb={1}>البريد الإلكتروني</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>البريد الإلكتروني</Typography>
               <TextField
                 fullWidth type="email" variant="outlined" placeholder="email@example.com"
                 value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
                 disabled={!!editingUserId}
-                InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: '#8b7e6a' }} /></InputAdornment> }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#f4f6f4', '& fieldset': { border: 'none' }, '&.Mui-disabled': { opacity: 0.6 } } }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: '#6D6883' }} /></InputAdornment> }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#F5F3FF', '& fieldset': { border: 'none' }, '&.Mui-disabled': { opacity: 0.6 } } }}
               />
             </Box>
 
             {!editingUserId ? (
               <Box>
-                <Typography fontWeight={800} fontSize="0.8rem" color="#4a5d4a" mb={1}>كلمة المرور الأولية</Typography>
+                <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>كلمة المرور الأولية</Typography>
                 <TextField
                   fullWidth type="password" variant="outlined" placeholder="••••••••"
                   value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#8b7e6a' }} /></InputAdornment> }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#f4f6f4', '& fieldset': { border: 'none' } } }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#6D6883' }} /></InputAdornment> }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#F5F3FF', '& fieldset': { border: 'none' } } }}
                 />
               </Box>
             ) : (
               <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8f9f8', border: '1px solid rgba(0,0,0,0.04)' }}>
-                <Typography variant="body2" fontWeight={800} color="#1f291f" mb={1.5} display="flex" alignItems="center" gap={1}>
-                  <VpnKey fontSize="small" sx={{ color: '#4a5d4a' }}/> إعادة تعيين كلمة المرور
+                <Typography variant="body2" fontWeight={800} color="#1b1424" mb={1.5} display="flex" alignItems="center" gap={1}>
+                  <VpnKey fontSize="small" sx={{ color: '#6D28D9' }}/> إعادة تعيين كلمة المرور
                 </Typography>
                 <TextField
                   fullWidth placeholder="كلمة مرور جديدة (اختياري)" type="password" size="small"
@@ -477,7 +465,7 @@ export const UsersPage = () => {
                 />
                 <Button 
                   fullWidth onClick={handleResetPasswordEmail} startIcon={<Email />}
-                  sx={{ borderRadius: 2, py: 1, fontWeight: 700, color: '#4a5d4a', bgcolor: 'rgba(74,93,74,0.08)' }}
+                  sx={{ borderRadius: 2, py: 1, fontWeight: 700, color: '#6D28D9', bgcolor: 'rgba(109,40,217,0.08)' }}
                 >
                   إرسال رابط استعادة للإيميل
                 </Button>
@@ -485,7 +473,7 @@ export const UsersPage = () => {
             )}
 
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#4a5d4a" mb={1}>الصلاحية</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>الصلاحية</Typography>
               <Stack direction="row" spacing={1.5}>
                 {[
                   { value: 'editor', label: 'موظف عادي', icon: <Person /> },
@@ -495,15 +483,15 @@ export const UsersPage = () => {
                     key={role.value} onClick={() => setFormData({...formData, role: role.value})}
                     sx={{
                       flex: 1, p: 2, borderRadius: 3, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
-                      border: formData.role === role.value ? '2px solid #2a3a2a' : '2px solid transparent',
-                      bgcolor: formData.role === role.value ? alpha('#2a3a2a', 0.05) : '#f4f6f4',
+                      border: formData.role === role.value ? '2px solid #5B21B6' : '2px solid transparent',
+                      bgcolor: formData.role === role.value ? alpha('#5B21B6', 0.05) : '#F5F3FF',
                       '&:active': { transform: 'scale(0.96)' }
                     }}
                   >
-                    <Box sx={{ color: formData.role === role.value ? '#2a3a2a' : '#8b7e6a', mb: 0.5 }}>
+                    <Box sx={{ color: formData.role === role.value ? '#5B21B6' : '#6D6883', mb: 0.5 }}>
                       {role.icon}
                     </Box>
-                    <Typography fontWeight={800} sx={{ fontSize: '0.8rem', color: formData.role === role.value ? '#1f291f' : '#8b7e6a' }}>
+                    <Typography fontWeight={800} sx={{ fontSize: '0.8rem', color: formData.role === role.value ? '#1b1424' : '#6D6883' }}>
                       {role.label}
                     </Typography>
                   </Box>
@@ -515,7 +503,7 @@ export const UsersPage = () => {
               variant="contained" fullWidth onClick={handleCreateUser} disabled={submitting}
               sx={{
                 py: 2, mt: 2, borderRadius: 3, fontWeight: 900, fontSize: '1.05rem',
-                bgcolor: '#2a3a2a', color: 'white', '&:hover': { bgcolor: '#151a15' },
+                bgcolor: '#5B21B6', color: 'white', '&:hover': { bgcolor: '#4C1D95' },
                 boxShadow: '0 8px 24px rgba(42,58,42,0.25)',
               }}
             >

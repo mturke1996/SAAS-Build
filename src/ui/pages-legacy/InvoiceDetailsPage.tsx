@@ -99,22 +99,19 @@ export const InvoiceDetailsPage = () => {
 
   return (
     <Box sx={{
-      pb: 4, minHeight: '100dvh', bgcolor: '#f5f3ef',
+      pb: 4,
       '@media print': { bgcolor: 'white', pb: 0, minHeight: 'auto' },
     }}>
       {/* Header */}
       <Box
         sx={{
-          background: 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)',
-          pt: 'calc(env(safe-area-inset-top) + 16px)', pb: 3, px: 2, color: 'white',
+          background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
+          pt: 3, pb: 3, px: 2, color: 'white',
           '@media print': { display: 'none' },
         }}
       >
         <Container maxWidth="sm">
           <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-            <IconButton onClick={() => navigate('/invoices')} sx={{ color: 'rgba(255,255,255,0.9)' }}>
-              <ArrowBack />
-            </IconButton>
             <Box sx={{ flex: 1 }}>
               <Typography fontWeight={800} sx={{ fontSize: '1.1rem' }}>
                 فاتورة #{invoice.invoiceNumber}

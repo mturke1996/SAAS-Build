@@ -403,7 +403,7 @@ export const ClientProfilePage = () => {
     { title: 'المصروفات', icon: TrendingDown, color: '#d64545', bgColor: 'rgba(214,69,69,0.08)', borderColor: 'rgba(214,69,69,0.12)', module: 'expenses', onClick: () => setExpensesListOpen(true) },
     { title: 'المدفوعات', icon: Payment, color: '#0d9668', bgColor: 'rgba(13,150,104,0.08)', borderColor: 'rgba(13,150,104,0.12)', module: 'payments', onClick: () => setPaymentsListOpen(true) },
     { title: 'الديون', icon: CreditCard, color: '#c9a54e', bgColor: 'rgba(201,165,78,0.08)', borderColor: 'rgba(201,165,78,0.12)', module: 'debts', onClick: () => setDebtsListOpen(true) },
-    { title: 'العمال', icon: PersonAdd, color: '#4a5d4a', bgColor: 'rgba(74,93,74,0.08)', borderColor: 'rgba(74,93,74,0.12)', module: 'workers', onClick: () => setWorkersListOpen(true) },
+    { title: 'العمال', icon: PersonAdd, color: '#6D28D9', bgColor: 'rgba(109,40,217,0.08)', borderColor: 'rgba(109,40,217,0.12)', module: 'workers', onClick: () => setWorkersListOpen(true) },
     { title: 'إضافة رصيد (العهد)', icon: AccountBalanceWallet, color: '#f59e0b', bgColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.12)', module: 'balances', onClick: () => setBalancesListOpen(true) },
     { title: 'حساب الأرباح', icon: TrendingUp, color: '#5a8fc4', bgColor: 'rgba(90,143,196,0.08)', borderColor: 'rgba(90,143,196,0.12)', module: 'stats', onClick: () => setProfitDialogOpen(true) },
     { title: 'تحميل التقرير الشامل', icon: Business, color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.08)', borderColor: 'rgba(139,92,246,0.12)', module: 'stats', onClick: () => handleGeneratePDF() },
@@ -501,7 +501,7 @@ export const ClientProfilePage = () => {
   const getPayMethodLabel = (m: string) => ({ cash: 'نقدي', bank_transfer: 'تحويل بنكي', check: 'شيك', credit_card: 'بطاقة', mobile_payment: 'محفظة' }[m] || m);
   const getCategoryLabel = getExpenseCategoryLabel;
 
-  const headerGradient = theme.palette.mode === 'light' ? 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)' : 'linear-gradient(160deg, #2a3a2a 0%, #364036 100%)';
+  const headerGradient = theme.palette.mode === 'light' ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)' : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)';
   const pageBg = theme.palette.mode === 'dark' ? 'linear-gradient(180deg, #1a1f1a 0%, #151a15 100%)' : 'linear-gradient(180deg, #f5f3ef 0%, #ede9e3 100%)';
 
   if (!client) return (
@@ -514,7 +514,7 @@ export const ClientProfilePage = () => {
   return (
     <Box sx={{ minHeight: '100dvh', background: pageBg, pb: 8 }}>
       {/* Header */}
-      <Box sx={{ background: headerGradient, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)', pb: 4, px: 2, position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 70% 20%, rgba(200,192,176,0.08) 0%, transparent 50%)', pointerEvents: 'none' } }}>
+      <Box sx={{ background: headerGradient, pt: 3, pb: 4, px: 2, position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 70% 20%, rgba(245,158,11,0.1) 0%, transparent 55%)', pointerEvents: 'none' } }}>
         <Container maxWidth="sm">
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
             <IconButton onClick={() => navigate('/clients')} sx={{ color: 'rgba(255,255,255,0.9)' }}><ArrowBack /></IconButton>
@@ -559,9 +559,9 @@ export const ClientProfilePage = () => {
                     fontWeight: 700, 
                     boxShadow: '0 4px 12px rgba(230, 168, 23, 0.25)',
                     bgcolor: '#e6a817',
-                    color: '#2a3a2a',
+                    color: '#4C1D95',
                     alignItems: 'center',
-                    '& .MuiAlert-icon': { color: '#2a3a2a' }
+                    '& .MuiAlert-icon': { color: '#4C1D95' }
                   }}
                 >
                   تنبيه: الرصيد الحالي بالسالب (يوجد عجز مالي بقيمة {formatCurrency(Math.abs(summary.remaining))})
@@ -583,9 +583,9 @@ export const ClientProfilePage = () => {
                 fontWeight: 700, 
                 boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
                 bgcolor: '#f59e0b',
-                color: '#2a3a2a',
+                color: '#4C1D95',
                 alignItems: 'center',
-                '& .MuiAlert-icon': { color: '#2a3a2a' }
+                '& .MuiAlert-icon': { color: '#4C1D95' }
               }}
             >
               تنبيه: لقد نفد الرصيد (العهدة) الخاص بالمستخدم "{data.name}". (المصروفات: {formatCurrency(data.spent)})
@@ -604,7 +604,7 @@ export const ClientProfilePage = () => {
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600, letterSpacing: 0.5, display: 'block', mb: 0.5 }}>إجمالي المدفوعات</Typography>
                     <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 900, textShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>{formatCurrency(summary.totalPaid)}</Typography>
                   </Box>
-                  <Box sx={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #d4c5a3 0%, #a3967a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(212,197,163,0.3)', color: '#2a3a2a' }}>
+                  <Box sx={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #d4c5a3 0%, #a3967a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(212,197,163,0.3)', color: '#4C1D95' }}>
                     <Payment sx={{ fontSize: 28 }} />
                   </Box>
                 </Stack>
@@ -726,7 +726,7 @@ export const ClientProfilePage = () => {
               {/* Stats Row */}
               <Box sx={{ display: 'flex', borderBottom: '1px solid', borderColor: 'divider' }}>
                 {[
-                  { label: 'إجمالي العهدة', value: currentUserBalanceInfo.given, color: '#4a5d4a' },
+                  { label: 'إجمالي العهدة', value: currentUserBalanceInfo.given, color: '#6D28D9' },
                   { label: 'المصروف منها', value: currentUserBalanceInfo.spent, color: '#d64545' },
                 ].map((s, i) => (
                   <Box key={i} sx={{ flex: 1, p: 1.5, textAlign: 'center', borderRight: i === 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
@@ -773,7 +773,7 @@ export const ClientProfilePage = () => {
               ))}</Stack>
             )}
             {/* Total */}
-            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#364036', color: 'white' }}>
+            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#5B21B6', color: 'white' }}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Box onClick={() => setExpensesPerUserOpen(!expensesPerUserOpen)} sx={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Stack direction="row" alignItems="center" spacing={1}>
@@ -831,7 +831,7 @@ export const ClientProfilePage = () => {
               <IconButton onClick={() => setPaymentsListOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
               <Typography variant="h5" fontWeight={800}>المدفوعات ({clientPayments.length})</Typography>
             </Stack>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingPayment(null); resetPay(); setPaymentDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#c8c0b0', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دفعة جديدة</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingPayment(null); resetPay(); setPaymentDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#F59E0B', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دفعة جديدة</Button>
           </Stack>
           {/* PDF Buttons */}
           <Stack direction="row" spacing={1}>
@@ -868,7 +868,7 @@ export const ClientProfilePage = () => {
               ))}</Stack>
             )}
             {/* Total */}
-            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#364036', color: 'white' }}>
+            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#5B21B6', color: 'white' }}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography fontWeight={800}>إجمالي المدفوعات</Typography>
@@ -888,7 +888,7 @@ export const ClientProfilePage = () => {
               <IconButton onClick={() => setDebtsListOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
               <Typography variant="h5" fontWeight={800}>الديون ({clientDebts.length})</Typography>
             </Stack>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingDebt(null); resetDebt(); setDebtDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#c8c0b0', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دين جديد</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingDebt(null); resetDebt(); setDebtDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#F59E0B', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دين جديد</Button>
           </Stack>
           {/* PDF Buttons */}
           <Stack direction="row" spacing={1}>
@@ -948,17 +948,17 @@ export const ClientProfilePage = () => {
                 </Box>
               )}
               
-              <Controller name="description" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="الوصف" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><NoteAlt sx={{ color: '#4a5d4a' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="amount" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="المبلغ" type="number" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><Payment sx={{ color: '#4a5d4a' }} /></InputAdornment>, endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
+              <Controller name="description" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="الوصف" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><NoteAlt sx={{ color: '#6D28D9' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
+              <Controller name="amount" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="المبلغ" type="number" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><Payment sx={{ color: '#6D28D9' }} /></InputAdornment>, endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
               <Controller name="category" control={expCtrl} render={({ field }) => <FormControl fullWidth><InputLabel>التصنيف</InputLabel><Select {...field} label="التصنيف" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}>{Object.entries(expenseCategories).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</Select></FormControl>} />
               <Controller name="invoiceNumber" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="رقم الفاتورة (اختياري)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
               <Controller name="workerId" control={expCtrl} render={({ field }) => <FormControl fullWidth><InputLabel>العامل (اختياري)</InputLabel><Select {...field} label="العامل (اختياري)" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}><MenuItem value=""><em>لا يوجد</em></MenuItem>{workers.filter(w=>w.clientId===clientId).map(w=><MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}</Select></FormControl>} />
-              <Controller name="date" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="التاريخ" type="date" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><CalendarToday sx={{ color: '#4a5d4a' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
+              <Controller name="date" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="التاريخ" type="date" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><CalendarToday sx={{ color: '#6D28D9' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
               <Controller name="notes" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="ملاحظات" multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
               <Button onClick={() => setExpenseDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ وإصدار</Button>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ وإصدار</Button>
             </Stack>
           </Box>
         </form>
@@ -979,7 +979,7 @@ export const ClientProfilePage = () => {
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
               <Button onClick={() => setPaymentDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ</Button>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
             </Stack>
           </Box>
         </form>
@@ -1001,7 +1001,7 @@ export const ClientProfilePage = () => {
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
               <Button onClick={() => setDebtDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ</Button>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
             </Stack>
           </Box>
         </form>
@@ -1016,7 +1016,7 @@ export const ClientProfilePage = () => {
         </Stack>
         <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
           <Button fullWidth onClick={() => setProfitDialogOpen(false)} sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-          <Button fullWidth variant="contained" onClick={handleSaveProfit} sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ النسبة</Button>
+          <Button fullWidth variant="contained" onClick={handleSaveProfit} sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ النسبة</Button>
         </Stack>
       </Dialog>
 
@@ -1035,7 +1035,7 @@ export const ClientProfilePage = () => {
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
               <Button onClick={() => setEditClientOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ</Button>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
             </Stack>
             <Divider sx={{ my: 4 }} />
             <Button fullWidth variant="outlined" color="error" startIcon={<Delete />} onClick={handleDeleteClient} sx={{ borderRadius: 2.5 }}>حذف العميل</Button>
@@ -1050,11 +1050,11 @@ export const ClientProfilePage = () => {
         {/* ── Header ── */}
         <Box sx={{
           background: theme.palette.mode === 'light'
-            ? 'linear-gradient(160deg, #1e2a1e 0%, #2e4030 50%, #3a5040 100%)'
-            : 'linear-gradient(160deg, #111811 0%, #1a2a1a 100%)',
+            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
+            : 'linear-gradient(135deg, #0F0D1C 0%, #1B0F3B 100%)',
           pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)',
           pb: 5, px: 2, position: 'relative', overflow: 'hidden',
-          '&::before': { content: '""', position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 0%, rgba(200,192,176,0.1) 0%, transparent 60%)', pointerEvents: 'none' },
+          '&::before': { content: '""', position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 0%, rgba(245,158,11,0.12) 0%, transparent 60%)', pointerEvents: 'none' },
         }}>
           <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2.5}>
@@ -1092,7 +1092,7 @@ export const ClientProfilePage = () => {
             {clientWorkers.length > 0 && (
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
                 {[
-                  { label: 'الاتفاقيات', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.totalAmount, 0)), color: '#c8c0b0' },
+                  { label: 'الاتفاقيات', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.totalAmount, 0)), color: '#F59E0B' },
                   { label: 'المدفوع', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.paidAmount, 0)), color: '#6ee7b7' },
                   { label: 'المتبقي', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.remainingAmount, 0)), color: '#fca5a5' },
                 ].map((s, i) => (
@@ -1125,7 +1125,7 @@ export const ClientProfilePage = () => {
           <Container maxWidth="sm">
             {clientWorkers.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', mt: 1 }}>
-                <PersonAdd sx={{ fontSize: 64, color: alpha('#4a5d4a', 0.2), mb: 2 }} />
+                <PersonAdd sx={{ fontSize: 64, color: alpha('#6D28D9', 0.2), mb: 2 }} />
                 <Typography variant="h6" fontWeight={800} color="text.secondary">لا يوجد عمال بعد</Typography>
                 <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>اضغط على زر الإضافة لتسجيل عمال المشروع</Typography>
               </Box>
@@ -1162,7 +1162,7 @@ export const ClientProfilePage = () => {
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography fontWeight={800} noWrap sx={{ fontSize: '0.97rem' }}>{worker.name}</Typography>
-                          <Typography variant="caption" sx={{ color: '#4a5d4a', fontWeight: 600 }}>
+                          <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
                             {worker.jobType || 'عامل / مقاول'}
                           </Typography>
                         </Box>
@@ -1216,7 +1216,7 @@ export const ClientProfilePage = () => {
                         <Divider orientation="vertical" flexItem />
                         <IconButton
                           onClick={() => { setEditingWorker(worker); setWorkVal('name', worker.name); setWorkVal('jobType', worker.jobType || ''); setWorkVal('totalAmount', worker.totalAmount); setWorkerDialogOpen(true); }}
-                          sx={{ borderRadius: 0, px: 2.5, color: 'text.secondary', '&:hover': { bgcolor: alpha('#4a5d4a', 0.06), color: '#4a5d4a' } }}
+                          sx={{ borderRadius: 0, px: 2.5, color: 'text.secondary', '&:hover': { bgcolor: alpha('#6D28D9', 0.06), color: '#6D28D9' } }}
                         >
                           <Edit sx={{ fontSize: 18 }} />
                         </IconButton>
@@ -1255,21 +1255,21 @@ export const ClientProfilePage = () => {
               <Stack divider={<Divider />}>
                 <Controller name="name" control={workCtrl} render={({ field }) => (
                   <TextField {...field} fullWidth label="اسم العامل أو المقاول" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Person sx={{ color: '#4a5d4a', fontSize: 20 }} /></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#4a5d4a', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#4a5d4a', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
+                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Person sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment> }}
+                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
                   />
                 )} />
                 <Controller name="jobType" control={workCtrl} render={({ field }) => (
                   <TextField {...field} fullWidth label="طبيعة العمل (بياض، كهرباء، مقاول...)" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Business sx={{ color: '#4a5d4a', fontSize: 20 }} /></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#4a5d4a', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#4a5d4a', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
+                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Business sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment> }}
+                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
                   />
                 )} />
                 <Controller name="totalAmount" control={workCtrl} render={({ field: { value, onChange, ...rest } }) => (
                   <TextField {...rest} value={value === 0 && !editingWorker ? '' : value} onChange={e => { const val = e.target.value; onChange(val === '' ? '' : val); }}
                     fullWidth label="إجمالي المبلغ المتفق عليه" type="number" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><AccountBalanceWallet sx={{ color: '#4a5d4a', fontSize: 20 }} /></InputAdornment>, endAdornment: <InputAdornment position="end"><Typography fontWeight={800} color="text.secondary" fontSize="0.85rem">د.ل</Typography></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#4a5d4a', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#4a5d4a', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
+                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><AccountBalanceWallet sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment>, endAdornment: <InputAdornment position="end"><Typography fontWeight={800} color="text.secondary" fontSize="0.85rem">د.ل</Typography></InputAdornment> }}
+                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
                   />
                 )} />
               </Stack>
@@ -1281,7 +1281,7 @@ export const ClientProfilePage = () => {
               sx={{ borderRadius: 0, fontWeight: 700, color: 'text.secondary', py: 2, fontSize: '1rem' }}>إلغاء</Button>
             <Divider orientation="vertical" flexItem />
             <Button type="submit" variant="contained" fullWidth size="large"
-              sx={{ borderRadius: 0, fontWeight: 900, bgcolor: '#4a5d4a', color: '#fff', py: 2, fontSize: '1rem', boxShadow: 'none', '&:hover': { bgcolor: '#364036', boxShadow: 'none' } }}>
+              sx={{ borderRadius: 0, fontWeight: 900, bgcolor: '#6D28D9', color: '#fff', py: 2, fontSize: '1rem', boxShadow: 'none', '&:hover': { bgcolor: '#5B21B6', boxShadow: 'none' } }}>
               {editingWorker ? 'حفظ التعديلات' : 'إضافة العامل'}
             </Button>
           </Box>
@@ -1307,7 +1307,7 @@ export const ClientProfilePage = () => {
                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>يوجد {clientUserBalances.length} سجل للعهد والمصروفات</Typography>
               </Box>
             </Stack>
-            <IconButton onClick={() => { setEditingBalance(null); resetBal(); setBalanceDialogOpen(true); }} sx={{ bgcolor: '#4a5d4a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', '&:hover': { bgcolor: '#364036' } }}>
+            <IconButton onClick={() => { setEditingBalance(null); resetBal(); setBalanceDialogOpen(true); }} sx={{ bgcolor: '#6D28D9', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', '&:hover': { bgcolor: '#5B21B6' } }}>
               <Add />
             </IconButton>
           </Stack>
@@ -1318,34 +1318,34 @@ export const ClientProfilePage = () => {
             {Object.entries(userBalancesSummary).length > 0 && (
               <Box sx={{ mb: {xs: 4, sm: 5} }}>
                 <Typography variant="subtitle1" sx={{ mb: 1.5, px: 0.5, fontWeight: 900, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
-                  <TrendingUp sx={{ color: '#4a5d4a', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                  <TrendingUp sx={{ color: '#6D28D9', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
                   ملخص الأرصدة والمصروفات المنفذة للمستخدمين:
                 </Typography>
                 <Grid container spacing={{xs: 1.5, sm: 2}}>
                   {Object.entries(userBalancesSummary).map(([uId, sum]) => (
                     <Grid size={{xs: 12}} key={uId}>
                       <Card sx={{ borderRadius: 3, position: 'relative', overflow: 'hidden', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                        <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 8, background: sum.remaining > 0 ? '#4a5d4a' : '#d64545' }} />
+                        <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 8, background: sum.remaining > 0 ? '#6D28D9' : '#d64545' }} />
                         <CardContent sx={{ p: {xs: 2.5, sm: 3}, pl: {xs: 3, sm: 4}, '&:last-child': { pb: {xs: 2.5, sm: 3} } }}>
                           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: {xs: 2, sm: 2.5} }}>
                             <Stack direction="row" alignItems="center" spacing={2} sx={{ minWidth: 0 }}>
-                               <Avatar sx={{ width: {xs: 44, sm: 52}, height: {xs: 44, sm: 52}, bgcolor: alpha('#4a5d4a', 0.1), color: '#4a5d4a', fontSize: {xs: '1.1rem', sm: '1.3rem'}, fontWeight: 900, border: `2px solid ${alpha('#4a5d4a', 0.15)}`, flexShrink: 0 }}>
+                               <Avatar sx={{ width: {xs: 44, sm: 52}, height: {xs: 44, sm: 52}, bgcolor: alpha('#6D28D9', 0.1), color: '#6D28D9', fontSize: {xs: '1.1rem', sm: '1.3rem'}, fontWeight: 900, border: `2px solid ${alpha('#6D28D9', 0.15)}`, flexShrink: 0 }}>
                                  {sum.name?.charAt(0) || 'م'}
                                </Avatar>
                                <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                 <Typography fontWeight={900} noWrap sx={{ fontSize: {xs: '1rem', sm: '1.15rem'}, color: '#2a3a2a' }}>{sum.name}</Typography>
+                                 <Typography fontWeight={900} noWrap sx={{ fontSize: {xs: '1rem', sm: '1.15rem'}, color: '#4C1D95' }}>{sum.name}</Typography>
                                  <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, fontSize: {xs: '0.75rem', sm: '0.8rem'} }}>مكلف بالعهد والمصروفات</Typography>
                                </Box>
                             </Stack>
-                            <Box sx={{ textAlign: 'left', background: sum.remaining > 0 ? alpha('#4a5d4a',0.04) : alpha('#d64545',0.04), px: {xs: 2, sm: 2.5}, py: {xs: 1, sm: 1.5}, borderRadius: 0, flexShrink: 0, ml: 1, border: `1px solid ${sum.remaining > 0 ? alpha('#4a5d4a',0.2) : alpha('#d64545',0.2)}` }}>
-                               <Typography variant="caption" sx={{ color: sum.remaining > 0 ? '#4a5d4a' : '#d64545', fontWeight: 800, display: 'block', fontSize: {xs: '0.7rem', sm: '0.75rem'}, mb: 0.5 }}>الرصيد المتاح</Typography>
-                               <Typography variant="body1" fontWeight={900} sx={{ color: sum.remaining > 0 ? '#4a5d4a' : '#d64545', fontSize: {xs: '1.1rem', sm: '1.3rem'} }}>{formatCurrency(sum.remaining)}</Typography>
+                            <Box sx={{ textAlign: 'left', background: sum.remaining > 0 ? alpha('#6D28D9',0.04) : alpha('#d64545',0.04), px: {xs: 2, sm: 2.5}, py: {xs: 1, sm: 1.5}, borderRadius: 0, flexShrink: 0, ml: 1, border: `1px solid ${sum.remaining > 0 ? alpha('#6D28D9',0.2) : alpha('#d64545',0.2)}` }}>
+                               <Typography variant="caption" sx={{ color: sum.remaining > 0 ? '#6D28D9' : '#d64545', fontWeight: 800, display: 'block', fontSize: {xs: '0.7rem', sm: '0.75rem'}, mb: 0.5 }}>الرصيد المتاح</Typography>
+                               <Typography variant="body1" fontWeight={900} sx={{ color: sum.remaining > 0 ? '#6D28D9' : '#d64545', fontSize: {xs: '1.1rem', sm: '1.3rem'} }}>{formatCurrency(sum.remaining)}</Typography>
                             </Box>
                           </Stack>
                           <Stack direction="row" spacing={0} sx={{ borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', mb: 1.5 }}>
                             <Box sx={{ flex: 1, p: 1.5, borderRight: '1px solid', borderColor: 'divider' }}>
                               <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.5, fontSize: {xs: '0.7rem', sm: '0.75rem'} }}>إجمالي العهدة الممنوحة</Typography>
-                              <Typography variant="body2" fontWeight={900} noWrap sx={{ color: '#2a3a2a', fontSize: {xs: '0.9rem', sm: '1rem'} }}>{formatCurrency(sum.given)}</Typography>
+                              <Typography variant="body2" fontWeight={900} noWrap sx={{ color: '#4C1D95', fontSize: {xs: '0.9rem', sm: '1rem'} }}>{formatCurrency(sum.given)}</Typography>
                             </Box>
                             <Box sx={{ flex: 1, p: 1.5 }}>
                               <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.5, fontSize: {xs: '0.7rem', sm: '0.75rem'} }}>المنفذ بالمصروفات</Typography>
@@ -1357,7 +1357,7 @@ export const ClientProfilePage = () => {
                           <Button 
                             fullWidth onClick={() => setExpandedUserExpenses(expandedUserExpenses === uId ? null : uId)}
                             endIcon={expandedUserExpenses === uId ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                            sx={{ borderRadius: 0, fontWeight: 800, color: '#4a5d4a', bgcolor: expandedUserExpenses === uId ? alpha('#4a5d4a',0.08) : 'transparent', '&:hover': { bgcolor: alpha('#4a5d4a',0.05) } }}
+                            sx={{ borderRadius: 0, fontWeight: 800, color: '#6D28D9', bgcolor: expandedUserExpenses === uId ? alpha('#6D28D9',0.08) : 'transparent', '&:hover': { bgcolor: alpha('#6D28D9',0.05) } }}
                           >
                             {expandedUserExpenses === uId ? 'إخفاء سجل المصروفات التفصيلي' : `مراجعة المصروفات المنفذة (${sum.expenses?.length || 0})`}
                           </Button>
@@ -1369,9 +1369,9 @@ export const ClientProfilePage = () => {
                               ) : (
                                 <Stack spacing={1}>
                                   {sum.expenses?.map((e: any, idx: number) => (
-                                    <Stack direction="row" justifyContent="space-between" alignItems="center" key={e.id} sx={{ p: 1.5, bgcolor: alpha('#4a5d4a',0.03), borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }}>
+                                    <Stack direction="row" justifyContent="space-between" alignItems="center" key={e.id} sx={{ p: 1.5, bgcolor: alpha('#6D28D9',0.03), borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }}>
                                       <Box>
-                                        <Typography variant="body2" fontWeight={800} color="#2a3a2a" noWrap>{e.description}</Typography>
+                                        <Typography variant="body2" fontWeight={800} color="#4C1D95" noWrap>{e.description}</Typography>
                                         <Typography variant="caption" color="text.secondary" fontWeight={600}>{formatDate(e.date)} • {getExpenseCategoryLabel(e.category)}</Typography>
                                       </Box>
                                       <Typography variant="body2" fontWeight={900} color="error.main">-{formatCurrency(e.amount)}</Typography>
@@ -1391,7 +1391,7 @@ export const ClientProfilePage = () => {
             )}
 
             <Typography variant="subtitle1" sx={{ mb: {xs: 1.5, sm: 2}, px: 1, fontWeight: 800, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-              <AccountBalanceWallet sx={{ color: '#4a5d4a', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+              <AccountBalanceWallet sx={{ color: '#6D28D9', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
               سجل الحركات (إيداعات الأرصدة):
             </Typography>
             {clientUserBalances.length === 0 ? (
@@ -1409,25 +1409,25 @@ export const ClientProfilePage = () => {
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1, pl: {xs: 1, sm: 2}, minWidth: 0 }}>
                         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
-                          <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1.5, bgcolor: alpha('#4a5d4a',0.1), color: '#4a5d4a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${alpha('#4a5d4a',0.2)}` }}>
+                          <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1.5, bgcolor: alpha('#6D28D9',0.1), color: '#6D28D9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${alpha('#6D28D9',0.2)}` }}>
                             <Typography fontWeight={900} fontSize="0.75rem"># {clientUserBalances.length - clientUserBalances.indexOf(bal)}</Typography>
                           </Box>
-                          <Avatar sx={{ width: {xs: 32, sm: 36}, height: {xs: 32, sm: 36}, bgcolor: '#f5f3ef', color: '#364036', flexShrink: 0 }}>
+                          <Avatar sx={{ width: {xs: 32, sm: 36}, height: {xs: 32, sm: 36}, bgcolor: '#f5f3ef', color: '#5B21B6', flexShrink: 0 }}>
                             <Person sx={{ fontSize: {xs: 18, sm: 20} }} />
                           </Avatar>
                           <Typography fontWeight={800} noWrap sx={{ fontSize: {xs: '1rem', sm: '1.1rem'}, color: '#111827' }}>{bal.userName}</Typography>
                         </Stack>
                         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1, mt: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
-                           <Typography variant="body2" sx={{ color: '#4a5d4a', fontWeight: 900, bgcolor: alpha('#4a5d4a',0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: {xs: '0.8rem', sm: '0.9rem'} }}>
+                           <Typography variant="body2" sx={{ color: '#6D28D9', fontWeight: 900, bgcolor: alpha('#6D28D9',0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: {xs: '0.8rem', sm: '0.9rem'} }}>
                              + {formatCurrency(bal.amount)} الرصيد المضاف
                            </Typography>
                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: {xs: '0.7rem', sm: '0.8rem'} }}>تاريخ الإضافة: {formatDate(bal.date)}</Typography>
                         </Stack>
-                        {bal.notes && <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1, bgcolor: alpha('#c8c0b0',0.15), p: 1.5, borderRadius: 2, fontSize: {xs: '0.7rem', sm: '0.8rem'}, fontWeight: 600 }}>{bal.notes}</Typography>}
+                        {bal.notes && <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1, bgcolor: alpha('#F59E0B',0.15), p: 1.5, borderRadius: 2, fontSize: {xs: '0.7rem', sm: '0.8rem'}, fontWeight: 600 }}>{bal.notes}</Typography>}
                         {bal.createdBy && <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'text.disabled', fontWeight: 600, fontSize: {xs: '0.65rem', sm: '0.75rem'} }}>بواسطة: {bal.createdBy}</Typography>}
                       </Box>
                       <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
-                        <IconButton size="small" onClick={() => { setEditingBalance(bal); setBalVal('userId', bal.userId); setBalVal('amount', bal.amount); setBalVal('date', bal.date); setBalVal('notes', bal.notes || ''); setBalanceDialogOpen(true); }} sx={{ bgcolor: alpha('#4a5d4a', 0.05), color: '#4a5d4a', '&:hover': { bgcolor: alpha('#4a5d4a', 0.15) } }}><Edit sx={{ fontSize: 18 }} /></IconButton>
+                        <IconButton size="small" onClick={() => { setEditingBalance(bal); setBalVal('userId', bal.userId); setBalVal('amount', bal.amount); setBalVal('date', bal.date); setBalVal('notes', bal.notes || ''); setBalanceDialogOpen(true); }} sx={{ bgcolor: alpha('#6D28D9', 0.05), color: '#6D28D9', '&:hover': { bgcolor: alpha('#6D28D9', 0.15) } }}><Edit sx={{ fontSize: 18 }} /></IconButton>
                         <IconButton size="small" onClick={() => { if (window.confirm('هل أنت متأكد من حذف حركة الرصيد هذه؟')) deleteUserBalance(bal.id).then(() => msg('تم الحذف')); }} sx={{ bgcolor: 'rgba(214,69,69,0.05)', color: '#d64545', '&:hover': { bgcolor: 'rgba(214,69,69,0.15)' } }}><Delete sx={{ fontSize: 18 }} /></IconButton>
                       </Stack>
                     </Stack>
@@ -1474,7 +1474,7 @@ export const ClientProfilePage = () => {
                     {systemUsers.map(u => (
                        <MenuItem key={u.id} value={u.uid || u.id} sx={{ fontWeight: 600 }}>
                          <Stack direction="row" alignItems="center" spacing={1.5}>
-                           <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'rgba(74,93,74,0.1)', color: '#4a5d4a' }}>{u.displayName?.charAt(0)}</Avatar>
+                           <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'rgba(109,40,217,0.1)', color: '#6D28D9' }}>{u.displayName?.charAt(0)}</Avatar>
                            <Typography>{u.displayName}</Typography>
                          </Stack>
                        </MenuItem>
@@ -1485,21 +1485,21 @@ export const ClientProfilePage = () => {
 
               <Controller name="amount" control={balCtrl} render={({ field }) => (
                 <TextField {...field} fullWidth label="مبلغ العهدة (د.ل)" type="number" 
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><AccountBalanceWallet sx={{ color: '#4a5d4a', opacity: 0.7 }} /></InputAdornment> }}
+                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><AccountBalanceWallet sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
                 />
               )} />
 
               <Controller name="date" control={balCtrl} render={({ field }) => (
                 <TextField {...field} fullWidth label="تاريخ الإضافة" type="date"
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><CalendarToday sx={{ color: '#4a5d4a', opacity: 0.7 }} /></InputAdornment> }}
+                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><CalendarToday sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
                 />
               )} />
 
               <Controller name="notes" control={balCtrl} render={({ field }) => (
                 <TextField {...field} fullWidth label="ملاحظات توضيحية (اختياري)" multiline rows={3}
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5, mr: 1, ml: 1 }}><NoteAlt sx={{ color: '#4a5d4a', opacity: 0.7 }} /></InputAdornment> }}
+                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5, mr: 1, ml: 1 }}><NoteAlt sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
                 />
               )} />
@@ -1513,7 +1513,7 @@ export const ClientProfilePage = () => {
               <Button onClick={() => setBalanceDialogOpen(false)} variant="outlined" fullWidth size="large" sx={{ borderRadius: 3, p: 1.5, fontWeight: 700, borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', color: 'text.secondary' }}>
                 رجوع
               </Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 3, p: 1.5, fontWeight: 900, bgcolor: '#4a5d4a', color: '#fff', '&:hover': { bgcolor: '#364036' }, boxShadow: '0 4px 12px rgba(74,93,74,0.3)' }}>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 3, p: 1.5, fontWeight: 900, bgcolor: '#6D28D9', color: '#fff', '&:hover': { bgcolor: '#5B21B6' }, boxShadow: '0 4px 12px rgba(109,40,217,0.3)' }}>
                 {editingBalance ? 'حفظ التعديل' : 'إيداع العهدة'}
               </Button>
             </Stack>
@@ -1550,7 +1550,7 @@ export const ClientProfilePage = () => {
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
               <Button onClick={() => setEditClientOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' } }}>حفظ التعديلات</Button>
+              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ التعديلات</Button>
             </Stack>
             <Divider sx={{ my: 4 }} />
             <Button fullWidth size="large" variant="outlined" color="error" onClick={handleDeleteClient} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1.5 }}>

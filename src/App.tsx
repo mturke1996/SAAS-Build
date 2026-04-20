@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,26 +14,26 @@ import { useDataStore } from './stores/useDataStore';
 import { useAppLockStore } from './stores/useAppLockStore';
 import { createMuiBridge } from './design-system/theme/createMuiBridge';
 
-// New shells / pages
+// Eager shells + critical paths
 import { AppShell } from './ui/shells/AppShell';
 import { LoginPage } from './ui/pages/LoginPage';
 import { HomePage } from './ui/pages/HomePage';
-import { BrandingSettingsPage } from './ui/pages/BrandingSettingsPage';
 import { LoadingScreen } from './ui/feedback/LoadingScreen';
 import { AppLockGuard } from './ui/AppLockGuard';
 
-// Legacy feature pages (preserved fully, themed via MUI bridge)
-import { ClientsPage } from './ui/pages-legacy/ClientsPage';
-import { ClientProfilePage } from './ui/pages-legacy/ClientProfilePage';
-import { InvoicesPage } from './ui/pages-legacy/InvoicesPage';
-import { NewInvoicePage } from './ui/pages-legacy/NewInvoicePage';
-import { InvoiceDetailsPage } from './ui/pages-legacy/InvoiceDetailsPage';
-import { ExpensesPage } from './ui/pages-legacy/ExpensesPage';
-import { PaymentsPage } from './ui/pages-legacy/PaymentsPage';
-import { DebtsPage } from './ui/pages-legacy/DebtsPage';
-import { UsersPage } from './ui/pages-legacy/UsersPage';
-import { FundPage } from './ui/pages-legacy/FundPage';
-import { LettersPage } from './ui/pages-legacy/LettersPage';
+// Lazy: settings + feature pages (code-split; only loaded when visited)
+const BrandingSettingsPage   = lazy(() => import('./ui/pages/BrandingSettingsPage').then(m => ({ default: m.BrandingSettingsPage })));
+const ClientsPage            = lazy(() => import('./ui/pages-legacy/ClientsPage').then(m => ({ default: m.ClientsPage })));
+const ClientProfilePage      = lazy(() => import('./ui/pages-legacy/ClientProfilePage').then(m => ({ default: m.ClientProfilePage })));
+const InvoicesPage           = lazy(() => import('./ui/pages-legacy/InvoicesPage').then(m => ({ default: m.InvoicesPage })));
+const NewInvoicePage         = lazy(() => import('./ui/pages-legacy/NewInvoicePage').then(m => ({ default: m.NewInvoicePage })));
+const InvoiceDetailsPage     = lazy(() => import('./ui/pages-legacy/InvoiceDetailsPage').then(m => ({ default: m.InvoiceDetailsPage })));
+const ExpensesPage           = lazy(() => import('./ui/pages-legacy/ExpensesPage').then(m => ({ default: m.ExpensesPage })));
+const PaymentsPage           = lazy(() => import('./ui/pages-legacy/PaymentsPage').then(m => ({ default: m.PaymentsPage })));
+const DebtsPage              = lazy(() => import('./ui/pages-legacy/DebtsPage').then(m => ({ default: m.DebtsPage })));
+const UsersPage              = lazy(() => import('./ui/pages-legacy/UsersPage').then(m => ({ default: m.UsersPage })));
+const FundPage               = lazy(() => import('./ui/pages-legacy/FundPage').then(m => ({ default: m.FundPage })));
+const LettersPage            = lazy(() => import('./ui/pages-legacy/LettersPage').then(m => ({ default: m.LettersPage })));
 
 // Register @gsap/react plugin once — enables useGSAP hook everywhere
 gsap.registerPlugin(useGSAP);
@@ -112,33 +112,35 @@ function AppContent() {
           v7_relativeSplatPath: true,
         }}
       >
-        <Routes>
-          <Route
-            path="/login"
-            element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />}
-          />
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            <Route
+              path="/login"
+              element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />}
+            />
 
-          <Route element={isAuthenticated ? <AppShell /> : <Navigate to="/login" replace />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/settings/branding" element={<BrandingSettingsPage />} />
+            <Route element={isAuthenticated ? <AppShell /> : <Navigate to="/login" replace />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/settings/branding" element={<BrandingSettingsPage />} />
 
-            <Route path="/clients" element={<AppLockGuard module="clients" requireScreen><ClientsPage /></AppLockGuard>} />
-            <Route path="/clients/:id" element={<AppLockGuard module="clients" requireScreen><ClientProfilePage /></AppLockGuard>} />
+              <Route path="/clients" element={<AppLockGuard module="clients" requireScreen><ClientsPage /></AppLockGuard>} />
+              <Route path="/clients/:id" element={<AppLockGuard module="clients" requireScreen><ClientProfilePage /></AppLockGuard>} />
 
-            <Route path="/invoices" element={<AppLockGuard module="invoices" requireScreen><InvoicesPage /></AppLockGuard>} />
-            <Route path="/invoices/new" element={<AppLockGuard module="invoices" requireScreen><NewInvoicePage /></AppLockGuard>} />
-            <Route path="/invoices/:id" element={<AppLockGuard module="invoices" requireScreen><InvoiceDetailsPage /></AppLockGuard>} />
+              <Route path="/invoices" element={<AppLockGuard module="invoices" requireScreen><InvoicesPage /></AppLockGuard>} />
+              <Route path="/invoices/new" element={<AppLockGuard module="invoices" requireScreen><NewInvoicePage /></AppLockGuard>} />
+              <Route path="/invoices/:id" element={<AppLockGuard module="invoices" requireScreen><InvoiceDetailsPage /></AppLockGuard>} />
 
-            <Route path="/expenses" element={<AppLockGuard module="expenses" requireScreen><ExpensesPage /></AppLockGuard>} />
-            <Route path="/payments" element={<AppLockGuard module="payments" requireScreen><PaymentsPage /></AppLockGuard>} />
-            <Route path="/debts" element={<AppLockGuard module="debts" requireScreen><DebtsPage /></AppLockGuard>} />
-            <Route path="/users" element={<AppLockGuard module="users" requireScreen><UsersPage /></AppLockGuard>} />
-            <Route path="/fund" element={<AppLockGuard module="balances" requireScreen><FundPage /></AppLockGuard>} />
-            <Route path="/letters" element={<AppLockGuard module="letters" requireScreen><LettersPage /></AppLockGuard>} />
-          </Route>
+              <Route path="/expenses" element={<AppLockGuard module="expenses" requireScreen><ExpensesPage /></AppLockGuard>} />
+              <Route path="/payments" element={<AppLockGuard module="payments" requireScreen><PaymentsPage /></AppLockGuard>} />
+              <Route path="/debts" element={<AppLockGuard module="debts" requireScreen><DebtsPage /></AppLockGuard>} />
+              <Route path="/users" element={<AppLockGuard module="users" requireScreen><UsersPage /></AppLockGuard>} />
+              <Route path="/fund" element={<AppLockGuard module="balances" requireScreen><FundPage /></AppLockGuard>} />
+              <Route path="/letters" element={<AppLockGuard module="letters" requireScreen><LettersPage /></AppLockGuard>} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </ThemeProvider>
   );

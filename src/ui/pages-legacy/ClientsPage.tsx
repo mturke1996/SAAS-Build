@@ -143,14 +143,14 @@ export const ClientsPage = () => {
       <Box
         sx={{
           background: theme.palette.mode === 'light'
-            ? 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)'
-            : 'linear-gradient(160deg, #2a3a2a 0%, #364036 100%)',
-          pt: 'calc(env(safe-area-inset-top) + 24px)',
+            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
+            : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)',
+          pt: 3,
           pb: 4,
           px: 2,
           borderRadius: '0 0 28px 28px',
           boxShadow: theme.palette.mode === 'light'
-            ? '0 8px 32px -8px rgba(74, 93, 74, 0.3)'
+            ? '0 8px 32px -8px rgba(109, 40, 217, 0.35)'
             : '0 8px 32px -8px rgba(0, 0, 0, 0.4)',
           position: 'relative',
           overflow: 'hidden',
@@ -158,16 +158,13 @@ export const ClientsPage = () => {
             content: '""',
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
-            background: 'radial-gradient(ellipse at 70% 20%, rgba(200, 192, 176, 0.08) 0%, transparent 50%)',
+            background: 'radial-gradient(ellipse at 70% 20%, rgba(245, 158, 11, 0.12) 0%, transparent 55%)',
             pointerEvents: 'none',
           },
         }}
       >
         <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
           <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-            <IconButton onClick={() => navigate('/')} sx={{ color: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
-              <ArrowBack />
-            </IconButton>
             <Typography variant="h5" fontWeight={800} sx={{ color: 'white', flexGrow: 1, letterSpacing: 0.3 }}>
               العملاء ({clients.length})
             </Typography>
@@ -175,13 +172,13 @@ export const ClientsPage = () => {
               variant="contained"
               onClick={() => handleOpenDialog()}
               sx={{
-                bgcolor: 'rgba(200, 192, 176, 0.9)',
-                color: '#ffffffff',
-                fontWeight: 700,
-                '&:hover': { bgcolor: '#c8c0b0', transform: 'scale(1.04)' },
+                bgcolor: '#ffffff',
+                color: '#6D28D9',
+                fontWeight: 800,
+                '&:hover': { bgcolor: '#F5F3FF', transform: 'scale(1.04)' },
                 borderRadius: 2.5,
                 px: 2.5,
-                boxShadow: '0 4px 14px -3px rgba(200, 192, 176, 0.4)',
+                boxShadow: '0 4px 14px -3px rgba(0, 0, 0, 0.2)',
                 transition: 'all 0.25s ease',
               }}
               startIcon={<Add />}
@@ -231,8 +228,8 @@ export const ClientsPage = () => {
                 onClick={() => handleOpenDialog()}
                 sx={{
                   mt: 2, borderRadius: 2.5,
-                  bgcolor: '#4a5d4a',
-                  '&:hover': { bgcolor: '#364036' },
+                  bgcolor: '#6D28D9',
+                  '&:hover': { bgcolor: '#5B21B6' },
                   boxShadow: '0 4px 14px -3px rgba(74, 93, 74, 0.35)',
                 }}
               >
@@ -280,9 +277,9 @@ export const ClientsPage = () => {
                         }}
                       >
                         {client.type === 'company' ? (
-                          <Business sx={{ color: theme.palette.mode === 'dark' ? '#6b7f6b' : '#4a5d4a', fontSize: 22 }} />
+                          <Business sx={{ color: theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9', fontSize: 22 }} />
                         ) : (
-                          <Person sx={{ color: '#c8c0b0', fontSize: 22 }} />
+                          <Person sx={{ color: '#F59E0B', fontSize: 22 }} />
                         )}
                       </Avatar>
 
@@ -307,11 +304,11 @@ export const ClientsPage = () => {
                             sx={{
                               height: 22, fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
                               bgcolor: client.type === 'company'
-                                ? (theme.palette.mode === 'dark' ? 'rgba(107, 127, 107, 0.15)' : 'rgba(74, 93, 74, 0.08)')
-                                : (theme.palette.mode === 'dark' ? 'rgba(200, 192, 176, 0.15)' : 'rgba(200, 192, 176, 0.12)'),
+                                ? (theme.palette.mode === 'dark' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(109, 40, 217, 0.08)')
+                                : (theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)'),
                               color: client.type === 'company'
-                                ? (theme.palette.mode === 'dark' ? '#6b7f6b' : '#4a5d4a')
-                                : '#8b7e6a',
+                                ? (theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9')
+                                : '#B45309',
                               border: 'none',
                             }}
                           />
@@ -341,12 +338,12 @@ export const ClientsPage = () => {
                             handleOpenDialog(client);
                           }}
                           sx={{
-                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(107, 127, 107, 0.1)' : 'rgba(74, 93, 74, 0.05)',
-                            color: theme.palette.mode === 'dark' ? '#6b7f6b' : '#4a5d4a',
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(167, 139, 250, 0.1)' : 'rgba(109, 40, 217, 0.06)',
+                            color: theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9',
                             width: 36, height: 36,
                             borderRadius: 2,
-                            border: '1px solid rgba(74, 93, 74, 0.1)',
-                            '&:hover': { bgcolor: 'rgba(74, 93, 74, 0.1)' },
+                            border: '1px solid rgba(109, 40, 217, 0.12)',
+                            '&:hover': { bgcolor: 'rgba(109, 40, 217, 0.12)' },
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -378,8 +375,8 @@ export const ClientsPage = () => {
           <Box
             sx={{
               background: theme.palette.mode === 'light'
-                ? 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)'
-                : 'linear-gradient(160deg, #2a3a2a 0%, #364036 100%)',
+                ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
+                : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)',
               color: 'white',
               p: 2,
               pt: 'calc(env(safe-area-inset-top) + 16px)',
@@ -389,7 +386,7 @@ export const ClientsPage = () => {
                 content: '""',
                 position: 'absolute',
                 top: 0, left: 0, right: 0, bottom: 0,
-                background: 'radial-gradient(ellipse at 70% 50%, rgba(200, 192, 176, 0.08) 0%, transparent 50%)',
+                background: 'radial-gradient(ellipse at 70% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 55%)',
                 pointerEvents: 'none',
               },
             }}
@@ -505,12 +502,12 @@ export const ClientsPage = () => {
                 size="large"
                 sx={{
                   borderRadius: 2.5, py: 1.5,
-                  bgcolor: '#4a5d4a',
+                  bgcolor: '#6D28D9',
                   fontWeight: 700,
-                  boxShadow: '0 4px 14px -3px rgba(74, 93, 74, 0.35)',
+                  boxShadow: '0 4px 14px -3px rgba(109, 40, 217, 0.4)',
                   '&:hover': {
-                    bgcolor: '#364036',
-                    boxShadow: '0 8px 22px -4px rgba(74, 93, 74, 0.4)',
+                    bgcolor: '#5B21B6',
+                    boxShadow: '0 8px 22px -4px rgba(109, 40, 217, 0.5)',
                   },
                 }}
               >

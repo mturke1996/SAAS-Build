@@ -56,7 +56,7 @@ const inputStyle = {
     transition: 'all 0.2s ease',
     '& fieldset': { borderColor: 'rgba(0,0,0,0.06)' },
     '&:hover fieldset': { borderColor: 'rgba(0,0,0,0.1)' },
-    '&.Mui-focused fieldset': { borderColor: '#4a5d4a', borderWidth: 2 },
+    '&.Mui-focused fieldset': { borderColor: '#6D28D9', borderWidth: 2 },
     '&.Mui-focused': { bgcolor: '#fff', boxShadow: '0 4px 20px rgba(74,93,74,0.08)' }
   }
 };
@@ -213,14 +213,11 @@ export const NewInvoicePage = () => {
   };
 
   return (
-    <Box sx={{ pb: 12, minHeight: '100dvh', bgcolor: '#f5f3ef' }}>
+    <Box sx={{ pb: 12 }}>
       {/* Header */}
-      <Box sx={{ background: 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)', pt: 'calc(env(safe-area-inset-top) + 16px)', pb: 3, px: 2, color: 'white' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)', pt: 3, pb: 3, px: 2, color: 'white' }}>
         <Container maxWidth="sm">
           <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-            <IconButton onClick={() => navigate('/invoices')} sx={{ color: 'rgba(255,255,255,0.9)' }}>
-              <ArrowBack />
-            </IconButton>
             <Typography fontWeight={800} sx={{ fontSize: '1.2rem' }}>
               {editId ? 'تعديل الفاتورة' : 'فاتورة جديدة'}
             </Typography>
@@ -252,7 +249,7 @@ export const NewInvoicePage = () => {
                 onChange={(e) => setClientId(e.target.value)}
                 variant="outlined"
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><Person sx={{ color: '#4a5d4a', opacity: 0.8 }} /></InputAdornment>,
+                  startAdornment: <InputAdornment position="start"><Person sx={{ color: '#6D28D9', opacity: 0.8 }} /></InputAdornment>,
                 }}
                 sx={inputStyle}
               >
@@ -330,7 +327,7 @@ export const NewInvoicePage = () => {
                 variant="outlined"
                 InputProps={{
                   readOnly: true,
-                  startAdornment: <InputAdornment position="start"><Receipt sx={{ color: '#4a5d4a', opacity: 0.8 }} /></InputAdornment>,
+                  startAdornment: <InputAdornment position="start"><Receipt sx={{ color: '#6D28D9', opacity: 0.8 }} /></InputAdornment>,
                 }}
                 sx={{ ...inputStyle, pointerEvents: 'none', opacity: 0.8 }}
               />
@@ -349,7 +346,7 @@ export const NewInvoicePage = () => {
                         variant: 'outlined',
                         sx: inputStyle,
                         InputProps: {
-                          startAdornment: <InputAdornment position="start"><CalendarToday sx={{ color: '#4a5d4a', opacity: 0.8, fontSize: 20 }} /></InputAdornment>,
+                          startAdornment: <InputAdornment position="start"><CalendarToday sx={{ color: '#6D28D9', opacity: 0.8, fontSize: 20 }} /></InputAdornment>,
                         }
                       } 
                     }}
@@ -368,7 +365,7 @@ export const NewInvoicePage = () => {
                         variant: 'outlined',
                         sx: inputStyle,
                         InputProps: {
-                          startAdornment: <InputAdornment position="start"><CalendarToday sx={{ color: '#4a5d4a', opacity: 0.8, fontSize: 20 }} /></InputAdornment>,
+                          startAdornment: <InputAdornment position="start"><CalendarToday sx={{ color: '#6D28D9', opacity: 0.8, fontSize: 20 }} /></InputAdornment>,
                         }
                       } 
                     }}
@@ -388,7 +385,7 @@ export const NewInvoicePage = () => {
               onClick={handleAddItem}
               sx={{ 
                 bgcolor: 'rgba(74,93,74,0.1)', 
-                color: '#4a5d4a', 
+                color: '#6D28D9', 
                 fontWeight: 800, 
                 borderRadius: 3,
                 px: 2,
@@ -479,7 +476,7 @@ export const NewInvoicePage = () => {
                         flexDirection: 'column',
                         justifyContent: 'center', 
                         alignItems: 'center',
-                        bgcolor: '#364036', 
+                        bgcolor: '#5B21B6', 
                         borderRadius: 3, 
                         color: 'white',
                         py: 1
@@ -552,7 +549,7 @@ export const NewInvoicePage = () => {
             disabled={loading}
             sx={{
               py: 1.5, borderRadius: 2.5, fontWeight: 800, fontSize: '1rem',
-              bgcolor: '#4a5d4a', '&:hover': { bgcolor: '#364036' },
+              bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' },
               boxShadow: '0 4px 14px rgba(74,93,74,0.4)',
             }}
           >

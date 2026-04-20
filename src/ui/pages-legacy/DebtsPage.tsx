@@ -1,60 +1,31 @@
 // @ts-nocheck
 import { useState, useMemo } from 'react';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  InputAdornment,
-  Container,
-  Stack,
-  useTheme,
-  Dialog,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Avatar,
-  Paper,
-  alpha,
-  IconButton,
-  Grid as MuiGrid,
-} from '@mui/material';
-import {
   Add,
   Search,
   AccountBalanceWallet,
   CalendarToday,
   Person,
   Business,
-  ArrowBack,
+  Savings,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useDataStore } from '../../store/useDataStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import 'dayjs/locale/ar';
-
-const Grid = MuiGrid as any;
+import { Button, Input, Modal } from '../../design-system/primitives';
+import { cn } from '../../design-system/primitives/cn';
 
 export const DebtsPage = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const { standaloneDebts, clients, addStandaloneDebt, updateStandaloneDebt } = useDataStore();
+  const { standaloneDebts, clients, addStandaloneDebt } = useDataStore();
   const { user } = useAuthStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const [debtForm, setDebtForm] = useState({
-    partyType: 'external',
+
+  const [form, setForm] = useState({
+    partyType: 'external' as 'external' | 'client',
     partyName: '',
     clientId: '',
     description: '',
@@ -64,43 +35,46 @@ export const DebtsPage = () => {
     notes: '',
   });
 
-  const filteredDebts = useMemo(() => {
-    return standaloneDebts.filter(debt => 
-      debt.partyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      debt.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return standaloneDebts.filter(
+      (d) =>
+        d.partyName.toLowerCase().includes(q) || d.description.toLowerCase().includes(q)
     );
   }, [standaloneDebts, searchQuery]);
 
-  const handleAddDebt = async () => {
-    if (!debtForm.amount || (!debtForm.partyName && !debtForm.clientId)) return;
+  const totalRemaining = standaloneDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
+  const totalDebts = standaloneDebts.reduce((sum, d) => sum + d.amount, 0);
+  const totalPaid = standaloneDebts.reduce((sum, d) => sum + d.paidAmount, 0);
+
+  const handleAdd = async () => {
+    if (!form.amount || (!form.partyName && !form.clientId)) return;
     setLoading(true);
-    
-    let partyName = debtForm.partyName;
-    if (debtForm.partyType === 'client') {
-      const client = clients.find(c => c.id === debtForm.clientId);
+    let partyName = form.partyName;
+    if (form.partyType === 'client') {
+      const client = clients.find((c) => c.id === form.clientId);
       if (client) partyName = client.name;
     }
-
     try {
       await addStandaloneDebt({
         id: crypto.randomUUID(),
-        partyType: debtForm.partyType as any,
-        partyName: partyName,
-        clientId: debtForm.partyType === 'client' ? debtForm.clientId : undefined,
-        description: debtForm.description,
-        amount: parseFloat(debtForm.amount),
+        partyType: form.partyType,
+        partyName,
+        clientId: form.partyType === 'client' ? form.clientId : undefined,
+        description: form.description,
+        amount: parseFloat(form.amount),
         paidAmount: 0,
-        remainingAmount: parseFloat(debtForm.amount),
+        remainingAmount: parseFloat(form.amount),
         status: 'unpaid',
-        date: debtForm.date.toISOString(),
-        dueDate: debtForm.dueDate.toISOString(),
-        notes: debtForm.notes,
+        date: form.date.toISOString(),
+        dueDate: form.dueDate.toISOString(),
+        notes: form.notes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         createdBy: user?.displayName || 'غير معروف',
       });
       setDialogOpen(false);
-      setDebtForm({
+      setForm({
         partyType: 'external',
         partyName: '',
         clientId: '',
@@ -110,269 +84,308 @@ export const DebtsPage = () => {
         dueDate: dayjs().add(1, 'month'),
         notes: '',
       });
-    } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ pb: 8, minHeight: '100dvh' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          background: theme.palette.mode === 'light'
-            ? 'linear-gradient(160deg, #364036 0%, #4a5d4a 100%)'
-            : 'linear-gradient(160deg, #2a3a2a 0%, #364036 100%)',
-          pt: 'calc(env(safe-area-inset-top) + 16px)',
-          pb: 5,
-          px: 2,
-          position: 'relative',
-          overflow: 'hidden',
-          color: 'white',
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
+      {/* ═══ Hero ═══ */}
+      <section
+        className="relative overflow-hidden rounded-2xl grain text-white"
+        style={{
+          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
+          boxShadow: 'var(--shadow-lg)',
         }}
       >
-        <Box sx={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'radial-gradient(ellipse at 70% 20%, rgba(200,192,176,0.08) 0%, transparent 50%)',
-          pointerEvents: 'none',
-        }} />
+        <div
+          aria-hidden
+          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, #E11D48 0%, transparent 70%)', opacity: 0.3 }}
+        />
+        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
+          <div className="flex-1 min-w-0">
+            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
+              <Savings sx={{ fontSize: 12, color: '#FBBF24' }} />
+              الديون
+            </span>
+            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
+              إجمالي المتبقّي
+            </h1>
+            <p className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-1 font-num tabular">
+              {formatCurrency(totalRemaining)}
+            </p>
+          </div>
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-xl font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/95 pressable transition-colors"
+          >
+            <Add sx={{ fontSize: 18 }} />
+            جديد
+          </button>
+        </div>
 
-        <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton onClick={() => navigate('/')} sx={{ color: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
-                <ArrowBack />
-              </IconButton>
-              <Typography variant="h5" fontWeight={800} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>الديون</Typography>
-            </Stack>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setDialogOpen(true)}
-              sx={{
-                bgcolor: 'rgba(200,192,176,0.9)',
-                color: '#2a3a2a',
-                fontWeight: 700,
-                borderRadius: 2.5,
-                px: 2.5,
-                boxShadow: '0 4px 14px -3px rgba(200,192,176,0.4)',
-                '&:hover': { bgcolor: '#c8c0b0', transform: 'scale(1.04)' },
-                transition: 'all 0.25s ease',
+        <div className="relative grid grid-cols-3 bg-black/15 border-t border-white/10">
+          {[
+            { label: 'عدد الديون', val: standaloneDebts.length, isCurrency: false, accent: '#fff' },
+            { label: 'الإجمالي', val: totalDebts, isCurrency: true, accent: '#FBBF24' },
+            { label: 'المسدّد', val: totalPaid, isCurrency: true, accent: '#34D399' },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className="p-3 sm:p-4 text-center"
+              style={{
+                borderInlineStart: i > 0 ? '1px solid rgba(255,255,255,0.08)' : undefined,
               }}
             >
-              جديد
-            </Button>
-          </Stack>
+              <div className="text-[0.6rem] sm:text-2xs text-white/60 font-semibold">{s.label}</div>
+              <div
+                className="text-sm sm:text-base font-extrabold mt-0.5 font-num tabular truncate"
+                style={{ color: s.accent }}
+              >
+                {s.isCurrency ? formatCurrency(s.val as number) : s.val}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Stats */}
-          <Paper sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block' }}>إجمالي الديون المتبقية</Typography>
-            <Typography variant="body1" fontWeight={800} color="white">
-              {formatCurrency(standaloneDebts.reduce((sum, d) => sum + d.remainingAmount, 0))}
-            </Typography>
-          </Paper>
-        </Container>
-      </Box>
-
-      <Container maxWidth="sm" sx={{ mt: -2 }}>
-        {/* Search */}
-        <TextField
-          fullWidth
+      {/* ═══ Search ═══ */}
+      <section>
+        <Input
+          leftIcon={<Search sx={{ fontSize: 18 }} />}
           placeholder="بحث عن دين أو اسم..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
-          }}
-          sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '14px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', '& fieldset': { border: 'none' } } }}
         />
+      </section>
 
-        {/* Debts Grid */}
-        <Grid container spacing={2}>
-          {filteredDebts.length === 0 ? (
-            <Grid size={{ xs: 12 }}>
-              <Box textAlign="center" py={8} bgcolor="background.paper" borderRadius="20px" border="1px solid" borderColor="divider">
-                <AccountBalanceWallet sx={{ fontSize: 56, color: 'text.secondary', opacity: 0.15, mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">لا توجد ديون مسجلة</Typography>
-              </Box>
-            </Grid>
-          ) : (
-            filteredDebts.map((debt) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={debt.id}>
-                <Card sx={{ borderRadius: '18px', border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Stack spacing={2}>
-                      {/* Status */}
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <Box 
-                          sx={{ 
-                            bgcolor: alpha(debt.status === 'paid' ? theme.palette.success.main : theme.palette.warning.main, 0.1),
-                            color: debt.status === 'paid' ? 'success.main' : 'warning.main',
-                            px: 1.5, py: 0.5,
-                            borderRadius: '8px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {debt.status === 'paid' ? 'مدفوع' : 'غير مدفوع'}
-                        </Box>
-                      </Box>
-
-                      {/* Party Info */}
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar sx={{ 
-                          bgcolor: alpha(theme.palette.primary.main, 0.08), 
-                          color: 'primary.main', 
-                          borderRadius: '14px',
-                          width: 48, height: 48,
-                        }}>
-                          {debt.partyType === 'external' ? <Business /> : <Person />}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h6" fontWeight={700} fontSize="1rem">{debt.partyName}</Typography>
-                          <Typography variant="body2" color="text.secondary">{debt.description}</Typography>
-                        </Box>
-                      </Stack>
-                      
-                      {/* Amounts */}
-                      <Paper sx={{ p: 2, borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03), border: '1px dashed', borderColor: 'divider' }}>
-                        <Stack spacing={1}>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" color="text.secondary">قيمة الدين</Typography>
-                            <Typography fontWeight={700} variant="body2">{formatCurrency(debt.amount)}</Typography>
-                          </Stack>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" color="text.secondary">المدفوع</Typography>
-                            <Typography fontWeight={700} color="success.main" variant="body2">{formatCurrency(debt.paidAmount)}</Typography>
-                          </Stack>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" color="text.secondary">المتبقي</Typography>
-                            <Typography fontWeight={800} color="error.main" variant="body2">{formatCurrency(debt.remainingAmount)}</Typography>
-                          </Stack>
-                        </Stack>
-                      </Paper>
-
-                      {/* Footer */}
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
-                          <CalendarToday sx={{ fontSize: 14 }} />
-                          <Typography variant="caption">{formatDate(debt.date)}</Typography>
-                        </Stack>
-                        <Button size="small" variant="outlined" startIcon={<Add />} sx={{ borderRadius: '8px', fontWeight: 600 }}>
-                          سداد
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          )}
-        </Grid>
-      </Container>
-
-      {/* Add Debt Dialog */}
-      <Dialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ style: { borderRadius: '20px', padding: '16px' } }}
-      >
-        <Typography variant="h6" fontWeight={800} mb={3}>تسجيل دين جديد</Typography>
-        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ar">
-          <Stack spacing={2.5}>
-            <FormControl fullWidth>
-              <InputLabel>نوع الطرف</InputLabel>
-              <Select
-                value={debtForm.partyType}
-                label="نوع الطرف"
-                onChange={(e) => setDebtForm({...debtForm, partyType: e.target.value})}
-              >
-                <MenuItem value="external">طرف خارجي</MenuItem>
-                <MenuItem value="client">عميل حالي</MenuItem>
-              </Select>
-            </FormControl>
-
-            {debtForm.partyType === 'client' ? (
-              <FormControl fullWidth>
-                <InputLabel>العميل</InputLabel>
-                <Select
-                  value={debtForm.clientId}
-                  label="العميل"
-                  onChange={(e) => setDebtForm({...debtForm, clientId: e.target.value})}
+      {/* ═══ Grid ═══ */}
+      <section>
+        {filtered.length === 0 ? (
+          <div className="bg-surface-panel border border-border rounded-xl p-10 text-center">
+            <div
+              className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-3"
+              style={{ background: 'var(--brand-primary-soft)', color: 'var(--brand-primary)' }}
+            >
+              <AccountBalanceWallet sx={{ fontSize: 28 }} />
+            </div>
+            <div className="text-fg font-semibold">لا توجد ديون مسجلة</div>
+            <div className="text-2xs text-fg-muted mt-1">ابدأ بتسجيل أول دين.</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filtered.map((debt) => {
+              const isPaid = debt.status === 'paid';
+              const pct = debt.amount > 0 ? (debt.paidAmount / debt.amount) * 100 : 0;
+              return (
+                <div
+                  key={debt.id}
+                  className={cn(
+                    'bg-surface-panel border border-border rounded-xl p-4',
+                    'hover:border-strong hover:shadow-sm transition-all duration-base content-auto'
+                  )}
                 >
-                  {clients.map(client => (
-                    <MenuItem key={client.id} value={client.id}>{client.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            ) : (
-              <TextField 
-                label="اسم الطرف" 
-                fullWidth 
-                value={debtForm.partyName}
-                onChange={(e) => setDebtForm({...debtForm, partyName: e.target.value})}
-              />
-            )}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span
+                        className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'var(--brand-primary-soft)',
+                          color: 'var(--brand-primary)',
+                        }}
+                      >
+                        {debt.partyType === 'external' ? (
+                          <Business sx={{ fontSize: 20 }} />
+                        ) : (
+                          <Person sx={{ fontSize: 20 }} />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-fg truncate">{debt.partyName}</div>
+                        <div className="text-2xs text-fg-muted truncate">
+                          {debt.description || '—'}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className="inline-flex items-center h-6 px-2.5 rounded-full text-[0.65rem] font-bold shrink-0"
+                      style={{
+                        background: isPaid
+                          ? 'color-mix(in srgb, var(--brand-success) 12%, transparent)'
+                          : 'color-mix(in srgb, var(--brand-warning) 14%, transparent)',
+                        color: isPaid ? 'var(--brand-success)' : 'var(--brand-warning)',
+                      }}
+                    >
+                      {isPaid ? 'مدفوع' : 'غير مدفوع'}
+                    </span>
+                  </div>
 
-            <TextField 
-              label="وصف الدين" 
-              fullWidth 
-              value={debtForm.description}
-              onChange={(e) => setDebtForm({...debtForm, description: e.target.value})}
+                  {/* Amounts */}
+                  <div className="rounded-lg bg-surface-sunken border border-border p-3 space-y-1.5 mb-3">
+                    <div className="flex items-center justify-between text-2xs">
+                      <span className="text-fg-muted">قيمة الدين</span>
+                      <span className="font-bold text-fg font-num tabular">
+                        {formatCurrency(debt.amount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-2xs">
+                      <span className="text-fg-muted">المدفوع</span>
+                      <span
+                        className="font-bold font-num tabular"
+                        style={{ color: 'var(--brand-success)' }}
+                      >
+                        {formatCurrency(debt.paidAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-2xs">
+                      <span className="text-fg-muted">المتبقي</span>
+                      <span
+                        className="font-extrabold font-num tabular"
+                        style={{ color: 'var(--brand-danger)' }}
+                      >
+                        {formatCurrency(debt.remainingAmount)}
+                      </span>
+                    </div>
+                    {/* Progress */}
+                    <div className="h-1 rounded-full bg-black/5 overflow-hidden mt-1">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-base"
+                        style={{
+                          width: `${Math.min(100, pct)}%`,
+                          background: isPaid ? 'var(--brand-success)' : 'var(--brand-primary)',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                      <CalendarToday sx={{ fontSize: 11 }} />
+                      {formatDate(debt.date)}
+                    </span>
+                    <Button size="sm" variant="outline" leftIcon={<Add sx={{ fontSize: 14 }} />}>
+                      سداد
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ═══ Add dialog ═══ */}
+      <Modal
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title="تسجيل دين جديد"
+        description="أدخل بيانات الدين"
+        maxWidth="md"
+      >
+        <div className="space-y-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-fg-subtle">نوع الطرف</span>
+            <select
+              value={form.partyType}
+              onChange={(e) => setForm({ ...form, partyType: e.target.value as any })}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+            >
+              <option value="external">طرف خارجي</option>
+              <option value="client">عميل حالي</option>
+            </select>
+          </label>
+
+          {form.partyType === 'client' ? (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-fg-subtle">العميل</span>
+              <select
+                value={form.clientId}
+                onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+              >
+                <option value="">اختر العميل</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <Input
+              label="اسم الطرف"
+              value={form.partyName}
+              onChange={(e) => setForm({ ...form, partyName: e.target.value })}
+              placeholder="اسم الشخص أو الشركة"
             />
+          )}
 
-            <TextField 
-              label="المبلغ" 
-              type="number" 
-              fullWidth
-              value={debtForm.amount}
-              onChange={(e) => setDebtForm({...debtForm, amount: e.target.value})}
-              InputProps={{ endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }}
-            />
+          <Input
+            label="وصف الدين"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="مثال: توريد مواد"
+          />
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <DatePicker 
-                label="تاريخ الدين"
-                value={debtForm.date}
-                onChange={(newValue) => newValue && setDebtForm({...debtForm, date: newValue})}
-                slotProps={{ textField: { fullWidth: true } }}
+          <Input
+            label="المبلغ"
+            type="number"
+            inputMode="decimal"
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            placeholder="0.00"
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-fg-subtle">تاريخ الدين</span>
+              <input
+                type="date"
+                value={form.date.format('YYYY-MM-DD')}
+                onChange={(e) => setForm({ ...form, date: dayjs(e.target.value) })}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
               />
-              <DatePicker 
-                label="تاريخ الاستحقاق"
-                value={debtForm.dueDate}
-                onChange={(newValue) => newValue && setDebtForm({...debtForm, dueDate: newValue})}
-                slotProps={{ textField: { fullWidth: true } }}
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-fg-subtle">تاريخ الاستحقاق</span>
+              <input
+                type="date"
+                value={form.dueDate.format('YYYY-MM-DD')}
+                onChange={(e) => setForm({ ...form, dueDate: dayjs(e.target.value) })}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
               />
-            </Stack>
+            </label>
+          </div>
 
-            <TextField 
-              label="ملاحظات" 
-              multiline 
-              rows={2} 
-              value={debtForm.notes}
-              onChange={(e) => setDebtForm({...debtForm, notes: e.target.value})}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-fg-subtle">ملاحظات (اختياري)</span>
+            <textarea
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="px-3 py-2 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus resize-none"
             />
-          </Stack>
-        </LocalizationProvider>
-        
-        <Box mt={3} display="flex" gap={2}>
-          <Button fullWidth onClick={() => setDialogOpen(false)} size="large" sx={{ borderRadius: '10px' }}>إلغاء</Button>
-          <Button 
-            fullWidth 
-            variant="contained" 
-            onClick={handleAddDebt}
-            disabled={loading}
-            size="large"
-            sx={{ borderRadius: '10px', fontWeight: 700 }}
-          >
-            {loading ? 'جاري الحفظ...' : 'حفظ الدين'}
-          </Button>
-        </Box>
-      </Dialog>
-    </Box>
+          </label>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" block onClick={() => setDialogOpen(false)} type="button">
+              إلغاء
+            </Button>
+            <Button
+              block
+              loading={loading}
+              disabled={!form.amount || (form.partyType === 'client' ? !form.clientId : !form.partyName)}
+              onClick={handleAdd}
+            >
+              {loading ? 'جاري الحفظ...' : 'حفظ الدين'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };

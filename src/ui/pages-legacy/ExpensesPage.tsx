@@ -1,74 +1,57 @@
 // @ts-nocheck
 import { useState, useMemo, useEffect } from 'react';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  InputAdornment,
-  Container,
-  Stack,
-  useTheme,
-  Dialog,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Avatar,
-  IconButton,
-  Chip,
-  Divider,
-} from '@mui/material';
-import {
-  Add,
   Search,
-  AttachMoney,
+  Add,
   CalendarToday,
-  ArrowBack,
   TrendingDown,
   Person,
   Description,
   AccountBalanceWallet,
-  Close,
-  NoteAlt,
-  BusinessCenter,
+  WarningAmber,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useDataStore } from '../../store/useDataStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useGlobalFundStore } from '../../store/useGlobalFundStore';
-import { formatCurrency, formatDate, getExpenseCategoryLabel, expenseCategories } from '../../utils/formatters';
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  formatCurrency,
+  formatDate,
+  getExpenseCategoryLabel,
+  expenseCategories,
+} from '../../utils/formatters';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import 'dayjs/locale/ar';
+import { Button, Input, Modal } from '../../design-system/primitives';
+import { cn } from '../../design-system/primitives/cn';
+
+// Brand-aligned palette for the pie chart (violet → amber family)
+const CHART_COLORS = [
+  '#6D28D9', // brand primary
+  '#8B5CF6',
+  '#F59E0B',
+  '#E11D48',
+  '#0EA5E9',
+  '#059669',
+  '#A855F7',
+  '#F97316',
+];
 
 export const ExpensesPage = () => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-  const navigate = useNavigate();
   const { expenses, addExpense, clients } = useDataStore();
   const { user } = useAuthStore();
   const { transactions, getUserStats, initialize: initFund } = useGlobalFundStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Init global fund store
-  useEffect(() => { const u = initFund(); return u; }, []);
+  useEffect(() => {
+    const u = initFund();
+    return u;
+  }, []);
 
-  const [expenseForm, setExpenseForm] = useState({
+  const [form, setForm] = useState({
     description: '',
     amount: '',
     category: 'materials',
@@ -78,57 +61,67 @@ export const ExpensesPage = () => {
     clientId: '',
   });
 
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter(exp =>
-      (categoryFilter === 'all' || exp.category === categoryFilter) &&
-      (exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.category.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return expenses
+      .filter(
+        (e) =>
+          (categoryFilter === 'all' || e.category === categoryFilter) &&
+          (e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, searchQuery, categoryFilter]);
 
   const chartData = useMemo(() => {
-    const categoryTotals: Record<string, number> = {};
-    expenses.forEach(exp => {
-      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+    const totals: Record<string, number> = {};
+    expenses.forEach((e) => {
+      totals[e.category] = (totals[e.category] || 0) + e.amount;
     });
-    return Object.entries(categoryTotals).map(([key, value]) => ({
-      name: getExpenseCategoryLabel(key),
-      value,
-    })).sort((a, b) => b.value - a.value);
+    return Object.entries(totals)
+      .map(([key, value]) => ({ name: getExpenseCategoryLabel(key), value }))
+      .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
-  const COLORS = ['#4a5d4a', '#d64545', '#e6a817', '#3b82f6', '#8b7e6a', '#0d9668', '#6b7f6b', '#a0524a'];
-
-  // ─── رصيد عهدة المستخدم (نفس خوارزمية FundPage بالضبط) ─────────────────
+  // User fund FIFO calculation (identical to FundPage)
   const myFundStats = useMemo(() => {
     if (!user) return null;
     const uid = user.id;
     const userName = user.displayName || '';
 
-    const deposits = [...transactions.filter(t =>
-      t.type === 'deposit' && (
-        (uid && t.userId === uid) ||
-        (userName && t.userName === userName)
-      )
-    )].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
+    const deposits = [
+      ...transactions.filter(
+        (t) =>
+          t.type === 'deposit' &&
+          ((uid && t.userId === uid) || (userName && t.userName === userName))
+      ),
+    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
 
     if (deposits.length === 0) {
       const storeStats = uid ? getUserStats(uid) : null;
       if (storeStats && storeStats.deposited > 0) {
-        return { deposited: storeStats.deposited, spent: storeStats.withdrawn, remaining: storeStats.remaining };
+        return {
+          deposited: storeStats.deposited,
+          spent: storeStats.withdrawn,
+          remaining: storeStats.remaining,
+        };
       }
       return null;
     }
 
-    const custodies = deposits.map(tx => ({
-      createdAt: tx.createdAt, amount: tx.amount, remaining: tx.amount, spent: 0,
+    const custodies = deposits.map((tx) => ({
+      createdAt: tx.createdAt,
+      amount: tx.amount,
+      remaining: tx.amount,
+      spent: 0,
     }));
 
-    const allExp = [...expenses.filter(e =>
-      (uid && e.userId === uid) || (userName && e.createdBy === userName)
-    )].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
+    const allExp = [
+      ...expenses.filter(
+        (e) => (uid && e.userId === uid) || (userName && e.createdBy === userName)
+      ),
+    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
 
-    allExp.forEach(exp => {
+    allExp.forEach((exp) => {
       let rem = exp.amount;
       const expTime = dayjs(exp.createdAt);
       for (let i = 0; i < custodies.length; i++) {
@@ -136,14 +129,26 @@ export const ExpensesPage = () => {
         if (rem <= 0) break;
         if (expTime.isBefore(dayjs(c.createdAt))) continue;
         if (c.remaining <= 0) {
-          const hasNext = custodies.slice(i + 1).some(nc => !expTime.isBefore(dayjs(nc.createdAt)));
+          const hasNext = custodies
+            .slice(i + 1)
+            .some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
           if (hasNext) continue;
         }
         const take = Math.min(rem, Math.max(c.remaining, 0));
-        if (take > 0) { c.spent += take; c.remaining -= take; rem -= take; }
+        if (take > 0) {
+          c.spent += take;
+          c.remaining -= take;
+          rem -= take;
+        }
         if (rem > 0) {
-          const hasNext = custodies.slice(i + 1).some(nc => !expTime.isBefore(dayjs(nc.createdAt)));
-          if (!hasNext) { c.spent += rem; c.remaining -= rem; rem = 0; }
+          const hasNext = custodies
+            .slice(i + 1)
+            .some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
+          if (!hasNext) {
+            c.spent += rem;
+            c.remaining -= rem;
+            rem = 0;
+          }
         }
       }
     });
@@ -163,513 +168,453 @@ export const ExpensesPage = () => {
     return { deposited: totalDeposited, spent: totalSpent, remaining: totalRemaining };
   }, [transactions, expenses, user, getUserStats]);
 
-  const handleAddExpense = async () => {
-    if (!expenseForm.amount || !expenseForm.description || !expenseForm.clientId) return;
+  const handleAdd = async () => {
+    if (!form.amount || !form.description || !form.clientId) return;
     setLoading(true);
     try {
       await addExpense({
         id: crypto.randomUUID(),
-        clientId: expenseForm.clientId,
-        description: expenseForm.description,
-        amount: parseFloat(expenseForm.amount),
-        category: expenseForm.category as any,
-        date: expenseForm.date.toISOString(),
-        invoiceNumber: expenseForm.invoiceNumber || undefined,
+        clientId: form.clientId,
+        description: form.description,
+        amount: parseFloat(form.amount),
+        category: form.category as any,
+        date: form.date.toISOString(),
+        invoiceNumber: form.invoiceNumber || undefined,
         isClosed: false,
-        notes: expenseForm.notes,
+        notes: form.notes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        userId: user?.id || '',    // user.id = Firebase Auth UID ✅
+        userId: user?.id || '',
         createdBy: user?.displayName || 'غير معروف',
       });
       setDialogOpen(false);
-      setExpenseForm({ description: '', amount: '', category: 'materials', date: dayjs(), invoiceNumber: '', notes: '', clientId: '' });
-    } catch (error) {
-      console.error(error);
+      setForm({
+        description: '',
+        amount: '',
+        category: 'materials',
+        date: dayjs(),
+        invoiceNumber: '',
+        notes: '',
+        clientId: '',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const headerGradient = isDark
-    ? 'linear-gradient(160deg, #1a221a 0%, #2a3a2a 100%)'
-    : 'linear-gradient(160deg, #2a3a2a 0%, #364036 60%, #4a5d4a 100%)';
 
   return (
-    <Box sx={{ minHeight: '100dvh', background: isDark ? '#161b16' : '#f5f3ef', pb: 10 }}>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
+      {/* ═══ Hero + total ═══ */}
+      <section
+        className="relative overflow-hidden rounded-2xl grain text-white"
+        style={{
+          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, #E11D48 0%, transparent 70%)', opacity: 0.3 }}
+        />
+        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
+          <div className="flex-1 min-w-0">
+            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
+              <TrendingDown sx={{ fontSize: 12, color: '#FCA5A5' }} />
+              المصروفات
+            </span>
+            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
+              إجمالي المصروفات
+            </h1>
+            <p className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-1 font-num tabular">
+              {formatCurrency(totalExpenses)}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setForm((p) => ({ ...p, clientId: clients[0]?.id || '' }));
+              setDialogOpen(true);
+            }}
+            className="shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-xl font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/95 pressable transition-colors"
+          >
+            <Add sx={{ fontSize: 18 }} />
+            مصروف جديد
+          </button>
+        </div>
 
-      {/* ── Header ── */}
-      <Box sx={{ background: headerGradient, pt: 'calc(env(safe-area-inset-top) + 24px)', pb: 5, px: 2, position: 'relative', overflow: 'hidden' }}>
-        {/* Decorative glow */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 80% 0%, rgba(200,192,176,0.1) 0%, transparent 55%)', pointerEvents: 'none' }} />
+        <div className="relative grid grid-cols-2 bg-black/15 border-t border-white/10">
+          <div className="p-4 text-center border-l border-white/10 rtl:border-l-0 rtl:border-r rtl:border-white/10">
+            <div className="text-2xs text-white/60 font-semibold">عدد السجلات</div>
+            <div className="text-lg font-extrabold text-white mt-0.5">{expenses.length}</div>
+          </div>
+          <div className="p-4 text-center">
+            <div className="text-2xs text-white/60 font-semibold">عدد الفئات</div>
+            <div className="text-lg font-extrabold text-white mt-0.5">{chartData.length}</div>
+          </div>
+        </div>
+      </section>
 
-        <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-          {/* Nav row */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton
-                onClick={() => navigate('/')}
-                sx={{ color: 'rgba(255,255,255,0.85)', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: 'white' } }}
-              >
-                <ArrowBack />
-              </IconButton>
-              <Box>
-                <Typography variant="h5" fontWeight={900} sx={{ color: 'white', lineHeight: 1.1 }}>المصروفات العامة</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{expenses.length} سجل مصروف</Typography>
-              </Box>
-            </Stack>
-            <Button
-              variant="contained"
-              startIcon={<Add sx={{ ml: 1 }} />}
-              onClick={() => {
-                setExpenseForm(prev => ({ ...prev, clientId: clients.length > 0 ? clients[0].id : '' }));
-                setDialogOpen(true);
-              }}
-              sx={{
-                bgcolor: 'rgba(200,192,176,0.9)',
-                color: '#ffffffff',
-                fontWeight: 800,
-                px: 2.5,
-                py: 1.1,
-                borderRadius: 2,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                '&:hover': { bgcolor: '#d4cabb', transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(0,0,0,0.25)' },
-                transition: 'all 0.22s ease',
-              }}
-            >
-              مصروف جديد
-            </Button>
-          </Stack>
+      {/* ═══ Fund banner (if user has custody) ═══ */}
+      {myFundStats && <FundBanner stats={myFundStats} />}
 
-          {/* Stats cards */}
-          <Stack spacing={1.5}>
-            {/* ─── Fund Balance Banner (Premium) ─── */}
-            {myFundStats ? (
-              <Box sx={{
-                borderRadius: 3, overflow: 'hidden',
-                background: myFundStats.remaining < 0 
-                  ? 'linear-gradient(135deg, rgba(225,29,72,0.18) 0%, rgba(225,29,72,0.06) 100%)'
-                  : myFundStats.remaining > myFundStats.deposited * 0.4
-                  ? 'linear-gradient(135deg, rgba(13,150,104,0.18) 0%, rgba(13,150,104,0.06) 100%)'
-                  : 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0.06) 100%)',
-                border: `1.5px solid ${myFundStats.remaining < 0 ? 'rgba(225,29,72,0.4)' : myFundStats.remaining > myFundStats.deposited * 0.4 ? 'rgba(13,150,104,0.35)' : 'rgba(245,158,11,0.35)'}`,
-                backdropFilter: 'blur(12px)',
-              }}>
-                {/* Top: icon + title + main balance */}
-                <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{
-                    width: 52, height: 52, borderRadius: 2.5, flexShrink: 0,
-                    background: myFundStats.remaining >= 0
-                      ? 'linear-gradient(135deg, rgba(13,150,104,0.25), rgba(13,150,104,0.45))'
-                      : 'linear-gradient(135deg, rgba(225,29,72,0.25), rgba(225,29,72,0.45))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1.5px solid ${myFundStats.remaining >= 0 ? 'rgba(13,150,104,0.4)' : 'rgba(225,29,72,0.4)'}`,
-                    boxShadow: `0 4px 14px ${myFundStats.remaining >= 0 ? 'rgba(13,150,104,0.3)' : 'rgba(225,29,72,0.3)'}`,
-                  }}>
-                    <AccountBalanceWallet sx={{ fontSize: 26, color: myFundStats.remaining >= 0 ? '#34d399' : '#fca5a5' }} />
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 0.8, display: 'block', mb: 0.2, fontSize: '0.62rem' }}>
-                      {myFundStats.remaining >= 0 ? 'رصيد عهدتك المتاح' : 'عجز في العهدة'}
-                    </Typography>
-                    <Typography sx={{
-                      fontSize: '2rem', fontWeight: 900, lineHeight: 1, fontFamily: 'Outfit, sans-serif',
-                      color: myFundStats.remaining < 0 ? '#f87171' : myFundStats.remaining > myFundStats.deposited * 0.4 ? '#34d399' : '#fbbf24',
-                      textShadow: '0 2px 10px rgba(0,0,0,0.15)',
-                    }}>
-                      {myFundStats.remaining < 0 ? `-${formatCurrency(Math.abs(myFundStats.remaining))}` : formatCurrency(myFundStats.remaining)}
-                    </Typography>
-                  </Box>
-                  {/* Alert icon */}
-                  {myFundStats.remaining < 0 && (
-                    <Typography sx={{ fontSize: '1.5rem', lineHeight: 1, flexShrink: 0 }}>⚠️</Typography>
-                  )}
-                </Box>
-
-                {/* Progress bar */}
-                <Box sx={{ px: 2.5, pb: 1 }}>
-                  {(() => {
-                    const pct = myFundStats.deposited > 0 ? Math.max(0, Math.min(100, (myFundStats.remaining / myFundStats.deposited) * 100)) : 0;
-                    const barColor = pct > 40
-                      ? 'linear-gradient(90deg, #0d9668, #34d399)'
-                      : pct > 15 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                      : 'linear-gradient(90deg, #d64545, #f87171)';
-                    return (
-                      <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.58rem', fontWeight: 600 }}>
-                            {Math.round(pct)}% متبقي
-                          </Typography>
-                          <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.58rem', fontWeight: 600 }}>
-                            من {formatCurrency(myFundStats.deposited)}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                          <Box sx={{ height: '100%', width: myFundStats.remaining < 0 ? '100%' : `${pct}%`, borderRadius: 3, background: barColor, transition: 'width 0.5s ease' }} />
-                        </Box>
-                      </Box>
-                    );
-                  })()}
-                </Box>
-
-                {/* 3-column stats */}
-                <Box sx={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-                  bgcolor: 'rgba(0,0,0,0.12)', borderTop: '1px solid rgba(255,255,255,0.08)',
-                }}>
-                  {[
-                    { label: 'إجمالي العهدة', val: myFundStats.deposited, color: '#6ee7b7' },
-                    { label: 'المصروف', val: myFundStats.spent, color: '#fca5a5' },
-                    { label: 'المتبقي', val: myFundStats.remaining, color: myFundStats.remaining >= 0 ? '#34d399' : '#f87171' },
-                  ].map((s, i) => (
-                    <Box key={i} sx={{ py: 1.2, textAlign: 'center', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
-                      <Typography fontWeight={900} sx={{ color: s.color, fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem', lineHeight: 1 }}>
-                        {formatCurrency(s.val)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.58rem', fontWeight: 600 }}>
-                        {s.label}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-
-                {/* Alert strip */}
-                {myFundStats.remaining < 0 && (
-                  <Box sx={{ bgcolor: 'rgba(225,29,72,0.25)', px: 2.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, borderTop: '1px solid rgba(225,29,72,0.4)' }}>
-                    <Typography fontWeight={800} sx={{ color: '#fca5a5', fontSize: '0.8rem' }}>التجاوز المالي مسجل كعجز، سيُخصم من رصيدك القادم!</Typography>
-                  </Box>
-                )}
-              </Box>
-            ) : null}
-
-            {/* Total expenses */}
-            <Box sx={{
-              p: 2.5,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', display: 'block', mb: 0.5, fontWeight: 600 }}>إجمالي المصروفات</Typography>
-                <Typography variant="h4" fontWeight={900} sx={{ color: 'white', lineHeight: 1 }}>{formatCurrency(totalExpenses)}</Typography>
-              </Box>
-              <Stack direction="row" spacing={2}>
-                <Box sx={{ textAlign: 'center', bgcolor: 'rgba(255,255,255,0.07)', px: 2, py: 1, borderRadius: 1.5 }}>
-                  <Typography variant="h6" fontWeight={800} color="white">{expenses.length}</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.65rem' }}>سجل</Typography>
-                </Box>
-                <Box sx={{ textAlign: 'center', bgcolor: 'rgba(255,255,255,0.07)', px: 2, py: 1, borderRadius: 1.5 }}>
-                  <Typography variant="h6" fontWeight={800} color="white">{chartData.length}</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.65rem' }}>فئة</Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Stack>
-        </Container>
-      </Box>
-
-      <Container maxWidth="sm" sx={{ mt: 3 }}>
-
-        {/* ── Pie Chart ── */}
+      {/* ═══ Pie chart + filters ═══ */}
+      <div className="grid lg:grid-cols-5 gap-5">
         {chartData.length > 0 && (
-          <Card sx={{ mb: 3, overflow: 'hidden', borderRadius: 2 }}>
-            <CardContent sx={{ p: 0 }}>
-              {/* Chart header */}
-              <Box sx={{ px: 2.5, pt: 2.5, pb: 1 }}>
-                <Typography variant="subtitle1" fontWeight={800} color="text.primary">توزيع المصروفات</Typography>
-                <Typography variant="caption" color="text.secondary">حسب التصنيف</Typography>
-              </Box>
-              <Divider />
-
-              {/* Donut chart */}
-              <Box sx={{ height: 220, px: 1, pt: 1 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={65}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                      stroke="none"
-                      cornerRadius={3}
-                    >
-                      {chartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      formatter={(value: number) => [formatCurrency(value), 'المبلغ']}
-                      contentStyle={{
-                        borderRadius: '10px',
-                        border: 'none',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                        fontWeight: 700,
-                        padding: '10px 14px',
-                        fontFamily: 'Tajawal, sans-serif',
-                        direction: 'rtl',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
-
-              {/* Legend */}
-              <Box sx={{ px: 2.5, pb: 2.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {chartData.map((entry, index) => (
-                  <Stack key={entry.name} direction="row" alignItems="center" spacing={0.75}
-                    sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', px: 1.25, py: 0.5, borderRadius: 1, border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}` }}
+          <div className="lg:col-span-2 bg-surface-panel border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm font-bold text-fg">توزيع المصروفات</div>
+                <div className="text-2xs text-fg-muted">حسب التصنيف</div>
+              </div>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={58}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    dataKey="value"
+                    stroke="none"
+                    cornerRadius={3}
                   >
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[index % COLORS.length], flexShrink: 0 }} />
-                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ fontSize: '0.72rem' }}>{entry.name}</Typography>
-                  </Stack>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    formatter={(v: number) => [formatCurrency(v), 'المبلغ']}
+                    contentStyle={{
+                      borderRadius: 10,
+                      border: '1px solid var(--surface-border)',
+                      background: 'var(--surface-panel)',
+                      boxShadow: 'var(--shadow-md)',
+                      fontWeight: 700,
+                      padding: '10px 14px',
+                      fontFamily: 'var(--brand-font-arabic)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {chartData.map((entry, i) => (
+                <span
+                  key={entry.name}
+                  className="inline-flex items-center gap-1 text-2xs font-semibold bg-surface-sunken px-2 h-6 rounded-full border border-border"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                  />
+                  <span className="text-fg-subtle">{entry.name}</span>
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* ── Search & Filter ── */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="بحث في المصروفات..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><Search fontSize="small" sx={{ color: 'text.secondary', opacity: 0.7 }} /></InputAdornment>,
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                bgcolor: 'background.paper',
-                '& fieldset': { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' },
-              },
-            }}
-          />
-          <FormControl sx={{ minWidth: { xs: '100%', sm: 220 } }}>
-            <Select
+        {/* ═══ Filters + list ═══ */}
+        <div className={chartData.length > 0 ? 'lg:col-span-3 space-y-3' : 'lg:col-span-5 space-y-3'}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              leftIcon={<Search sx={{ fontSize: 18 }} />}
+              placeholder="بحث في المصروفات..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              displayEmpty
-              sx={{
-                borderRadius: 2,
-                bgcolor: 'background.paper',
-                fontWeight: 600,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' },
-              }}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm font-semibold text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus sm:min-w-[180px]"
             >
-              <MenuItem value="all">كل التصنيفات</MenuItem>
+              <option value="all">كل التصنيفات</option>
               {Object.entries(expenseCategories).map(([key, label]) => (
-                <MenuItem key={key} value={key}>{label}</MenuItem>
+                <option key={key} value={key}>
+                  {label}
+                </option>
               ))}
-            </Select>
-          </FormControl>
-        </Stack>
+            </select>
+          </div>
 
-        {/* ── Results count ── */}
-        {filteredExpenses.length > 0 && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
-            عرض {filteredExpenses.length} من {expenses.length} سجل
-          </Typography>
-        )}
-
-        {/* ── Expenses List ── */}
-        <Stack spacing={0} sx={{ mb: 6 }}>
-          {filteredExpenses.length === 0 ? (
-            <Card sx={{ textAlign: 'center', py: 8, borderRadius: 2 }}>
-              <TrendingDown sx={{ fontSize: 56, color: 'text.secondary', opacity: 0.2, mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" fontWeight={600}>لا توجد مصروفات</Typography>
-              <Typography variant="caption" color="text.secondary">اضغط على زر "مصروف جديد" لإضافة مصروف</Typography>
-            </Card>
-          ) : (
-            filteredExpenses.map((exp, index) => {
-              const clientName = clients.find(c => c.id === exp.clientId)?.name || 'مجهول';
-              const isLast = index === filteredExpenses.length - 1;
-              return (
-                <Box
-                  key={exp.id}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    borderRight: '3px solid #d64545',
-                    borderTop: '1px solid',
-                    borderBottom: isLast ? '1px solid' : 'none',
-                    borderLeft: '1px solid',
-                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                    borderRightColor: '#d64545',
-                    px: 2.5,
-                    py: 2,
-                    transition: 'background 0.18s ease',
-                    '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(214,69,69,0.015)' },
-                    '&:first-of-type': { borderRadius: '4px 4px 0 0' },
-                    '&:last-of-type': { borderRadius: '0 0 4px 4px' },
-                  }}
-                >
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-                    {/* Left: icon + info */}
-                    <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(214,69,69,0.08)', color: '#d64545', width: 40, height: 40, borderRadius: 1.5, border: '1px solid rgba(214,69,69,0.12)', flexShrink: 0, mt: 0.25 }}>
-                        <TrendingDown sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography fontWeight={800} variant="body2" noWrap sx={{ mb: 0.5 }}>{exp.description}</Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.5 }}>
-                          <Chip
-                            label={getExpenseCategoryLabel(exp.category)}
-                            size="small"
-                            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: 'text.secondary', borderRadius: 1 }}
-                          />
-                          <Stack direction="row" alignItems="center" spacing={0.4}>
-                            <Person sx={{ fontSize: 12, color: 'text.disabled' }} />
-                            <Typography variant="caption" color="text.secondary" fontWeight={600} noWrap>{clientName}</Typography>
-                          </Stack>
-                          <Stack direction="row" alignItems="center" spacing={0.4}>
-                            <CalendarToday sx={{ fontSize: 11, color: 'text.disabled' }} />
-                            <Typography variant="caption" color="text.secondary" fontWeight={500}>{formatDate(exp.date)}</Typography>
-                          </Stack>
-                        </Stack>
-                        {exp.createdBy && (
-                          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem', mt: 0.5, display: 'block' }}>
-                            بواسطة: {exp.createdBy}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Stack>
-
-                    {/* Right: amount */}
-                    <Box sx={{ textAlign: 'left', flexShrink: 0 }}>
-                      <Typography fontWeight={900} sx={{ color: '#d64545', fontSize: '1rem' }}>
-                        {formatCurrency(exp.amount)}
-                      </Typography>
-                      {exp.invoiceNumber && (
-                        <Stack direction="row" alignItems="center" spacing={0.4} sx={{ mt: 0.5, justifyContent: 'flex-end' }}>
-                          <Description sx={{ fontSize: 11, color: 'text.disabled' }} />
-                          <Typography variant="caption" color="text.disabled" fontWeight={600}>{exp.invoiceNumber}</Typography>
-                        </Stack>
-                      )}
-                    </Box>
-                  </Stack>
-                </Box>
-              );
-            })
+          {filtered.length > 0 && (
+            <div className="text-2xs text-fg-muted font-semibold">
+              عرض {filtered.length} من {expenses.length} سجل
+            </div>
           )}
-        </Stack>
-      </Container>
 
-      {/* ── Add Expense Dialog ── */}
-      <Dialog
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <div className="bg-surface-panel border border-border rounded-xl p-10 text-center">
+                <div
+                  className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-3"
+                  style={{ background: 'color-mix(in srgb, var(--brand-danger) 10%, transparent)', color: 'var(--brand-danger)' }}
+                >
+                  <TrendingDown sx={{ fontSize: 28 }} />
+                </div>
+                <div className="text-fg font-semibold">لا توجد مصروفات</div>
+                <div className="text-2xs text-fg-muted mt-1">اضغط «مصروف جديد» لإضافة أول مصروف.</div>
+              </div>
+            ) : (
+              filtered.map((exp) => {
+                const clientName = clients.find((c) => c.id === exp.clientId)?.name || 'مجهول';
+                return (
+                  <div
+                    key={exp.id}
+                    className={cn(
+                      'relative bg-surface-panel border border-border rounded-xl p-4',
+                      'hover:border-strong hover:shadow-xs transition-all duration-base content-auto'
+                    )}
+                    style={{
+                      borderInlineEndWidth: '3px',
+                      borderInlineEndColor: 'var(--brand-danger)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <span
+                          aria-hidden
+                          className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          style={{
+                            background: 'color-mix(in srgb, var(--brand-danger) 10%, transparent)',
+                            color: 'var(--brand-danger)',
+                          }}
+                        >
+                          <TrendingDown sx={{ fontSize: 18 }} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-sm text-fg truncate">{exp.description}</div>
+                          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                            <span className="inline-flex items-center h-5 px-2 rounded-full bg-surface-sunken text-2xs font-bold text-fg-subtle border border-border">
+                              {getExpenseCategoryLabel(exp.category)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                              <Person sx={{ fontSize: 11 }} /> {clientName}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                              <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(exp.date)}
+                            </span>
+                          </div>
+                          {exp.createdBy && (
+                            <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {exp.createdBy}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-start shrink-0">
+                        <div
+                          className="font-extrabold text-base font-num tabular"
+                          style={{ color: 'var(--brand-danger)' }}
+                        >
+                          {formatCurrency(exp.amount)}
+                        </div>
+                        {exp.invoiceNumber && (
+                          <div className="inline-flex items-center gap-1 text-2xs text-fg-muted mt-1">
+                            <Description sx={{ fontSize: 11 }} />
+                            {exp.invoiceNumber}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ Add expense modal ═══ */}
+      <Modal
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ style: { borderRadius: '16px', padding: 0 } }}
+        title="تسجيل مصروف جديد"
+        description="أدخل تفاصيل المصروف"
+        maxWidth="md"
       >
-        {/* Dialog header */}
-        <Box sx={{ background: 'linear-gradient(135deg, #2a3a2a 0%, #4a5d4a 100%)', px: 3, py: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="h6" fontWeight={800} sx={{ color: 'white', lineHeight: 1.2 }}>تسجيل مصروف جديد</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>أدخل تفاصيل المصروف</Typography>
-          </Box>
-          <IconButton onClick={() => setDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.8)', bgcolor: 'rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}>
-            <Close fontSize="small" />
-          </IconButton>
-        </Box>
+        <div className="space-y-3">
+          <Input
+            label="وصف المصروف"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="مثال: شراء مواد بناء"
+          />
+          <Input
+            label="المبلغ"
+            type="number"
+            inputMode="decimal"
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            placeholder="0.00"
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-fg-subtle">الفئة</span>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+              >
+                {Object.entries(expenseCategories).map(([k, l]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-fg-subtle">العميل / المشروع</span>
+              <select
+                value={form.clientId}
+                onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-fg-subtle">تاريخ المصروف</span>
+            <input
+              type="date"
+              value={form.date.format('YYYY-MM-DD')}
+              onChange={(e) => setForm({ ...form, date: dayjs(e.target.value) })}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-fg-subtle">ملاحظات (اختياري)</span>
+            <textarea
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="px-3 py-2 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus resize-none"
+            />
+          </label>
 
-        <Box sx={{ p: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ar">
-            <Stack spacing={2.5}>
-              <TextField
-                label="وصف المصروف"
-                fullWidth
-                value={expenseForm.description}
-                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1 }}><NoteAlt sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> }}
-              />
-              <TextField
-                label="المبلغ"
-                type="number"
-                fullWidth
-                value={expenseForm.amount}
-                onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start" sx={{ ml: 1 }}><AttachMoney sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>,
-                  endAdornment: <InputAdornment position="end">د.ل</InputAdornment>,
-                }}
-              />
-              <FormControl fullWidth>
-                <InputLabel>الفئة</InputLabel>
-                <Select
-                  value={expenseForm.category}
-                  label="الفئة"
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                >
-                  {Object.entries(expenseCategories).map(([key, label]) => (
-                    <MenuItem key={key} value={key}>{label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>العميل / المشروع</InputLabel>
-                <Select
-                  value={expenseForm.clientId}
-                  label="العميل / المشروع"
-                  onChange={(e) => setExpenseForm({ ...expenseForm, clientId: e.target.value })}
-                  startAdornment={<InputAdornment position="start" sx={{ ml: 1 }}><BusinessCenter sx={{ color: 'text.secondary', fontSize: 18 }} /></InputAdornment>}
-                >
-                  {clients.map(c => (
-                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <DatePicker
-                label="تاريخ المصروف"
-                value={expenseForm.date}
-                onChange={(newValue) => newValue && setExpenseForm({ ...expenseForm, date: newValue })}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-              <TextField
-                label="ملاحظات (اختياري)"
-                multiline
-                rows={2}
-                value={expenseForm.notes}
-                onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
-              />
-            </Stack>
-          </LocalizationProvider>
-        </Box>
-
-        {/* Dialog actions */}
-        <Box sx={{ px: 3, pb: 3, pt: 0, display: 'flex', gap: 1.5 }}>
-          <Button
-            fullWidth
-            onClick={() => setDialogOpen(false)}
-            size="large"
-            sx={{ borderRadius: 2, fontWeight: 600, color: 'text.secondary', border: '1px solid', borderColor: 'divider' }}
-          >
-            إلغاء
-          </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleAddExpense}
-            disabled={loading || !expenseForm.description || !expenseForm.amount || !expenseForm.clientId}
-            size="large"
-            sx={{
-              borderRadius: 2, fontWeight: 800,
-              background: 'linear-gradient(135deg, #d64545 0%, #b83b3b 100%)',
-              boxShadow: '0 4px 16px rgba(214,69,69,0.3)',
-              '&:hover': { boxShadow: '0 6px 20px rgba(214,69,69,0.4)' },
-              '&:disabled': { opacity: 0.5 },
-            }}
-          >
-            {loading ? 'جاري الحفظ...' : 'حفظ المصروف'}
-          </Button>
-        </Box>
-      </Dialog>
-    </Box>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              block
+              onClick={() => setDialogOpen(false)}
+              type="button"
+            >
+              إلغاء
+            </Button>
+            <Button
+              block
+              loading={loading}
+              disabled={!form.description || !form.amount || !form.clientId}
+              onClick={handleAdd}
+            >
+              {loading ? 'جاري الحفظ...' : 'حفظ المصروف'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
+
+// ────────────────────────────────────────────────────────────────────────────
+// Fund Banner — brand-aligned version of the custody info card
+// ────────────────────────────────────────────────────────────────────────────
+
+function FundBanner({ stats }: { stats: { deposited: number; spent: number; remaining: number } }) {
+  const isDeficit = stats.remaining < 0;
+  const healthy = stats.remaining > stats.deposited * 0.4;
+  const pct = stats.deposited > 0
+    ? Math.max(0, Math.min(100, (stats.remaining / stats.deposited) * 100))
+    : 0;
+
+  const tone = isDeficit
+    ? { color: 'var(--brand-danger)', bg: 'color-mix(in srgb, var(--brand-danger) 10%, transparent)', border: 'color-mix(in srgb, var(--brand-danger) 30%, transparent)' }
+    : healthy
+    ? { color: 'var(--brand-success)', bg: 'color-mix(in srgb, var(--brand-success) 10%, transparent)', border: 'color-mix(in srgb, var(--brand-success) 30%, transparent)' }
+    : { color: 'var(--brand-warning)', bg: 'color-mix(in srgb, var(--brand-warning) 12%, transparent)', border: 'color-mix(in srgb, var(--brand-warning) 30%, transparent)' };
+
+  return (
+    <section
+      className="rounded-2xl overflow-hidden"
+      style={{ background: tone.bg, border: `1.5px solid ${tone.border}` }}
+    >
+      <div className="flex items-center gap-3 p-4 sm:p-5">
+        <div
+          className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: tone.color, color: '#fff' }}
+        >
+          <AccountBalanceWallet sx={{ fontSize: 24 }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-2xs text-fg-muted font-bold tracking-wider">
+            {isDeficit ? 'عجز في العهدة' : 'رصيد عهدتك المتاح'}
+          </div>
+          <div
+            className="text-2xl sm:text-3xl font-extrabold font-num tabular leading-none mt-1"
+            style={{ color: tone.color }}
+          >
+            {isDeficit
+              ? `-${formatCurrency(Math.abs(stats.remaining))}`
+              : formatCurrency(stats.remaining)}
+          </div>
+        </div>
+        {isDeficit && <WarningAmber sx={{ fontSize: 26, color: 'var(--brand-danger)' }} />}
+      </div>
+
+      <div className="px-4 sm:px-5 pb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-2xs text-fg-muted font-semibold">{Math.round(pct)}% متبقي</span>
+          <span className="text-2xs text-fg-muted font-semibold">
+            من {formatCurrency(stats.deposited)}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+          <div
+            className="h-full rounded-full transition-[width] duration-base"
+            style={{
+              width: isDeficit ? '100%' : `${pct}%`,
+              background: tone.color,
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        className="grid grid-cols-3 border-t"
+        style={{ borderColor: 'var(--surface-border)', background: 'rgba(0,0,0,0.02)' }}
+      >
+        {[
+          { label: 'الإجمالي', val: stats.deposited, tone: 'var(--text-primary)' },
+          { label: 'المصروف', val: stats.spent, tone: 'var(--brand-danger)' },
+          {
+            label: 'المتبقي',
+            val: stats.remaining,
+            tone: stats.remaining >= 0 ? 'var(--brand-success)' : 'var(--brand-danger)',
+          },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className="py-2.5 text-center"
+            style={{
+              borderInlineStart: i > 0 ? '1px solid var(--surface-border)' : undefined,
+            }}
+          >
+            <div className="font-extrabold text-sm font-num tabular" style={{ color: s.tone }}>
+              {formatCurrency(s.val)}
+            </div>
+            <div className="text-[0.65rem] text-fg-muted font-semibold">{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

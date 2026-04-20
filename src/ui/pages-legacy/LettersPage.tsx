@@ -29,7 +29,7 @@ dayjs.locale('ar');
 
 // ── Labels ──
 const typeLabels: Record<LetterType, string> = { official: 'خطاب رسمي', offer: 'عرض سعر', entitlement: 'مستخلص' };
-const typeColors: Record<LetterType, string> = { official: '#4a5d4a', offer: '#5a8fc4', entitlement: '#c9a54e' };
+const typeColors: Record<LetterType, string> = { official: '#A78BFA', offer: '#60A5FA', entitlement: '#FBBF24' };
 
 // ── Preset Greetings ──
 const GREETINGS = [
@@ -152,28 +152,25 @@ export const LettersPage = () => {
   const handleShare = (l: Letter) => withPdf(() => sharePdf(React.createElement(LetterPDF, { letter: l }), `${typeLabels[l.type]}-${l.refNumber}`, `${typeLabels[l.type]} - ${l.subject}`));
 
   return (
-    <Box sx={{ minHeight: '100dvh', background: isDark ? 'linear-gradient(180deg,#1a1f1a,#151a15)' : 'linear-gradient(180deg,#f5f3ef,#ede9e3)', pb: 10 }}>
+    <Box sx={{ pb: 10 }}>
 
       {/* ── Header ── */}
       <Box sx={{
-        background: 'linear-gradient(160deg,#1a1f1a 0%,#2f3e2f 50%,#3a4a3a 100%)',
-        pt: 'calc(env(safe-area-inset-top) + 24px)', pb: 4, px: 2.5, borderRadius: '0 0 32px 32px',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(135deg,#1B0F3B 0%,#4C1D95 50%,#6D28D9 100%)',
+        pt: 3, pb: 4, px: 2.5, borderRadius: '0 0 28px 28px',
+        boxShadow: '0 12px 40px rgba(109,40,217,0.25)', position: 'relative', overflow: 'hidden',
       }}>
         <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <IconButton onClick={() => navigate('/')} sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <ArrowForward />
-            </IconButton>
             <Stack direction="row" alignItems="center" gap={1.5}>
               <Box>
                 <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, textAlign: 'right' }}>الرسائل الرسمية</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, textAlign: 'right', display: 'block' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, textAlign: 'right', display: 'block' }}>
                   خطابات وعروض أسعار ومستخلصات
                 </Typography>
               </Box>
-              <Box sx={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,rgba(200,192,176,0.2),rgba(200,192,176,0.08))', border: '1px solid rgba(200,192,176,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Description sx={{ fontSize: 22, color: '#c8c0b0' }} />
+              <Box sx={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,rgba(245,158,11,0.25),rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Description sx={{ fontSize: 22, color: '#FBBF24' }} />
               </Box>
             </Stack>
           </Stack>
@@ -306,9 +303,9 @@ export const LettersPage = () => {
       {/* ── FAB ── */}
       <Fab onClick={openAdd} size="medium" sx={{
         position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom) + 96px)', left: '50%', transform: 'translateX(-50%)',
-        bgcolor: isDark ? '#5a7a5a' : '#4a5d4a', color: '#fff', zIndex: 999,
+        bgcolor: isDark ? '#8B5CF6' : '#6D28D9', color: '#fff', zIndex: 999,
         boxShadow: '0 6px 20px rgba(74,93,74,0.5)',
-        '&:hover': { bgcolor: isDark ? '#6b8f6b' : '#364036' },
+        '&:hover': { bgcolor: isDark ? '#A78BFA' : '#5B21B6' },
       }}>
         <Add />
       </Fab>
@@ -317,7 +314,7 @@ export const LettersPage = () => {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullScreen
         PaperProps={{ sx: { bgcolor: isDark ? '#151a15' : '#f5f3ef', backgroundImage: 'none' } }}>
         {/* Top bar */}
-        <Box sx={{ bgcolor: isDark ? '#1e251e' : '#fff', borderBottom: `1px solid ${cardBorder}`, px: 2, pt: 'calc(env(safe-area-inset-top) + 12px)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ bgcolor: isDark ? 'var(--surface-panel)' : '#fff', borderBottom: `1px solid ${cardBorder}`, px: 2, pt: 'calc(env(safe-area-inset-top) + 12px)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><Close /></IconButton>
           <Typography fontWeight={800} sx={{ flex: 1, textAlign: 'center' }}>{editingId ? 'تعديل الرسالة' : 'رسالة جديدة'}</Typography>
           <Button variant="contained" size="small" onClick={handleSave} sx={{ borderRadius: 1, px: 3, fontWeight: 700 }}>حفظ</Button>

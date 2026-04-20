@@ -219,8 +219,8 @@ export const FundPage = () => {
 
   // Hero header gradient — legacy tone. Phase 2 will bind to `--brand-primary`.
   const HEADER = isDark
-    ? 'linear-gradient(160deg, #1a1f1a 0%, #2f3e2f 50%, #3a4a3a 100%)'
-    : 'linear-gradient(160deg, #4a5d4a 0%, #6b7f6b 50%, #364036 100%)';
+    ? 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 50%, #6D28D9 100%)'
+    : 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #8B5CF6 100%)';
     
   const USER_HDR = isDark ? '#2d3a2d' : '#fdfdfc';
 
@@ -290,15 +290,15 @@ export const FundPage = () => {
       {/* ══ STUNNING HEADER (LINEAR / STRIPE STYLE) ════════════════════════════════════ */}
       <Box sx={{ 
         background: isDark 
-          ? 'radial-gradient(120% 120% at 50% 0%, #152219 0%, #0a110c 50%, #050806 100%)' 
-          : 'radial-gradient(120% 120% at 50% 0%, #213526 0%, #132217 50%, #0b140e 100%)', 
-        pt: 'calc(env(safe-area-inset-top) + 32px)', 
+          ? 'radial-gradient(120% 120% at 50% 0%, #1B0F3B 0%, #0F0D1C 50%, #0B0A14 100%)' 
+          : 'radial-gradient(120% 120% at 50% 0%, #4C1D95 0%, #1B0F3B 50%, #0B0A14 100%)', 
+        pt: 3, 
         pb: 8, 
         px: 0, 
         position: 'relative', 
         overflow: 'hidden', 
-        borderBottom: isDark ? '1px solid rgba(200, 192, 176, 0.1)' : 'none',
-        boxShadow: '0 10px 40px -10px rgba(74,93,74,0.4)',
+        borderBottom: isDark ? '1px solid rgba(139, 92, 246, 0.15)' : 'none',
+        boxShadow: '0 10px 40px -10px rgba(109,40,217,0.4)',
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
         mb: 2,
@@ -434,7 +434,7 @@ export const FundPage = () => {
                       border: isDark ? '1px solid rgba(122,154,122,0.3)' : '1px solid rgba(74,93,74,0.2)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Person sx={{ fontSize: 24, color: isDark ? '#9ab89a' : '#4a5d4a' }} />
+                      <Person sx={{ fontSize: 24, color: isDark ? '#A78BFA' : '#6D28D9' }} />
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ color: isDark ? '#fff' : '#1a1f1a', fontWeight: 800, fontSize: '1rem', fontFamily: F, lineHeight: 1.2 }}>
@@ -754,7 +754,7 @@ export const FundPage = () => {
         PaperProps={{ sx: { bgcolor: isDark ? '#0a0e14' : '#f0f2f5', fontFamily: F } }}>
 
         {/* Dialog Header */}
-        <Box sx={{ background: HEADER, pt: 'calc(env(safe-area-inset-top) + 28px)', pb: 4.5, px: 2.5, position: 'relative', overflow: 'hidden', '&::after': { content: '""', position: 'absolute', top: '-40%', right: '-20%', width: '60%', height: '160%', background: 'radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 60%)', pointerEvents: 'none' } }}>
+        <Box sx={{ background: HEADER, pt: 3.5, pb: 4.5, px: 2.5, position: 'relative', overflow: 'hidden', '&::after': { content: '""', position: 'absolute', top: '-40%', right: '-20%', width: '60%', height: '160%', background: 'radial-gradient(ellipse, rgba(139,92,246,0.1) 0%, transparent 60%)', pointerEvents: 'none' } }}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
             <IconButton onClick={() => setDialogOpen(false)}
               sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, p: 1, '&:active': { transform: 'scale(0.95)' }, transition: 'transform 0.15s' }}>
