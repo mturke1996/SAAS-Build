@@ -1,38 +1,51 @@
 // @ts-nocheck
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import {
-  Box, Button, Card, CardContent, Typography, Chip, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Container,
-  Avatar, Stack, FormControl, InputLabel, Select, MenuItem, Divider,
-  useTheme, Snackbar, InputAdornment, Alert, Grid as MuiGrid, CircularProgress, Collapse, alpha
-} from '@mui/material';
-import {
-  ArrowBack, Payment, Business, Person, Phone, Add, TrendingDown,
-  TrendingUp, Edit, Delete, CreditCard, PersonAdd, Save, Share, Close, PostAdd, ChevronLeft, Search, KeyboardArrowDown, KeyboardArrowUp, AccountBalanceWallet, WarningAmber, CalendarToday, NoteAlt, PictureAsPdf
+  Phone, Edit, Delete, Add, Search, Share, PictureAsPdf,
+  Payment, TrendingUp, TrendingDown, CreditCard, Business, Person,
+  AccountBalanceWallet, Description, PostAdd, PersonAdd, CalendarToday,
+  WarningAmber, NoteAlt, CheckCircle, ChevronLeft, ChevronRight,
+  ExpandMore, ExpandLess,
 } from '@mui/icons-material';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ar';
+import toast from 'react-hot-toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+
 import { useDataStore } from '../../store/useDataStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useAppLockStore } from '../../store/useAppLockStore';
-import { useForm, Controller, useWatch } from 'react-hook-form';
-import { formatCurrency, formatDate, getExpenseCategoryLabel, expenseCategories } from '../../utils/formatters';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import dayjs from 'dayjs';
-import 'dayjs/locale/ar';
-import React from 'react';
-import { downloadPdf, sharePdf } from '../../utils/pdfService';
-import { ExpensesPDF, PaymentsPDF, WorkersPDF, DebtsPDF, FullReportPDF } from '../../features/pdf/ClientReportsPDF';
-import toast from 'react-hot-toast';
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { useGlobalFundStore } from '../../store/useGlobalFundStore';
-
-const Grid = MuiGrid as any;
-import type { Payment as PaymentType, Expense, StandaloneDebt, Worker, UserBalance } from '../../types';
-import { COMPANY_INFO } from '../../constants/companyInfo';
+import { useBrand } from '../../config/BrandProvider';
+import { db } from '../../config/firebase';
+import {
+  formatCurrency, formatDate, getExpenseCategoryLabel, expenseCategories,
+} from '../../utils/formatters';
+import { downloadPdf, sharePdf } from '../../utils/pdfService';
+import {
+  ExpensesPDF, PaymentsPDF, WorkersPDF, DebtsPDF, FullReportPDF,
+} from '../../features/pdf/ClientReportsPDF';
+import {
+  Button, Input, Sheet, Modal,
+} from '../../design-system/primitives';
+import { cn } from '../../design-system/primitives/cn';
+import { countUp } from '../../core/motion/presets';
+import type {
+  Payment as PaymentType, Expense, StandaloneDebt, Worker, UserBalance,
+} from '../../types';
 
 dayjs.locale('ar');
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VALIDATION SCHEMAS
+═══════════════════════════════════════════════════════════════════════════ */
 
 const clientSchema = z.object({
   name: z.string().min(2),
@@ -45,20 +58,27 @@ const clientSchema = z.object({
 const workerSchema = z.object({
   name: z.string().min(1, 'مطلوب'),
   jobType: z.string().optional(),
-  totalAmount: z.preprocess((val) => (val === '' ? undefined : parseFloat(val as string)), z.number().min(0, 'يجب أن يكون مبلغ إيجابي').optional())
+  totalAmount: z.preprocess(
+    (v) => (v === '' ? undefined : parseFloat(v as string)),
+    z.number().min(0).optional()
+  ),
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
 
 export const ClientProfilePage = () => {
   const { id: clientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const theme = useTheme();
+  const brand = useBrand();
+  const rtl = brand.direction === 'rtl';
   const { user } = useAuthStore();
   const { canAccess } = useAppLockStore();
-
   const { transactions: fundTransactions, initialize: initFund } = useGlobalFundStore();
 
   const {
-    clients, payments, expenses, standaloneDebts, invoices, debtParties,
+    clients, payments, expenses, standaloneDebts, invoices,
     addPayment, updatePayment, deletePayment,
     addExpense, updateExpense, deleteExpense,
     addStandaloneDebt, updateStandaloneDebt, deleteStandaloneDebt,
@@ -67,97 +87,90 @@ export const ClientProfilePage = () => {
     userBalances, addUserBalance, updateUserBalance, deleteUserBalance,
   } = useDataStore();
 
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
-  const [debtDialogOpen, setDebtDialogOpen] = useState(false);
-  const [expensesListOpen, setExpensesListOpen] = useState(false);
-  const [paymentsListOpen, setPaymentsListOpen] = useState(false);
-  const [debtsListOpen, setDebtsListOpen] = useState(false);
-  const [expandedUserExpenses, setExpandedUserExpenses] = useState<string | null>(null);
-  const [profitDialogOpen, setProfitDialogOpen] = useState(false);
-  const [editClientOpen, setEditClientOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [editingPayment, setEditingPayment] = useState<PaymentType | null>(null);
-  const [editingDebt, setEditingDebt] = useState<StandaloneDebt | null>(null);
-  const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
-  const [workerDialogOpen, setWorkerDialogOpen] = useState(false);
-  const [workersListOpen, setWorkersListOpen] = useState(false);
-  const [profitPercentage, setProfitPercentage] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
-  const [expSearch, setExpSearch] = useState('');
-  const [paySearch, setPaySearch] = useState('');
-  const [expensesPerUserOpen, setExpensesPerUserOpen] = useState(false);
-  const [balancesListOpen, setBalancesListOpen] = useState(false);
-  const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
-  const [editingBalance, setEditingBalance] = useState<UserBalance | null>(null);
-  const [systemUsers, setSystemUsers] = useState<any[]>([]);
-
   const client = clients.find((c) => c.id === clientId);
 
-  // Forms
-  const { control: clientControl, handleSubmit: handleClientSubmit, reset: resetClient } = useForm<z.infer<typeof clientSchema>>({
-    resolver: zodResolver(clientSchema),
-    defaultValues: { name: '', email: '', phone: '', address: '', type: 'individual' },
-  });
+  // ─── Sheet / dialog state ──────────────────────────────────────────────
+  const [activeSheet, setActiveSheet] = useState<
+    'expenses' | 'payments' | 'debts' | 'workers' | 'balances' | null
+  >(null);
+  const [activeForm, setActiveForm] = useState<
+    | { kind: 'payment'; edit?: PaymentType | null }
+    | { kind: 'expense'; edit?: Expense | null; presetWorker?: Worker | null }
+    | { kind: 'debt'; edit?: StandaloneDebt | null }
+    | { kind: 'worker'; edit?: Worker | null }
+    | { kind: 'balance'; edit?: UserBalance | null }
+    | { kind: 'editClient' }
+    | { kind: 'profit' }
+    | null
+  >(null);
+  const [profitPercentage, setProfitPercentage] = useState('');
+  const [systemUsers, setSystemUsers] = useState<any[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
-  const { control: payCtrl, handleSubmit: handlePaySubmit, reset: resetPay, setValue: setPayVal } = useForm({
-    defaultValues: { amount: '' as any, paymentMethod: 'cash' as const, paymentDate: dayjs().format('YYYY-MM-DD'), invoiceId: '', notes: '' },
-  });
-
-  const { control: expCtrl, handleSubmit: handleExpSubmit, reset: resetExp, setValue: setExpVal } = useForm({
-    defaultValues: { description: '', amount: '' as any, category: 'materials', date: dayjs().format('YYYY-MM-DD'), invoiceNumber: '', notes: '', workerId: '', userId: '' },
-  });
-
-  const { control: debtCtrl, handleSubmit: handleDebtSubmit, reset: resetDebt, setValue: setDebtVal } = useForm({
-    defaultValues: { partyName: '', description: '', amount: '' as any, date: dayjs().format('YYYY-MM-DD'), notes: '' },
-  });
-
-  const { control: workCtrl, handleSubmit: handleWorkSubmit, reset: resetWork, setValue: setWorkVal } = useForm({
-    defaultValues: { name: '', jobType: '', totalAmount: '' as any },
-  });
-
-  const { control: balCtrl, handleSubmit: handleBalSubmit, reset: resetBal, setValue: setBalVal } = useForm({
-    defaultValues: { userId: '', amount: '' as any, date: dayjs().format('YYYY-MM-DD'), notes: '' },
-  });
-
-  useEffect(() => { const u = initFund(); return u; }, []);
+  useEffect(() => {
+    const u = initFund();
+    return u;
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setSystemUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsub = onSnapshot(q, (snap) => {
+      setSystemUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    if (client && editClientOpen) {
-      resetClient({ name: client.name, email: client.email || '', phone: client.phone, address: client.address, type: client.type });
-    }
-  }, [client, editClientOpen, resetClient]);
-
-  useEffect(() => {
     if (client) setProfitPercentage(client.profitPercentage?.toString() || '');
   }, [client?.id, client?.profitPercentage]);
 
-  const clientExpenses = useMemo(() => expenses.filter((e) => e.clientId === clientId).sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt))), [expenses, clientId]);
-  const clientPayments = useMemo(() => payments.filter((p) => p.clientId === clientId).sort((a, b) => dayjs(b.paymentDate).diff(dayjs(a.paymentDate))), [payments, clientId]);
-  const clientDebts = useMemo(() => standaloneDebts.filter((d) => d.clientId === clientId).sort((a, b) => dayjs(b.date).diff(dayjs(a.date))), [standaloneDebts, clientId]);
+  // ─── Derived data ──────────────────────────────────────────────────────
+  const clientExpenses = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.clientId === clientId)
+        .sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt))),
+    [expenses, clientId]
+  );
+  const clientPayments = useMemo(
+    () =>
+      payments
+        .filter((p) => p.clientId === clientId)
+        .sort((a, b) => dayjs(b.paymentDate).diff(dayjs(a.paymentDate))),
+    [payments, clientId]
+  );
+  const clientDebts = useMemo(
+    () =>
+      standaloneDebts
+        .filter((d) => d.clientId === clientId)
+        .sort((a, b) => dayjs(b.date).diff(dayjs(a.date))),
+    [standaloneDebts, clientId]
+  );
   const clientWorkers = useMemo(() => {
-    const works = workers.filter((w) => w.clientId === clientId).sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
-    return works.map(w => {
-      const paid = expenses.filter(e => e.workerId === w.id).reduce((sum, e) => sum + e.amount, 0);
+    const works = workers
+      .filter((w) => w.clientId === clientId)
+      .sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt)));
+    return works.map((w) => {
+      const paid = expenses
+        .filter((e) => e.workerId === w.id)
+        .reduce((s, e) => s + e.amount, 0);
       return { ...w, paidAmount: paid, remainingAmount: w.totalAmount - paid };
     });
   }, [workers, expenses, clientId]);
 
-  const clientUserBalances = useMemo(() => userBalances.filter(b => b.clientId === clientId).sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt))), [userBalances, clientId]);
+  const clientUserBalances = useMemo(
+    () =>
+      userBalances
+        .filter((b) => b.clientId === clientId)
+        .sort((a, b) => dayjs(b.createdAt).diff(dayjs(a.createdAt))),
+    [userBalances, clientId]
+  );
 
-  // Build cross-reference maps: uid <-> docId <-> displayName
+  // ─── User-ID map (Firebase Auth UID ↔ Firestore doc.id ↔ displayName) ──
   const userIdMap = useMemo(() => {
-    const uidToDoc: Record<string, string> = {}; // Firebase Auth UID -> Firestore doc.id
-    const docToUid: Record<string, string> = {}; // Firestore doc.id -> Firebase Auth UID
-    const nameToUid: Record<string, string> = {}; // displayName -> Firebase Auth UID
+    const uidToDoc: Record<string, string> = {};
+    const docToUid: Record<string, string> = {};
+    const nameToUid: Record<string, string> = {};
     systemUsers.forEach((u: any) => {
       const authUid = u.uid || u.id;
       const docId = u.id;
@@ -169,32 +182,31 @@ export const ClientProfilePage = () => {
   }, [systemUsers]);
 
   const userBalancesSummary = useMemo(() => {
-    const summary: Record<string, { given: number, spent: number, remaining: number, expenses: typeof clientExpenses, name: string, minTime: string }> = {};
-    
-    const sortedBalances = [...clientUserBalances].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
-    sortedBalances.forEach(b => {
-      // Normalize key to Firebase Auth UID
+    const summary: Record<
+      string,
+      { given: number; spent: number; remaining: number; expenses: any[]; name: string; minTime: string }
+    > = {};
+    const sortedBalances = [...clientUserBalances].sort((a, b) =>
+      dayjs(a.createdAt).diff(dayjs(b.createdAt))
+    );
+    sortedBalances.forEach((b) => {
       let k = b.userId;
-      if (k && userIdMap.docToUid[k]) k = userIdMap.docToUid[k]; // old data: was stored as doc.id
+      if (k && userIdMap.docToUid[k]) k = userIdMap.docToUid[k];
       if (!k && b.userName && userIdMap.nameToUid[b.userName]) k = userIdMap.nameToUid[b.userName];
       if (!k) k = b.userId || b.userName || 'unknown';
-
       const currentUserData = systemUsers.find((u: any) => (u.uid || u.id) === k);
-      const actualName = currentUserData ? currentUserData.displayName : (b.userName || 'مستخدم');
-
-      if (!summary[k]) summary[k] = { given: 0, spent: 0, remaining: 0, expenses: [], name: actualName, minTime: b.createdAt };
+      const actualName = currentUserData ? currentUserData.displayName : b.userName || 'مستخدم';
+      if (!summary[k])
+        summary[k] = { given: 0, spent: 0, remaining: 0, expenses: [], name: actualName, minTime: b.createdAt };
       if (currentUserData) summary[k].name = actualName;
       summary[k].given += b.amount;
       summary[k].remaining += b.amount;
     });
-
-    clientExpenses.forEach(e => {
-      // Normalize expense user key to Firebase Auth UID
+    clientExpenses.forEach((e) => {
       let k = e.userId;
       if (k && userIdMap.docToUid[k]) k = userIdMap.docToUid[k];
       if (!k && e.createdBy && userIdMap.nameToUid[e.createdBy]) k = userIdMap.nameToUid[e.createdBy];
       if (!k) k = e.userId || e.createdBy || 'المستخدم';
-
       if (summary[k] && summary[k].minTime) {
         if (dayjs(e.createdAt).isAfter(dayjs(summary[k].minTime).subtract(1, 'minute'))) {
           summary[k].spent += e.amount;
@@ -203,38 +215,36 @@ export const ClientProfilePage = () => {
         }
       }
     });
-
     return summary;
   }, [clientUserBalances, clientExpenses, systemUsers, userIdMap]);
 
-  // user.id is always the Firebase Auth UID
   const activeUserKey = user?.id || '';
   const currentUserBalanceInfo = activeUserKey ? userBalancesSummary[activeUserKey] : null;
+  const depletedBalances = useMemo(
+    () => Object.entries(userBalancesSummary).filter(([, b]) => b.given > 0 && b.remaining <= 0),
+    [userBalancesSummary]
+  );
 
-  // ── رصيد العهدة العام (نفس خوارزمية FundPage بالضبط) ──────────────────
+  // ─── Global fund stats (FIFO) ──────────────────────────────────────────
   const globalFundStats = useMemo(() => {
     if (!user) return null;
     const uid = user.id;
     const userName = user.displayName || '';
-
-    const deposits = [...fundTransactions.filter(t =>
-      t.type === 'deposit' && (
-        (uid && t.userId === uid) ||
-        (userName && t.userName === userName)
-      )
-    )].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
-
+    const deposits = [
+      ...fundTransactions.filter(
+        (t) =>
+          t.type === 'deposit' &&
+          ((uid && t.userId === uid) || (userName && t.userName === userName))
+      ),
+    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
     if (deposits.length === 0) return null;
-
-    const custodies = deposits.map(tx => ({
-      createdAt: tx.createdAt, amount: tx.amount, remaining: tx.amount, spent: 0,
-    }));
-
-    const allExp = [...expenses.filter(e =>
-      (uid && e.userId === uid) || (userName && e.createdBy === userName)
-    )].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
-
-    allExp.forEach(exp => {
+    const custodies = deposits.map((tx) => ({ createdAt: tx.createdAt, amount: tx.amount, remaining: tx.amount, spent: 0 }));
+    const allExp = [
+      ...expenses.filter(
+        (e) => (uid && e.userId === uid) || (userName && e.createdBy === userName)
+      ),
+    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
+    allExp.forEach((exp) => {
       let rem = exp.amount;
       const expTime = dayjs(exp.createdAt);
       for (let i = 0; i < custodies.length; i++) {
@@ -242,18 +252,25 @@ export const ClientProfilePage = () => {
         if (rem <= 0) break;
         if (expTime.isBefore(dayjs(c.createdAt))) continue;
         if (c.remaining <= 0) {
-          const hasNext = custodies.slice(i + 1).some(nc => !expTime.isBefore(dayjs(nc.createdAt)));
+          const hasNext = custodies.slice(i + 1).some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
           if (hasNext) continue;
         }
         const take = Math.min(rem, Math.max(c.remaining, 0));
-        if (take > 0) { c.spent += take; c.remaining -= take; rem -= take; }
+        if (take > 0) {
+          c.spent += take;
+          c.remaining -= take;
+          rem -= take;
+        }
         if (rem > 0) {
-          const hasNext = custodies.slice(i + 1).some(nc => !expTime.isBefore(dayjs(nc.createdAt)));
-          if (!hasNext) { c.spent += rem; c.remaining -= rem; rem = 0; }
+          const hasNext = custodies.slice(i + 1).some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
+          if (!hasNext) {
+            c.spent += rem;
+            c.remaining -= rem;
+            rem = 0;
+          }
         }
       }
     });
-
     for (let i = 0; i < custodies.length - 1; i++) {
       if (custodies[i].remaining < 0) {
         const deficit = Math.abs(custodies[i].remaining);
@@ -262,36 +279,13 @@ export const ClientProfilePage = () => {
         custodies[i].remaining = 0;
       }
     }
-
     const totalDeposited = custodies.reduce((s, c) => s + c.amount, 0);
     const totalSpent = custodies.reduce((s, c) => s + c.spent, 0);
     const totalRemaining = custodies.reduce((s, c) => s + c.remaining, 0);
     return { deposited: totalDeposited, spent: totalSpent, remaining: totalRemaining };
   }, [fundTransactions, expenses, user]);
 
-  const depletedBalances = useMemo(() => Object.entries(userBalancesSummary).filter(([u, b]) => b.given > 0 && b.remaining <= 0), [userBalancesSummary]);
-
-  const filteredExp = useMemo(() => {
-    if (!expSearch) return clientExpenses;
-    const q = expSearch.toLowerCase();
-    return clientExpenses.filter((e) => e.description.toLowerCase().includes(q) || e.category.includes(q));
-  }, [clientExpenses, expSearch]);
-
-  const expensesByUser = useMemo(() => {
-    const totals: Record<string, number> = {};
-    clientExpenses.forEach(exp => {
-      const user = exp.createdBy || 'المستخدم';
-      totals[user] = (totals[user] || 0) + exp.amount;
-    });
-    return Object.entries(totals).sort((a, b) => b[1] - a[1]);
-  }, [clientExpenses]);
-
-  const filteredPay = useMemo(() => {
-    if (!paySearch) return clientPayments;
-    const q = paySearch.toLowerCase();
-    return clientPayments.filter((p) => formatCurrency(p.amount).includes(q) || p.paymentMethod.includes(q));
-  }, [clientPayments, paySearch]);
-
+  // ─── Financial summary ────────────────────────────────────────────────
   const summary = useMemo(() => {
     const totalExpenses = clientExpenses.reduce((s, e) => s + e.amount, 0);
     const totalDebts = clientDebts.reduce((s, d) => s + d.remainingAmount, 0);
@@ -300,18 +294,16 @@ export const ClientProfilePage = () => {
     const totalWorkersAgreed = clientWorkers.reduce((s, w) => s + w.totalAmount, 0);
     const totalWorkersPaid = clientWorkers.reduce((s, w) => s + w.paidAmount, 0);
     const pct = client?.profitPercentage || 0;
-    // النسبة تؤخذ من إجمالي المدفوعات
     const profit = totalPaid > 0 && pct > 0 ? (totalPaid * pct) / 100 : 0;
-    // المتبقي = المدفوعات - النسبة - المصروفات - الديون المتبقية
     const totalObligations = totalExpenses + totalDebts;
     const remaining = totalPaid - profit - totalObligations;
-    return { totalExpenses, totalDebts, totalPaid, totalWorkersDue, totalWorkersAgreed, totalWorkersPaid, remaining, profit, profitPercentage: pct, totalObligations };
+    return {
+      totalExpenses, totalDebts, totalPaid, totalWorkersDue, totalWorkersAgreed,
+      totalWorkersPaid, remaining, profit, profitPercentage: pct, totalObligations,
+    };
   }, [clientExpenses, clientDebts, clientPayments, clientWorkers, client]);
 
-  const msg = (m: string) => setSnackbar({ open: true, message: m });
-  const [pdfLoading, setPdfLoading] = useState(false);
-
-  // === PDF Helpers (using @react-pdf/renderer) ===
+  // ─── PDF helpers ──────────────────────────────────────────────────────
   const withPdfLoading = async (fn: () => Promise<void>) => {
     setPdfLoading(true);
     try {
@@ -323,1246 +315,2135 @@ export const ClientProfilePage = () => {
       setPdfLoading(false);
     }
   };
-  // ─── Full Report ──────────────────────────────
-  const handleGeneratePDF = () => withPdfLoading(() =>
-    downloadPdf(
-      React.createElement(FullReportPDF, { client, expenses: clientExpenses, payments: clientPayments, debts: clientDebts, workers: clientWorkers, summary }),
-      `تقرير-${client?.name}`
-    )
-  );
-  const handleShareFullReport = () => withPdfLoading(() =>
-    sharePdf(
-      React.createElement(FullReportPDF, { client, expenses: clientExpenses, payments: clientPayments, debts: clientDebts, workers: clientWorkers, summary }),
-      `تقرير-${client?.name}`,
-      `التقرير الشامل - ${client?.name}`
-    )
-  );
+  const pdfFull = () => withPdfLoading(() => downloadPdf(
+    React.createElement(FullReportPDF, { client, expenses: clientExpenses, payments: clientPayments, debts: clientDebts, workers: clientWorkers, summary }),
+    `تقرير-${client?.name}`,
+  ));
+  const sharePdfFull = () => withPdfLoading(() => sharePdf(
+    React.createElement(FullReportPDF, { client, expenses: clientExpenses, payments: clientPayments, debts: clientDebts, workers: clientWorkers, summary }),
+    `تقرير-${client?.name}`,
+    `التقرير الشامل - ${client?.name}`,
+  ));
+  const pdfExpenses = () => withPdfLoading(() => downloadPdf(
+    React.createElement(ExpensesPDF, { client, expenses: clientExpenses, total: summary.totalExpenses }),
+    `مصروفات-${client?.name}`,
+  ));
+  const shareExpenses = () => withPdfLoading(() => sharePdf(
+    React.createElement(ExpensesPDF, { client, expenses: clientExpenses, total: summary.totalExpenses }),
+    `مصروفات-${client?.name}`,
+    `كشف المصروفات - ${client?.name}`,
+  ));
+  const pdfPayments = () => withPdfLoading(() => downloadPdf(
+    React.createElement(PaymentsPDF, { client, payments: clientPayments, total: summary.totalPaid }),
+    `مدفوعات-${client?.name}`,
+  ));
+  const sharePayments = () => withPdfLoading(() => sharePdf(
+    React.createElement(PaymentsPDF, { client, payments: clientPayments, total: summary.totalPaid }),
+    `مدفوعات-${client?.name}`,
+    `كشف المدفوعات - ${client?.name}`,
+  ));
+  const pdfDebts = () => withPdfLoading(() => downloadPdf(
+    React.createElement(DebtsPDF, { client, debts: clientDebts, total: summary.totalDebts }),
+    `ديون-${client?.name}`,
+  ));
+  const shareDebts = () => withPdfLoading(() => sharePdf(
+    React.createElement(DebtsPDF, { client, debts: clientDebts, total: summary.totalDebts }),
+    `ديون-${client?.name}`,
+    `كشف الديون - ${client?.name}`,
+  ));
+  const pdfWorkers = () => withPdfLoading(() => downloadPdf(
+    React.createElement(WorkersPDF, {
+      client, workers: clientWorkers,
+      totalAgreed: summary.totalWorkersAgreed,
+      totalPaid: summary.totalWorkersPaid,
+      totalDue: summary.totalWorkersDue,
+    }),
+    `عمال-${client?.name}`,
+  ));
+  const shareWorkersPdf = () => withPdfLoading(() => sharePdf(
+    React.createElement(WorkersPDF, {
+      client, workers: clientWorkers,
+      totalAgreed: summary.totalWorkersAgreed,
+      totalPaid: summary.totalWorkersPaid,
+      totalDue: summary.totalWorkersDue,
+    }),
+    `عمال-${client?.name}`,
+    `كشف العمال - ${client?.name}`,
+  ));
 
-  // ─── Expenses ────────────────────────────────
-  const handleDownloadExpenses = () => withPdfLoading(() =>
-    downloadPdf(
-      React.createElement(ExpensesPDF, { client, expenses: clientExpenses, total: summary.totalExpenses }),
-      `مصروفات-${client?.name}`
-    )
-  );
-  const handleShareExpenses = () => withPdfLoading(() =>
-    sharePdf(
-      React.createElement(ExpensesPDF, { client, expenses: clientExpenses, total: summary.totalExpenses }),
-      `مصروفات-${client?.name}`,
-      `كشف المصروفات - ${client?.name}`
-    )
-  );
-
-  // ─── Payments ────────────────────────────────
-  const handleDownloadPayments = () => withPdfLoading(() =>
-    downloadPdf(
-      React.createElement(PaymentsPDF, { client, payments: clientPayments, total: summary.totalPaid }),
-      `مدفوعات-${client?.name}`
-    )
-  );
-  const handleSharePayments = () => withPdfLoading(() =>
-    sharePdf(
-      React.createElement(PaymentsPDF, { client, payments: clientPayments, total: summary.totalPaid }),
-      `مدفوعات-${client?.name}`,
-      `كشف المدفوعات - ${client?.name}`
-    )
-  );
-
-  // ─── Debts ────────────────────────────────────
-  const handleDownloadDebts = () => withPdfLoading(() =>
-    downloadPdf(
-      React.createElement(DebtsPDF, { client, debts: clientDebts, total: summary.totalDebts }),
-      `ديون-${client?.name}`
-    )
-  );
-  const handleShareDebts = () => withPdfLoading(() =>
-    sharePdf(
-      React.createElement(DebtsPDF, { client, debts: clientDebts, total: summary.totalDebts }),
-      `ديون-${client?.name}`,
-      `كشف الديون - ${client?.name}`
-    )
-  );
-
-  // ─── Workers ──────────────────────────────────
-  const handleDownloadWorkers = () => withPdfLoading(() =>
-    downloadPdf(
-      React.createElement(WorkersPDF, { client, workers: clientWorkers, totalAgreed: summary.totalWorkersAgreed, totalPaid: summary.totalWorkersPaid, totalDue: summary.totalWorkersDue }),
-      `عمال-${client?.name}`
-    )
-  );
-  const handleShareWorkers = () => withPdfLoading(() =>
-    sharePdf(
-      React.createElement(WorkersPDF, { client, workers: clientWorkers, totalAgreed: summary.totalWorkersAgreed, totalPaid: summary.totalWorkersPaid, totalDue: summary.totalWorkersDue }),
-      `عمال-${client?.name}`,
-      `كشف العمال - ${client?.name}`
-    )
-  );
-
-  const menuItems = [
-    { title: 'فاتورة جديدة', icon: PostAdd, color: '#e6a817', bgColor: 'rgba(230,168,23,0.08)', borderColor: 'rgba(230,168,23,0.12)', module: 'invoices', onClick: () => navigate(`/invoices/new?clientId=${clientId}`) },
-    { title: 'المصروفات', icon: TrendingDown, color: '#d64545', bgColor: 'rgba(214,69,69,0.08)', borderColor: 'rgba(214,69,69,0.12)', module: 'expenses', onClick: () => setExpensesListOpen(true) },
-    { title: 'المدفوعات', icon: Payment, color: '#0d9668', bgColor: 'rgba(13,150,104,0.08)', borderColor: 'rgba(13,150,104,0.12)', module: 'payments', onClick: () => setPaymentsListOpen(true) },
-    { title: 'الديون', icon: CreditCard, color: '#c9a54e', bgColor: 'rgba(201,165,78,0.08)', borderColor: 'rgba(201,165,78,0.12)', module: 'debts', onClick: () => setDebtsListOpen(true) },
-    { title: 'العمال', icon: PersonAdd, color: '#6D28D9', bgColor: 'rgba(109,40,217,0.08)', borderColor: 'rgba(109,40,217,0.12)', module: 'workers', onClick: () => setWorkersListOpen(true) },
-    { title: 'إضافة رصيد (العهد)', icon: AccountBalanceWallet, color: '#f59e0b', bgColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.12)', module: 'balances', onClick: () => setBalancesListOpen(true) },
-    { title: 'حساب الأرباح', icon: TrendingUp, color: '#5a8fc4', bgColor: 'rgba(90,143,196,0.08)', borderColor: 'rgba(90,143,196,0.12)', module: 'stats', onClick: () => setProfitDialogOpen(true) },
-    { title: 'تحميل التقرير الشامل', icon: Business, color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.08)', borderColor: 'rgba(139,92,246,0.12)', module: 'stats', onClick: () => handleGeneratePDF() },
-    { title: 'مشاركة التقرير الشامل', icon: Share, color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.1)', module: 'stats', onClick: () => handleShareFullReport() },
-  ].filter(item => canAccess(item.module as any));
-
-  // Handlers
-  const onSubmitClient = async (data: any) => { if (!clientId) return; try { await updateClient(clientId, data); msg('تم تحديث بيانات العميل'); setEditClientOpen(false); } catch { msg('خطأ'); } };
-  const handleDeleteClient = async () => { if (!clientId || !window.confirm('هل أنت متأكد من حذف هذا العميل؟')) return; try { await deleteClient(clientId); navigate('/clients'); } catch { msg('خطأ'); } };
-
+  // ─── Business handlers ────────────────────────────────────────────────
+  const handleDeleteClient = async () => {
+    if (!clientId || !window.confirm('هل أنت متأكد من حذف هذا العميل؟')) return;
+    try {
+      await deleteClient(clientId);
+      navigate('/clients');
+    } catch {
+      toast.error('خطأ في الحذف');
+    }
+  };
   const handleSaveProfit = async () => {
     if (!clientId) return;
     const pct = parseFloat(profitPercentage);
-    if (isNaN(pct) || pct < 0 || pct > 100) { msg('النسبة يجب أن تكون بين 0 و 100'); return; }
-    try { await updateClient(clientId, { profitPercentage: pct }); window.dispatchEvent(new Event('profitPercentageUpdated')); msg('تم حفظ النسبة'); setProfitDialogOpen(false); } catch { msg('خطأ'); }
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      toast.error('النسبة يجب أن تكون بين 0 و 100');
+      return;
+    }
+    try {
+      await updateClient(clientId, { profitPercentage: pct });
+      window.dispatchEvent(new Event('profitPercentageUpdated'));
+      toast.success('تم حفظ النسبة');
+      setActiveForm(null);
+    } catch {
+      toast.error('خطأ');
+    }
   };
 
-  const onSubmitPayment = async (data: any) => {
-    const amount = parseFloat(data.amount) || 0;
-    try {
-      if (editingPayment) { await updatePayment(editingPayment.id, { amount, paymentMethod: data.paymentMethod, paymentDate: data.paymentDate, invoiceId: data.invoiceId, notes: data.notes }); setEditingPayment(null); msg('تم التعديل'); }
-      else { await addPayment({ id: crypto.randomUUID(), invoiceId: data.invoiceId || '', clientId: clientId!, amount, paymentMethod: data.paymentMethod, paymentDate: data.paymentDate, notes: data.notes || '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), createdBy: user?.displayName || 'المستخدم' }); msg('تمت الإضافة'); }
-      setPaymentDialogOpen(false); resetPay(); setPaymentsListOpen(true);
-    } catch { msg('خطأ'); }
-  };
+  // ─── Hero KPI count-up animation ──────────────────────────────────────
+  const heroRef = useRef<HTMLDivElement>(null);
+  const paidRef = useRef<HTMLSpanElement>(null);
+  const netRef = useRef<HTMLSpanElement>(null);
 
-  const onSubmitExpense = async (data: any) => {
-    const amount = parseFloat(data.amount) || 0;
-    const workerId = data.workerId || null;
-    const workerName = workerId ? workers.find(w => w.id === workerId)?.name : null;
-    const userId = editingExpense ? (editingExpense.userId || user?.id || '') : (user?.id || '');
-    const createdBy = editingExpense ? (editingExpense.createdBy || user?.displayName || 'المستخدم') : (user?.displayName || 'المستخدم');
-    try {
-      if (editingExpense) { await updateExpense(editingExpense.id, { description: data.description, amount, category: data.category, date: data.date, invoiceNumber: data.invoiceNumber, notes: data.notes, workerId, workerName, userId, createdBy }); setEditingExpense(null); msg('تم التعديل'); }
-      else { await addExpense({ id: crypto.randomUUID(), clientId: clientId!, description: data.description, amount, category: data.category, date: data.date, invoiceNumber: data.invoiceNumber || '', notes: data.notes, isClosed: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), workerId, workerName, userId, createdBy }); msg('تمت الإضافة'); }
-      setExpenseDialogOpen(false); resetExp(); setExpensesListOpen(true);
-    } catch { msg('خطأ'); }
-  };
-
-  const onSubmitDebt = async (data: any) => {
-    const amount = parseFloat(data.amount) || 0;
-    try {
-      if (editingDebt) { const newPaid = Math.min(editingDebt.paidAmount, amount); await updateStandaloneDebt(editingDebt.id, { partyName: data.partyName, description: data.description, amount, paidAmount: newPaid, remainingAmount: Math.max(0, amount - newPaid), status: amount - newPaid <= 0 ? 'paid' : 'unpaid', date: data.date, notes: data.notes }); setEditingDebt(null); msg('تم التعديل'); }
-      else { await addStandaloneDebt({ id: crypto.randomUUID(), clientId: clientId!, partyType: 'external', partyName: data.partyName, description: data.description, amount, paidAmount: 0, remainingAmount: amount, status: 'unpaid', date: data.date, notes: data.notes || '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); msg('تمت الإضافة'); }
-      setDebtDialogOpen(false); resetDebt(); setDebtsListOpen(true);
-    } catch { msg('خطأ'); }
-  };
-
-  const onSubmitWorker = async (data: any) => {
-    const totalAmount = parseFloat(data.totalAmount) || 0;
-    try {
-      if (editingWorker) {
-        await updateWorker(editingWorker.id, { name: data.name, jobType: data.jobType, totalAmount, status: 'active' });
-        msg('تم تحديث بيانات العامل');
-      } else {
-        await addWorker({
-          id: crypto.randomUUID(),
-          clientId: clientId!,
-          name: data.name,
-          jobType: data.jobType,
-          totalAmount,
-          paidAmount: 0,
-          remainingAmount: totalAmount,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+  useGSAP(
+    () => {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduced) {
+        gsap.from('[data-reveal]', {
+          autoAlpha: 0,
+          y: 10,
+          duration: 0.32,
+          ease: 'power2.out',
+          stagger: 0.05,
+          delay: 0.02,
         });
-        msg('تم إضافة العامل');
       }
-      setWorkerDialogOpen(false); resetWork(); setWorkersListOpen(true);
-    } catch { msg('خطأ'); }
-  };
-
-  const onSubmitBalance = async (data: any) => {
-    const amount = parseFloat(data.amount) || 0;
-    // data.userId contains the Firebase Auth UID (from u.uid stored in Firestore)
-    const assignedUser = systemUsers.find(u => (u.uid || u.id) === data.userId);
-    const userName = assignedUser ? assignedUser.displayName : (user?.displayName || 'المستخدم');
-    const userId = data.userId; // This is now the Firebase Auth UID;
-    try {
-      if (editingBalance) {
-        await updateUserBalance(editingBalance.id, { userId, userName, amount, date: data.date, notes: data.notes });
-        msg('تم التعديل');
-        setEditingBalance(null);
-      } else {
-        await addUserBalance({
-          id: crypto.randomUUID(), clientId: clientId!, userId, userName, amount, date: data.date, notes: data.notes || '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), createdBy: user?.displayName || 'المستخدم'
-        });
-        msg('تمت الإضافة');
-      }
-      setBalanceDialogOpen(false); resetBal(); setBalancesListOpen(true);
-    } catch { msg('خطأ'); }
-  };
-
-  const getPayMethodLabel = (m: string) => ({ cash: 'نقدي', bank_transfer: 'تحويل بنكي', check: 'شيك', credit_card: 'بطاقة', mobile_payment: 'محفظة' }[m] || m);
-  const getCategoryLabel = getExpenseCategoryLabel;
-
-  const headerGradient = theme.palette.mode === 'light' ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)' : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)';
-  const pageBg = theme.palette.mode === 'dark' ? 'linear-gradient(180deg, #1a1f1a 0%, #151a15 100%)' : 'linear-gradient(180deg, #f5f3ef 0%, #ede9e3 100%)';
-
-  if (!client) return (
-    <Box sx={{ p: 3, textAlign: 'center' }}>
-      <Typography>العميل غير موجود</Typography>
-      <Button startIcon={<ArrowBack />} onClick={() => navigate('/clients')} sx={{ mt: 2 }}>العودة</Button>
-    </Box>
+      if (paidRef.current) countUp(paidRef.current, summary.totalPaid, {
+        duration: reduced ? 0.01 : 0.9,
+        format: formatCurrency,
+      });
+      if (netRef.current) countUp(netRef.current, summary.remaining, {
+        duration: reduced ? 0.01 : 0.9,
+        format: formatCurrency,
+      });
+    },
+    { scope: heroRef, dependencies: [summary.totalPaid, summary.remaining] }
   );
+
+  if (!client) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-center px-4">
+        <div className="h-16 w-16 rounded-2xl bg-surface-sunken flex items-center justify-center">
+          <Person sx={{ fontSize: 32, color: 'var(--text-tertiary)' }} />
+        </div>
+        <div className="text-fg font-semibold">العميل غير موجود</div>
+        <Button variant="outline" onClick={() => navigate('/clients')}>العودة إلى قائمة العملاء</Button>
+      </div>
+    );
+  }
+
+  const ChevronStart = rtl ? ChevronRight : ChevronLeft;
+  const isCompany = client.type === 'company';
+  const initial = client.name?.charAt(0)?.toUpperCase() || 'C';
+
+  // ─── Module tiles (interactive grid, each with live stat) ────────────
+  type Tone = 'brand' | 'success' | 'danger' | 'warning' | 'info' | 'amber';
+  interface ModuleTile {
+    key: string;
+    title: string;
+    count: number;
+    amount: number;
+    Icon: any;
+    tone: Tone;
+    module: string;
+    onClick: () => void;
+  }
+  const modules: ModuleTile[] = [
+    { key: 'expenses', title: 'المصروفات', count: clientExpenses.length, amount: summary.totalExpenses, Icon: TrendingDown, tone: 'danger',  module: 'expenses', onClick: () => setActiveSheet('expenses') },
+    { key: 'payments', title: 'المدفوعات', count: clientPayments.length, amount: summary.totalPaid,     Icon: Payment,       tone: 'success', module: 'payments', onClick: () => setActiveSheet('payments') },
+    { key: 'debts',    title: 'الديون',    count: clientDebts.length,    amount: summary.totalDebts,    Icon: CreditCard,    tone: 'warning', module: 'debts',    onClick: () => setActiveSheet('debts') },
+    { key: 'workers',  title: 'العمال',    count: clientWorkers.length,  amount: summary.totalWorkersDue, Icon: PersonAdd,   tone: 'info',    module: 'workers',  onClick: () => setActiveSheet('workers') },
+    { key: 'balances', title: 'العهد',     count: clientUserBalances.length, amount: Object.values(userBalancesSummary).reduce((s, b) => s + b.remaining, 0), Icon: AccountBalanceWallet, tone: 'amber', module: 'balances', onClick: () => setActiveSheet('balances') },
+    { key: 'profit',   title: 'الأرباح',   count: summary.profitPercentage, amount: summary.profit,     Icon: TrendingUp,    tone: 'brand',   module: 'stats',    onClick: () => setActiveForm({ kind: 'profit' }) },
+  ].filter((m) => canAccess(m.module as any));
 
   return (
-    <Box sx={{ minHeight: '100dvh', background: pageBg, pb: 8 }}>
-      {/* Header */}
-      <Box sx={{ background: headerGradient, pt: 3, pb: 4, px: 2, position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at 70% 20%, rgba(245,158,11,0.1) 0%, transparent 55%)', pointerEvents: 'none' } }}>
-        <Container maxWidth="sm">
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
-            <IconButton onClick={() => navigate('/clients')} sx={{ color: 'rgba(255,255,255,0.9)' }}><ArrowBack /></IconButton>
-            <Box sx={{ flexGrow: 1, minWidth: 0, mr: 1 }}>
-              <Typography variant="h5" fontWeight={800} sx={{ color: 'white', fontSize: { xs: '1.25rem', sm: '1.5rem' }, mb: 0.5 }}>{client.name}</Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ bgcolor: 'rgba(200,192,176,0.15)', px: 1.5, py: 0.75, borderRadius: 2.5, border: '1px solid rgba(200,192,176,0.2)', width: 'fit-content' }}>
-                <Phone sx={{ fontSize: 16, color: 'white', opacity: 0.95 }} />
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>{client.phone}</Typography>
-              </Stack>
-            </Box>
-            <IconButton onClick={() => setEditClientOpen(true)} sx={{ color: 'white', bgcolor: 'rgba(200,192,176,0.12)', border: '1px solid rgba(200,192,176,0.2)', width: 44, height: 44, '&:hover': { bgcolor: 'rgba(200,192,176,0.2)' } }}>
-              <Edit sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Stack>
+    <div ref={heroRef} className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-10 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
+      {/* ═══ Hero Identity — avatar + name + phone + type chip ═══ */}
+      <section
+        data-reveal
+        className="relative overflow-hidden rounded-3xl grain text-white"
+        style={{
+          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-16 -right-12 w-[260px] h-[260px] rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, #F59E0B 0%, transparent 70%)', opacity: 0.35 }}
+        />
+        <div
+          aria-hidden
+          className="absolute -bottom-20 -left-16 w-[240px] h-[240px] rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)', opacity: 0.45 }}
+        />
 
-          {/* Financial Alerts */}
-          {canAccess('stats') && (summary.totalExpenses > summary.totalPaid || summary.remaining < 0) && (
-            <Stack spacing={1.5} sx={{ mt: 3, mb: 1 }}>
-              {summary.totalExpenses > summary.totalPaid && (
-                <Alert 
-                  severity="error" 
-                  variant="filled"
-                  icon={<TrendingDown fontSize="inherit" />}
-                  sx={{ 
-                    borderRadius: 2.5, 
-                    fontWeight: 800, 
-                    boxShadow: '0 4px 12px rgba(214, 69, 69, 0.25)',
-                    bgcolor: '#d64545',
-                    alignItems: 'center'
-                  }}
-                >
-                  تنبيه دقيق: إجمالي المصروفات تجاوز قيمة المدفوعات!
-                </Alert>
-              )}
-              
-              {summary.remaining < 0 && (
-                <Alert 
-                  severity="warning" 
-                  variant="filled"
-                  sx={{ 
-                    borderRadius: 2.5, 
-                    fontWeight: 700, 
-                    boxShadow: '0 4px 12px rgba(230, 168, 23, 0.25)',
-                    bgcolor: '#e6a817',
-                    color: '#4C1D95',
-                    alignItems: 'center',
-                    '& .MuiAlert-icon': { color: '#4C1D95' }
-                  }}
-                >
-                  تنبيه: الرصيد الحالي بالسالب (يوجد عجز مالي بقيمة {formatCurrency(Math.abs(summary.remaining))})
-                </Alert>
-              )}
-            </Stack>
-          )}
-
-          {depletedBalances.map(([userId, data]) => (
-            <Alert 
-              key={userId}
-              severity="warning" 
-              variant="filled"
-              icon={<WarningAmber fontSize="inherit" />}
-              sx={{ 
-                mt: 1,
-                mb: 2,
-                borderRadius: 2.5, 
-                fontWeight: 700, 
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
-                bgcolor: '#f59e0b',
-                color: '#4C1D95',
-                alignItems: 'center',
-                '& .MuiAlert-icon': { color: '#4C1D95' }
+        <div className="relative p-5 sm:p-7 lg:p-8">
+          <div className="flex items-start gap-4">
+            {/* Big avatar */}
+            <div
+              aria-hidden
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shrink-0 flex items-center justify-center text-2xl sm:text-3xl font-extrabold backdrop-blur-md border border-white/20"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04))',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                color: '#ffffff',
               }}
             >
-              تنبيه: لقد نفد الرصيد (العهدة) الخاص بالمستخدم "{data.name}". (المصروفات: {formatCurrency(data.spent)})
-            </Alert>
-          ))}
+              {initial}
+            </div>
 
-          {/* Financial Summary - Professional Design */}
-          {canAccess('stats') && (
-          <Box sx={{ mt: 2 }}>
-            {/* Main Balance Card */}
-            <Card sx={{ borderRadius: 3, background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.15)', mb: 1.5, overflow: 'hidden', position: 'relative' }}>
-              <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 100% 0%, rgba(212,197,163,0.12) 0%, transparent 50%)', pointerEvents: 'none' }} />
-              <CardContent sx={{ p: '18px 20px !important', position: 'relative' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600, letterSpacing: 0.5, display: 'block', mb: 0.5 }}>إجمالي المدفوعات</Typography>
-                    <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 900, textShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>{formatCurrency(summary.totalPaid)}</Typography>
-                  </Box>
-                  <Box sx={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #d4c5a3 0%, #a3967a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(212,197,163,0.3)', color: '#4C1D95' }}>
-                    <Payment sx={{ fontSize: 28 }} />
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Detail Cards Grid */}
-            <Grid container spacing={1}>
-              {[
-                { label: 'الربح', value: formatCurrency(summary.profit), sub: summary.profitPercentage > 0 ? `${summary.profitPercentage}%` : '-', gradient: 'linear-gradient(135deg, rgba(90,143,196,0.3) 0%, rgba(90,143,196,0.1) 100%)', border: 'rgba(90,143,196,0.4)' },
-                { label: 'المصروفات', value: formatCurrency(summary.totalExpenses), sub: `${clientExpenses.length} سجل`, gradient: 'linear-gradient(135deg, rgba(214,69,69,0.3) 0%, rgba(214,69,69,0.1) 100%)', border: 'rgba(214,69,69,0.4)' },
-                { label: 'الديون', value: formatCurrency(summary.totalDebts), sub: `${clientDebts.length} دين`, gradient: 'linear-gradient(135deg, rgba(201,165,78,0.3) 0%, rgba(201,165,78,0.1) 100%)', border: 'rgba(201,165,78,0.4)' },
-                { label: 'المتبقي', value: formatCurrency(summary.remaining), sub: summary.remaining >= 0 ? 'رصيد' : 'عجز', gradient: summary.remaining >= 0 ? 'linear-gradient(135deg, rgba(13,150,104,0.3) 0%, rgba(13,150,104,0.1) 100%)' : 'linear-gradient(135deg, rgba(214,69,69,0.35) 0%, rgba(214,69,69,0.15) 100%)', border: summary.remaining >= 0 ? 'rgba(13,150,104,0.4)' : 'rgba(214,69,69,0.5)' },
-              ].map((c, i) => (
-                <Grid size={{ xs: 6 }} key={i}>
-                  <Card sx={{ borderRadius: 2.5, background: c.gradient, backdropFilter: 'blur(20px)', color: 'white', border: `1px solid ${c.border}`, height: '100%' }}>
-                    <CardContent sx={{ p: '12px 14px !important' }}>
-                      <Typography variant="caption" sx={{ opacity: 0.85, display: 'block', fontSize: '0.65rem', fontWeight: 600, mb: 0.5 }}>{c.label}</Typography>
-                      <Typography variant="body2" fontWeight={800} sx={{ fontSize: { xs: '0.85rem', sm: '0.92rem' }, mb: 0.3 }}>{c.value}</Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.6, fontSize: '0.6rem' }}>{c.sub}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-          )}
-        </Container>
-      </Box>
-
-      {/* Menu Items */}
-      <Container maxWidth="sm" sx={{ mt: 1, pt: 1 }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 3, px: 0.5, mt: 4 }}>القوائم السريعة</Typography>
-        <Stack spacing={2} sx={{ mb: 5 }}>
-          {menuItems.map((item, i) => (
-            <Card key={i} onClick={item.onClick} sx={{ borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.2s', border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.1)' : 'none', '&:hover': { transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}>
-              <CardContent sx={{ p: 3 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Stack direction="row" alignItems="center" spacing={0}>
-                    <Box sx={{ width: 52, height: 52, borderRadius: 2.5, bgcolor: item.bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: '20px' }}>
-                      <item.icon sx={{ fontSize: 26, color: item.color }} />
-                    </Box>
-                    <Box><Typography variant="body1" fontWeight={700}>{item.title}</Typography><Typography variant="caption" color="text.secondary">اضغط للدخول</Typography></Box>
-                  </Stack>
-                  <ChevronLeft sx={{ color: 'text.secondary', fontSize: 24 }} />
-                </Stack>
-              </CardContent>
-            </Card>
-          ))}
-        </Stack>
-      </Container>
-
-      {/* ===== EXPENSES LIST DIALOG ===== */}
-      <Dialog open={expensesListOpen} onClose={() => setExpensesListOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton onClick={() => setExpensesListOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
-              <Typography variant="h5" fontWeight={800}>المصروفات ({clientExpenses.length})</Typography>
-            </Stack>
-            <IconButton onClick={() => { setEditingExpense(null); resetExp(); setExpenseDialogOpen(true); }} sx={{ color: 'white', bgcolor: 'rgba(200,192,176,0.15)', border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' } }}><Add sx={{ fontSize: 22 }} /></IconButton>
-          </Stack>
-          {/* PDF Buttons - like invoice page */}
-          <Stack direction="row" spacing={1}>
-            <Button size="small" startIcon={pdfLoading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdf />} onClick={handleDownloadExpenses} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              تحميل PDF
-            </Button>
-            <Button size="small" startIcon={<Share />} onClick={handleShareExpenses} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              مشاركة
-            </Button>
-          </Stack>
-        </Box>
-        <Box sx={{ px: 0, pt: 0 }}>
-
-          {/* ─── رصيد العهدة (بسيط) ─── */}
-          {globalFundStats && (
-            <Box sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              px: 2.5, py: 1.4,
-              bgcolor: globalFundStats.remaining > 0
-                ? 'rgba(13,150,104,0.12)'
-                : 'rgba(214,69,69,0.12)',
-              borderBottom: '1px solid',
-              borderColor: globalFundStats.remaining > 0 ? 'rgba(13,150,104,0.2)' : 'rgba(214,69,69,0.2)',
-            }}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <AccountBalanceWallet sx={{ fontSize: 20, color: globalFundStats.remaining > 0 ? '#34d399' : '#f87171' }} />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.secondary' }}>رصيد العهدة المتاح</Typography>
-              </Stack>
-              <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: globalFundStats.remaining > 0 ? '#34d399' : '#f87171' }}>
-                {formatCurrency(globalFundStats.remaining)}
-              </Typography>
-            </Box>
-          )}
-
-          {currentUserBalanceInfo && (
-            <Box>
-              {/* Main Balance Banner - MD3 */}
-              <Box sx={{
-                background: currentUserBalanceInfo.remaining > 0
-                  ? 'linear-gradient(135deg, #0d9668 0%, #059652 100%)'
-                  : 'linear-gradient(135deg, #d64545 0%, #b83b3b 100%)',
-                color: 'white',
-                px: 3, py: 2.5,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-              }}>
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 700, display: 'block', mb: 0.5, letterSpacing: 1 }}>
-                    رصيد العهدة المتاح — {user?.displayName || currentUserBalanceInfo.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1 }}>
-                    {formatCurrency(currentUserBalanceInfo.remaining)}
-                  </Typography>
-                </Box>
-                <AccountBalanceWallet sx={{ fontSize: 44, opacity: 0.35 }} />
-              </Box>
-              {/* Stats Row */}
-              <Box sx={{ display: 'flex', borderBottom: '1px solid', borderColor: 'divider' }}>
-                {[
-                  { label: 'إجمالي العهدة', value: currentUserBalanceInfo.given, color: '#6D28D9' },
-                  { label: 'المصروف منها', value: currentUserBalanceInfo.spent, color: '#d64545' },
-                ].map((s, i) => (
-                  <Box key={i} sx={{ flex: 1, p: 1.5, textAlign: 'center', borderRight: i === 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.3 }}>{s.label}</Typography>
-                    <Typography variant="body2" fontWeight={900} sx={{ color: s.color }}>{formatCurrency(s.value)}</Typography>
-                  </Box>
-                ))}
-              </Box>
-              {/* Alert if depleted */}
-              {currentUserBalanceInfo.remaining <= 0 && currentUserBalanceInfo.given > 0 && (
-                <Box sx={{ bgcolor: '#7f1d1d', color: '#fff', px: 2, py: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <WarningAmber sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" fontWeight={800}>تحذير: رصيد العهدة نفد بالكامل!</Typography>
-                </Box>
-              )}
-              <Box sx={{ height: 8 }} />
-            </Box>
-          )}
-          <TextField fullWidth placeholder="ابحث..." size="small" value={expSearch} onChange={(e) => setExpSearch(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper', '& fieldset': { border: 'none' } } }} InputProps={{ startAdornment: <InputAdornment position="start"><Search /></InputAdornment> }} />
-        </Box>
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 2 }}>
-          <Container maxWidth="sm" sx={{ mt: 2 }}>
-            {filteredExp.length === 0 ? <Card sx={{ borderRadius: 2.5, textAlign: 'center', py: 6 }}><TrendingDown sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.3, mb: 2 }} /><Typography variant="h6" color="text.secondary">لا توجد مصروفات</Typography></Card> : (
-              <Stack spacing={2}>{filteredExp.map((exp) => (
-                <Card key={exp.id} sx={{ borderRadius: 2, borderRight: '3px solid #d64545', bgcolor: 'background.paper' }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box sx={{ flex: 1 }}>
-                        <Typography fontWeight={700}>{exp.description}</Typography>
-                        <Typography variant="caption" color="text.secondary">{getCategoryLabel(exp.category)} • {formatDate(exp.date)} {exp.invoiceNumber && `• فاتورة: ${exp.invoiceNumber}`}</Typography>
-                        {exp.createdBy && <Typography variant="caption" display="block" sx={{ color: 'primary.main', fontWeight: 600 }}>بواسطة: {exp.createdBy}</Typography>}
-                        {exp.notes && <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>{exp.notes}</Typography>}
-                      </Box>
-                      <Stack alignItems="flex-end" spacing={0.5}>
-                        <Typography fontWeight={800} color="error.main">{formatCurrency(exp.amount)}</Typography>
-                        <Stack direction="row" spacing={0.5}>
-                          <IconButton size="small" onClick={() => { setEditingExpense(exp); setExpVal('description', exp.description); setExpVal('amount', exp.amount); setExpVal('category', exp.category); setExpVal('date', exp.date); setExpVal('invoiceNumber', exp.invoiceNumber || ''); setExpVal('notes', exp.notes || ''); setExpVal('userId', exp.userId || ''); setExpenseDialogOpen(true); }}><Edit sx={{ fontSize: 16 }} /></IconButton>
-                          <IconButton size="small" onClick={() => { if (window.confirm('حذف؟')) deleteExpense(exp.id).then(() => msg('تم الحذف')); }}><Delete sx={{ fontSize: 16, color: 'error.main' }} /></IconButton>
-                        </Stack>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ))}</Stack>
-            )}
-            {/* Total */}
-            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#5B21B6', color: 'white' }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box onClick={() => setExpensesPerUserOpen(!expensesPerUserOpen)} sx={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography fontWeight={800}>إجمالي المصروفات</Typography>
-                    <IconButton size="small" sx={{ color: 'white', p: 0, '&:hover': { bgcolor: 'transparent' } }}>
-                      {expensesPerUserOpen ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                  </Stack>
-                  <Typography fontWeight={900} variant="h6">{formatCurrency(summary.totalExpenses)}</Typography>
-                </Box>
-                <Collapse in={expensesPerUserOpen}>
-                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.7, mb: 1.5, display: 'block' }}>إجمالي المصروفات حسب كل مستخدم:</Typography>
-                    <Stack spacing={1.5}>
-                      {expensesByUser.map(([userName, total]) => {
-                        const pct = summary.totalExpenses > 0 ? (total / summary.totalExpenses) * 100 : 0;
-                        return (
-                          <Box key={userName} sx={{ bgcolor: 'rgba(255,255,255,0.05)', p: 1.5, borderRadius: 2 }}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
-                              <Stack direction="row" alignItems="center" spacing={1.5}>
-                                <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(214,69,69,0.35)', fontSize: '0.9rem', fontWeight: 'bold', color: '#fff' }}>
-                                  {userName.charAt(0)}
-                                </Avatar>
-                                <Box>
-                                  <Typography fontWeight={700} fontSize="0.9rem" sx={{ lineHeight: 1.2 }}>{userName}</Typography>
-                                  <Typography variant="caption" sx={{ opacity: 0.6, fontSize: '0.68rem' }}>{pct.toFixed(1)}% من الإجمالي</Typography>
-                                </Box>
-                              </Stack>
-                              <Typography fontWeight={900} fontSize="0.98rem" sx={{ color: '#ff8a8a' }}>{formatCurrency(total)}</Typography>
-                            </Stack>
-                            {/* Progress bar */}
-                            <Box sx={{ height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                              <Box sx={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: 'linear-gradient(90deg, #d64545, #ff6b6b)', transition: 'width 0.4s ease' }} />
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                      {expensesByUser.length === 0 && (
-                        <Typography variant="caption" sx={{ opacity: 0.5, textAlign: 'center', display: 'block', py: 1 }}>لا توجد مصروفات مسجلة</Typography>
-                      )}
-                    </Stack>
-                  </Box>
-                </Collapse>
-              </CardContent>
-            </Card>
-          </Container>
-        </Box>
-      </Dialog>
-
-      {/* ===== PAYMENTS LIST DIALOG ===== */}
-      <Dialog open={paymentsListOpen} onClose={() => setPaymentsListOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton onClick={() => setPaymentsListOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
-              <Typography variant="h5" fontWeight={800}>المدفوعات ({clientPayments.length})</Typography>
-            </Stack>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingPayment(null); resetPay(); setPaymentDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#F59E0B', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دفعة جديدة</Button>
-          </Stack>
-          {/* PDF Buttons */}
-          <Stack direction="row" spacing={1}>
-            <Button size="small" startIcon={pdfLoading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdf />} onClick={handleDownloadPayments} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              تحميل PDF
-            </Button>
-            <Button size="small" startIcon={<Share />} onClick={handleSharePayments} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              مشاركة
-            </Button>
-          </Stack>
-        </Box>
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 2 }}>
-          <Container maxWidth="sm" sx={{ mt: 2 }}>
-            {clientPayments.length === 0 ? <Card sx={{ borderRadius: 2.5, textAlign: 'center', py: 6 }}><Payment sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.3, mb: 2 }} /><Typography variant="h6" color="text.secondary">لا توجد مدفوعات</Typography></Card> : (
-              <Stack spacing={2}>{filteredPay.map((pay) => (
-                <Card key={pay.id} sx={{ borderRadius: 2, borderRight: '3px solid #0d9668', bgcolor: 'background.paper' }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box>
-                        <Typography fontWeight={800} color="success.main">{formatCurrency(pay.amount)}</Typography>
-                        <Typography variant="caption" color="text.secondary">{getPayMethodLabel(pay.paymentMethod)} • {formatDate(pay.paymentDate)}</Typography>
-                        {pay.createdBy && <Typography variant="caption" display="block" sx={{ color: 'primary.main', fontWeight: 600 }}>بواسطة: {pay.createdBy}</Typography>}
-                        {pay.notes && <Typography variant="caption" display="block" color="text.secondary">{pay.notes}</Typography>}
-                      </Box>
-                      <Stack direction="row" spacing={0.5}>
-                        <IconButton size="small" onClick={() => { setEditingPayment(pay); setPayVal('amount', pay.amount); setPayVal('paymentMethod', pay.paymentMethod as any); setPayVal('paymentDate', pay.paymentDate); setPayVal('notes', pay.notes || ''); setPaymentDialogOpen(true); }}><Edit sx={{ fontSize: 16 }} /></IconButton>
-                        <IconButton size="small" onClick={() => { if (window.confirm('حذف؟')) deletePayment(pay.id).then(() => msg('تم الحذف')); }}><Delete sx={{ fontSize: 16, color: 'error.main' }} /></IconButton>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ))}</Stack>
-            )}
-            {/* Total */}
-            <Card sx={{ borderRadius: 2, mt: 2, bgcolor: '#5B21B6', color: 'white' }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography fontWeight={800}>إجمالي المدفوعات</Typography>
-                  <Typography fontWeight={900} variant="h6">{formatCurrency(summary.totalPaid)}</Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Container>
-        </Box>
-      </Dialog>
-
-      {/* ===== DEBTS LIST DIALOG ===== */}
-      <Dialog open={debtsListOpen} onClose={() => setDebtsListOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton onClick={() => setDebtsListOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
-              <Typography variant="h5" fontWeight={800}>الديون ({clientDebts.length})</Typography>
-            </Stack>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingDebt(null); resetDebt(); setDebtDialogOpen(true); }} sx={{ bgcolor: 'rgba(200,192,176,0.15)', color: '#F59E0B', fontWeight: 700, border: '1px solid rgba(200,192,176,0.3)', '&:hover': { bgcolor: 'rgba(200,192,176,0.25)' }, borderRadius: 2.5, boxShadow: 'none' }}>دين جديد</Button>
-          </Stack>
-          {/* PDF Buttons */}
-          <Stack direction="row" spacing={1}>
-            <Button size="small" startIcon={pdfLoading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdf />} onClick={handleDownloadDebts} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              تحميل PDF
-            </Button>
-            <Button size="small" startIcon={<Share />} onClick={handleShareDebts} disabled={pdfLoading}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}>
-              مشاركة
-            </Button>
-          </Stack>
-        </Box>
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 2 }}>
-          <Container maxWidth="sm" sx={{ mt: 2 }}>
-            {clientDebts.length === 0 ? <Card sx={{ borderRadius: 2.5, textAlign: 'center', py: 6 }}><CreditCard sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.3, mb: 2 }} /><Typography variant="h6" color="text.secondary">لا توجد ديون</Typography></Card> : (
-              <Stack spacing={2}>{clientDebts.map((debt) => (
-                <Card key={debt.id} sx={{ borderRadius: 3, borderRight: '3px solid #c9a54e', bgcolor: 'background.paper' }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Typography fontWeight={700}>{debt.partyName}</Typography>
-                    <Typography variant="body2" color="text.secondary">{debt.description}</Typography>
-                    <Divider sx={{ my: 1 }} />
-                    <Stack direction="row" justifyContent="space-between"><Typography variant="caption">الإجمالي</Typography><Typography variant="body2" fontWeight={700}>{formatCurrency(debt.amount)}</Typography></Stack>
-                    <Stack direction="row" justifyContent="space-between"><Typography variant="caption">المدفوع</Typography><Typography variant="body2" fontWeight={700} color="success.main">{formatCurrency(debt.paidAmount)}</Typography></Stack>
-                    <Stack direction="row" justifyContent="space-between"><Typography variant="caption">المتبقي</Typography><Typography variant="body2" fontWeight={800} color="error.main">{formatCurrency(debt.remainingAmount)}</Typography></Stack>
-                    <Stack direction="row" spacing={0.5} sx={{ mt: 1 }}>
-                      <IconButton size="small" onClick={() => { setEditingDebt(debt); setDebtVal('partyName', debt.partyName); setDebtVal('description', debt.description); setDebtVal('amount', debt.amount); setDebtVal('date', debt.date); setDebtVal('notes', debt.notes || ''); setDebtDialogOpen(true); }}><Edit sx={{ fontSize: 16 }} /></IconButton>
-                      <IconButton size="small" onClick={() => { if (window.confirm('حذف؟')) deleteStandaloneDebt(debt.id).then(() => msg('تم الحذف')); }}><Delete sx={{ fontSize: 16, color: 'error.main' }} /></IconButton>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ))}</Stack>
-            )}
-          </Container>
-        </Box>
-      </Dialog>
-
-      {/* ===== ADD/EDIT EXPENSE DIALOG ===== */}
-      <Dialog open={expenseDialogOpen} onClose={() => setExpenseDialogOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <form onSubmit={handleExpSubmit(onSubmitExpense)}>
-          <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-            <Stack direction="row" alignItems="center" spacing={2}><IconButton onClick={() => setExpenseDialogOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton><Typography variant="h6" fontWeight={700}>{editingExpense ? 'تعديل مصروف' : 'إضافة مصروف'}</Typography></Stack>
-          </Box>
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              {currentUserBalanceInfo && (
-                <Box sx={{ p: 2, borderRadius: 3, background: currentUserBalanceInfo.remaining >= 0 ? 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.05) 100%)' : 'linear-gradient(135deg, rgba(225,29,72,0.1) 0%, rgba(225,29,72,0.05) 100%)', border: `1px solid ${currentUserBalanceInfo.remaining >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(225,29,72,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                 <Box>
-                     <Typography variant="caption" sx={{ color: currentUserBalanceInfo.remaining >= 0 ? '#0d9668' : '#f87171', fontWeight: 800 }}>
-                       {currentUserBalanceInfo.remaining >= 0 ? `الرصيد المتاح للعهدة (${user?.displayName || currentUserBalanceInfo.name})` : `عجز عهدة (${user?.displayName || currentUserBalanceInfo.name})`}
-                     </Typography>
-                     <Typography variant="h6" sx={{ color: currentUserBalanceInfo.remaining >= 0 ? '#0d9668' : '#f87171', fontWeight: 900, lineHeight: 1, mt: 0.5 }}>
-                       {currentUserBalanceInfo.remaining < 0 ? `-${formatCurrency(Math.abs(currentUserBalanceInfo.remaining))}` : formatCurrency(currentUserBalanceInfo.remaining)}
-                     </Typography>
-                   </Box>
-                   <AccountBalanceWallet sx={{ fontSize: 32, color: currentUserBalanceInfo.remaining >= 0 ? 'rgba(16,185,129,0.5)' : 'rgba(225,29,72,0.5)' }} />
-                </Box>
-              )}
-              
-              <Controller name="description" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="الوصف" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><NoteAlt sx={{ color: '#6D28D9' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="amount" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="المبلغ" type="number" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><Payment sx={{ color: '#6D28D9' }} /></InputAdornment>, endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="category" control={expCtrl} render={({ field }) => <FormControl fullWidth><InputLabel>التصنيف</InputLabel><Select {...field} label="التصنيف" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}>{Object.entries(expenseCategories).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</Select></FormControl>} />
-              <Controller name="invoiceNumber" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="رقم الفاتورة (اختياري)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="workerId" control={expCtrl} render={({ field }) => <FormControl fullWidth><InputLabel>العامل (اختياري)</InputLabel><Select {...field} label="العامل (اختياري)" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}><MenuItem value=""><em>لا يوجد</em></MenuItem>{workers.filter(w=>w.clientId===clientId).map(w=><MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}</Select></FormControl>} />
-              <Controller name="date" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="التاريخ" type="date" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ ml: 1, mr: 1.5 }}><CalendarToday sx={{ color: '#6D28D9' }} /></InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="notes" control={expCtrl} render={({ field }) => <TextField {...field} fullWidth label="ملاحظات" multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-            </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setExpenseDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ وإصدار</Button>
-            </Stack>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* ===== ADD/EDIT PAYMENT DIALOG ===== */}
-      <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <form onSubmit={handlePaySubmit(onSubmitPayment)}>
-          <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-            <Stack direction="row" alignItems="center" spacing={2}><IconButton onClick={() => setPaymentDialogOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton><Typography variant="h6" fontWeight={700}>{editingPayment ? 'تعديل دفعة' : 'إضافة دفعة'}</Typography></Stack>
-          </Box>
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              <Controller name="amount" control={payCtrl} render={({ field }) => <TextField {...field} fullWidth label="المبلغ" type="number" InputProps={{ endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="paymentMethod" control={payCtrl} render={({ field }) => <FormControl fullWidth><InputLabel>طريقة الدفع</InputLabel><Select {...field} label="طريقة الدفع" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}><MenuItem value="cash">نقدي</MenuItem><MenuItem value="bank_transfer">تحويل بنكي</MenuItem><MenuItem value="check">شيك</MenuItem><MenuItem value="credit_card">بطاقة</MenuItem></Select></FormControl>} />
-              <Controller name="paymentDate" control={payCtrl} render={({ field }) => <TextField {...field} fullWidth label="التاريخ" type="date" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="notes" control={payCtrl} render={({ field }) => <TextField {...field} fullWidth label="ملاحظات" multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-            </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setPaymentDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
-            </Stack>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* ===== ADD/EDIT DEBT DIALOG ===== */}
-      <Dialog open={debtDialogOpen} onClose={() => setDebtDialogOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <form onSubmit={handleDebtSubmit(onSubmitDebt)}>
-          <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-            <Stack direction="row" alignItems="center" spacing={2}><IconButton onClick={() => setDebtDialogOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton><Typography variant="h6" fontWeight={700}>{editingDebt ? 'تعديل دين' : 'إضافة دين'}</Typography></Stack>
-          </Box>
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              <Controller name="partyName" control={debtCtrl} render={({ field }) => <TextField {...field} fullWidth label="اسم الطرف" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="description" control={debtCtrl} render={({ field }) => <TextField {...field} fullWidth label="وصف الدين" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="amount" control={debtCtrl} render={({ field }) => <TextField {...field} fullWidth label="المبلغ" type="number" InputProps={{ endAdornment: <InputAdornment position="end">د.ل</InputAdornment> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="date" control={debtCtrl} render={({ field }) => <TextField {...field} fullWidth label="التاريخ" type="date" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="notes" control={debtCtrl} render={({ field }) => <TextField {...field} fullWidth label="ملاحظات" multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-            </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setDebtDialogOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
-            </Stack>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* ===== PROFIT DIALOG ===== */}
-      <Dialog open={profitDialogOpen} onClose={() => setProfitDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ style: { borderRadius: 20, padding: 16 } }}>
-        <Typography variant="h6" fontWeight={800} mb={2}>حساب الأرباح</Typography>
-        <Stack spacing={2}>
-          <TextField fullWidth label="نسبة الربح (%)" type="number" value={profitPercentage} onChange={(e) => setProfitPercentage(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} />
-          {summary.profit > 0 && <Alert severity="info" sx={{ borderRadius: 2 }}>الربح الحالي: {formatCurrency(summary.profit)}</Alert>}
-        </Stack>
-        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-          <Button fullWidth onClick={() => setProfitDialogOpen(false)} sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-          <Button fullWidth variant="contained" onClick={handleSaveProfit} sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ النسبة</Button>
-        </Stack>
-      </Dialog>
-
-      {/* ===== EDIT CLIENT DIALOG ===== */}
-      <Dialog open={editClientOpen} onClose={() => setEditClientOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <form onSubmit={handleClientSubmit(onSubmitClient)}>
-          <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-            <Stack direction="row" alignItems="center" spacing={2}><IconButton onClick={() => setEditClientOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton><Typography variant="h6" fontWeight={700}>تعديل بيانات العميل</Typography></Stack>
-          </Box>
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              <Controller name="name" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="الاسم" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="type" control={clientControl} render={({ field }) => <FormControl fullWidth><InputLabel>النوع</InputLabel><Select {...field} label="النوع" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}><MenuItem value="individual">فرد</MenuItem><MenuItem value="company">شركة</MenuItem></Select></FormControl>} />
-              <Controller name="phone" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="الهاتف" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="address" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="العنوان" multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-            </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setEditClientOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ</Button>
-            </Stack>
-            <Divider sx={{ my: 4 }} />
-            <Button fullWidth variant="outlined" color="error" startIcon={<Delete />} onClick={handleDeleteClient} sx={{ borderRadius: 2.5 }}>حذف العميل</Button>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* Snackbar */}
-
-      {/* ===== WORKERS LIST DIALOG ===== */}
-      <Dialog open={workersListOpen} onClose={() => setWorkersListOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#0f1410' : '#f5f3ef' } }}>
-        {/* ── Header ── */}
-        <Box sx={{
-          background: theme.palette.mode === 'light'
-            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
-            : 'linear-gradient(135deg, #0F0D1C 0%, #1B0F3B 100%)',
-          pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)',
-          pb: 5, px: 2, position: 'relative', overflow: 'hidden',
-          '&::before': { content: '""', position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 0%, rgba(245,158,11,0.12) 0%, transparent 60%)', pointerEvents: 'none' },
-        }}>
-          <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2.5}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <IconButton
-                  onClick={() => setWorkersListOpen(false)}
-                  sx={{ color: 'white', p: 0.5 }}
+            {/* Name + chips */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-2xs font-bold backdrop-blur border"
+                  style={{
+                    background: isCompany ? 'rgba(139,92,246,0.22)' : 'rgba(245,158,11,0.22)',
+                    borderColor: isCompany ? 'rgba(167,139,250,0.4)' : 'rgba(251,191,36,0.4)',
+                    color: '#ffffff',
+                  }}
                 >
-                  <ArrowBack />
-                </IconButton>
-                <Box>
-                  <Typography variant="h5" fontWeight={900} sx={{ color: 'white', lineHeight: 1.1 }}>سجل العمال</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
-                    {clientWorkers.length} عامل / مقاول
-                  </Typography>
-                </Box>
-              </Stack>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => { setEditingWorker(null); resetWork({ name: '', jobType: '', totalAmount: '' as any }); setWorkerDialogOpen(true); }}
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.15)', color: '#fff',
-                  fontWeight: 800, borderRadius: 2, px: 2,
-                  border: '1px solid rgba(255,255,255,0.25)',
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                  {isCompany ? <Business sx={{ fontSize: 12 }} /> : <Person sx={{ fontSize: 12 }} />}
+                  {isCompany ? 'شركة' : 'فرد'}
+                </span>
+                {summary.profitPercentage > 0 && (
+                  <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/10 backdrop-blur text-white/90 text-2xs font-bold border border-white/15">
+                    <TrendingUp sx={{ fontSize: 12 }} />
+                    {summary.profitPercentage}%
+                  </span>
+                )}
+              </div>
+              <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">
+                {client.name}
+              </h1>
+              <div className="flex flex-wrap gap-2 mt-2.5">
+                <a
+                  href={`tel:${client.phone}`}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/12 hover:bg-white/20 backdrop-blur border border-white/15 text-white/95 text-xs font-semibold transition-colors"
+                >
+                  <Phone sx={{ fontSize: 14 }} />
+                  <span className="font-num tabular" dir="ltr">{client.phone}</span>
+                </a>
+                {client.address && (
+                  <span className="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-white/8 border border-white/10 text-white/75 text-xs font-medium">
+                    {client.address}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Edit button */}
+            <button
+              onClick={() => setActiveForm({ kind: 'editClient' })}
+              aria-label="تعديل العميل"
+              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-xl bg-white/12 hover:bg-white/20 text-white/95 backdrop-blur border border-white/15 transition-colors duration-fast pressable cursor-pointer"
+            >
+              <Edit sx={{ fontSize: 18 }} />
+            </button>
+          </div>
+
+          {/* Inline financial headline */}
+          {canAccess('stats') && (
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5">
+                <div className="text-2xs text-white/70 font-bold tracking-wider">إجمالي المحصّل</div>
+                <div className="text-xl sm:text-2xl font-extrabold font-num tabular mt-0.5 text-white">
+                  <span ref={paidRef}>{formatCurrency(0)}</span>
+                </div>
+              </div>
+              <div
+                className="rounded-2xl backdrop-blur-md border p-3.5"
+                style={{
+                  background: summary.remaining >= 0 ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.2)',
+                  borderColor: summary.remaining >= 0 ? 'rgba(52,211,153,0.4)' : 'rgba(248,113,113,0.4)',
                 }}
               >
-                إضافة
-              </Button>
-            </Stack>
+                <div className="text-2xs text-white/80 font-bold tracking-wider">
+                  {summary.remaining >= 0 ? 'الصافي المتبقي' : 'عجز مالي'}
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-num tabular mt-0.5" style={{ color: summary.remaining >= 0 ? '#d1fae5' : '#fecaca' }}>
+                  <span ref={netRef}>{formatCurrency(0)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
-            {/* Stats Summary */}
-            {clientWorkers.length > 0 && (
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
-                {[
-                  { label: 'الاتفاقيات', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.totalAmount, 0)), color: '#F59E0B' },
-                  { label: 'المدفوع', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.paidAmount, 0)), color: '#6ee7b7' },
-                  { label: 'المتبقي', value: formatCurrency(clientWorkers.reduce((s, w) => s + w.remainingAmount, 0)), color: '#fca5a5' },
-                ].map((s, i) => (
-                  <Box key={i} sx={{ textAlign: 'center', bgcolor: 'rgba(255,255,255,0.07)', borderRadius: 2, py: 1, border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Typography sx={{ color: s.color, fontSize: '0.78rem', fontWeight: 800, lineHeight: 1 }}>{s.value}</Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.58rem', fontWeight: 600, mt: 0.3 }}>{s.label}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
+      {/* ═══ Alerts ═══ */}
+      {canAccess('stats') && (summary.totalExpenses > summary.totalPaid || summary.remaining < 0 || depletedBalances.length > 0) && (
+        <section data-reveal className="space-y-2">
+          {summary.totalExpenses > summary.totalPaid && (
+            <AlertBanner
+              tone="danger"
+              icon={<TrendingDown sx={{ fontSize: 18 }} />}
+              text="تنبيه: إجمالي المصروفات تجاوز قيمة المدفوعات!"
+            />
+          )}
+          {summary.remaining < 0 && (
+            <AlertBanner
+              tone="warning"
+              icon={<WarningAmber sx={{ fontSize: 18 }} />}
+              text={`الرصيد الحالي بالسالب — عجز بقيمة ${formatCurrency(Math.abs(summary.remaining))}`}
+            />
+          )}
+          {depletedBalances.map(([uid, data]) => (
+            <AlertBanner
+              key={uid}
+              tone="warning"
+              icon={<WarningAmber sx={{ fontSize: 18 }} />}
+              text={`نفد رصيد العهدة للمستخدم "${data.name}" (مصروف: ${formatCurrency(data.spent)})`}
+            />
+          ))}
+        </section>
+      )}
 
-            {/* PDF Buttons */}
-            <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-              <Button size="small"
-                startIcon={pdfLoading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdf />}
-                onClick={handleDownloadWorkers} disabled={pdfLoading}
-                sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, border: '1px solid rgba(255,255,255,0.12)', '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' } }}>
-                تحميل PDF
-              </Button>
-              <Button size="small" startIcon={<Share />} onClick={handleShareWorkers} disabled={pdfLoading}
-                sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', borderRadius: 2, fontSize: '0.72rem', fontWeight: 700, flex: 1, border: '1px solid rgba(255,255,255,0.12)', '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' } }}>
-                مشاركة
-              </Button>
-            </Stack>
-          </Container>
-        </Box>
+      {/* ═══ Bento KPI Grid (4 tiles: profit / expenses / debts / remaining) ═══ */}
+      {canAccess('stats') && (
+        <section data-reveal className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <KpiTile
+            label="الأرباح"
+            value={formatCurrency(summary.profit)}
+            sub={summary.profitPercentage > 0 ? `${summary.profitPercentage}%` : 'لم تُحدد النسبة'}
+            Icon={TrendingUp}
+            tone="brand"
+            onClick={() => setActiveForm({ kind: 'profit' })}
+          />
+          <KpiTile
+            label="المصروفات"
+            value={formatCurrency(summary.totalExpenses)}
+            sub={`${clientExpenses.length} سجل`}
+            Icon={TrendingDown}
+            tone="danger"
+            onClick={() => setActiveSheet('expenses')}
+          />
+          <KpiTile
+            label="الديون"
+            value={formatCurrency(summary.totalDebts)}
+            sub={`${clientDebts.length} دين`}
+            Icon={CreditCard}
+            tone="warning"
+            onClick={() => setActiveSheet('debts')}
+          />
+          <KpiTile
+            label="العمال"
+            value={formatCurrency(summary.totalWorkersDue)}
+            sub={`${clientWorkers.length} عامل`}
+            Icon={PersonAdd}
+            tone="info"
+            onClick={() => setActiveSheet('workers')}
+          />
+        </section>
+      )}
 
-        {/* ── Content below header ── */}
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 4, pt: 2 }}>
-          <Container maxWidth="sm">
-            {clientWorkers.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', mt: 1 }}>
-                <PersonAdd sx={{ fontSize: 64, color: alpha('#6D28D9', 0.2), mb: 2 }} />
-                <Typography variant="h6" fontWeight={800} color="text.secondary">لا يوجد عمال بعد</Typography>
-                <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>اضغط على زر الإضافة لتسجيل عمال المشروع</Typography>
-              </Box>
-            ) : (
-              <Stack spacing={0}>
-                {clientWorkers.map((worker) => {
-                  const pct = worker.totalAmount > 0 ? Math.min(100, (worker.paidAmount / worker.totalAmount) * 100) : 0;
-                  const done = worker.remainingAmount <= 0;
-                  return (
-                    <Box key={worker.id} sx={{
-                      bgcolor: 'background.paper',
-                      overflow: 'hidden', border: '1px solid', borderColor: 'divider',
-                      borderBottom: 'none',
-                      '&:first-of-type': { borderRadius: '12px 12px 0 0' },
-                      '&:last-of-type': { borderBottom: '1px solid', borderColor: 'divider', borderRadius: '0 0 12px 12px' },
-                      '&:only-child': { borderRadius: '12px' },
-                    }}>
-                      {/* Color strip top */}
-                      <Box sx={{ height: 3, background: done ? 'linear-gradient(90deg,#0d9668,#34d399)' : 'linear-gradient(90deg,#c9a54e,#e8c87a)' }} />
+      {/* ═══ Primary CTA — new invoice ═══ */}
+      {canAccess('invoices') && (
+        <section data-reveal>
+          <Button
+            size="lg"
+            block
+            onClick={() => navigate(`/invoices/new?clientId=${clientId}`)}
+            leftIcon={<PostAdd sx={{ fontSize: 20 }} />}
+            className="btn-primary-glow sm:!max-w-xs"
+          >
+            إنشاء فاتورة جديدة
+          </Button>
+        </section>
+      )}
 
-                      {/* Worker info row */}
-                      <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{
-                          width: 50, height: 50, borderRadius: '14px', flexShrink: 0,
-                          background: done
-                            ? 'linear-gradient(135deg,rgba(13,150,104,0.15),rgba(13,150,104,0.05))'
-                            : 'linear-gradient(135deg,rgba(201,165,78,0.15),rgba(201,165,78,0.05))',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          border: `1.5px solid ${done ? 'rgba(13,150,104,0.25)' : 'rgba(201,165,78,0.3)'}`,
-                        }}>
-                          <Typography fontWeight={900} sx={{ fontSize: '1.2rem', color: done ? '#0d9668' : '#c9a54e' }}>
-                            {worker.name.charAt(0)}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography fontWeight={800} noWrap sx={{ fontSize: '0.97rem' }}>{worker.name}</Typography>
-                          <Typography variant="caption" sx={{ color: '#6D28D9', fontWeight: 600 }}>
-                            {worker.jobType || 'عامل / مقاول'}
-                          </Typography>
-                        </Box>
-                        <Chip
-                          label={done ? '✓ مكتمل' : 'جارٍ'}
-                          size="small"
-                          sx={{
-                            height: 22, fontSize: '0.62rem', fontWeight: 700, borderRadius: '8px',
-                            bgcolor: done ? 'rgba(13,150,104,0.1)' : 'rgba(201,165,78,0.1)',
-                            color: done ? '#0d9668' : '#c9a54e',
-                            border: `1px solid ${done ? 'rgba(13,150,104,0.2)' : 'rgba(201,165,78,0.2)'}`,
-                          }}
-                        />
-                      </Box>
+      {/* ═══ Module Grid ═══ */}
+      <section data-reveal className="space-y-3">
+        <h2 className="text-sm font-bold text-fg">الأقسام</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {modules.map((m) => (
+            <ModuleCard
+              key={m.key}
+              title={m.title}
+              count={m.count}
+              amount={m.amount}
+              Icon={m.Icon}
+              tone={m.tone}
+              onClick={m.onClick}
+              ChevronStart={ChevronStart}
+              isProfitTile={m.key === 'profit'}
+            />
+          ))}
+        </div>
+      </section>
 
-                      {/* Progress bar */}
-                      <Box sx={{ px: 2.5, pb: 1.5 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.6 }}>
-                          <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', fontWeight: 600 }}>نسبة الإنجاز</Typography>
-                          <Typography sx={{ fontSize: '0.62rem', color: done ? '#0d9668' : '#c9a54e', fontWeight: 800 }}>{Math.round(pct)}%</Typography>
-                        </Box>
-                        <Box sx={{ height: 5, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)', borderRadius: 3, overflow: 'hidden' }}>
-                          <Box sx={{ height: '100%', width: `${pct}%`, borderRadius: 3, background: done ? 'linear-gradient(90deg,#0d9668,#34d399)' : 'linear-gradient(90deg,#c9a54e,#e8c87a)', transition: 'width 0.5s ease' }} />
-                        </Box>
-                      </Box>
-
-                      {/* Stats */}
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: '1px solid', borderColor: 'divider' }}>
-                        {[
-                          { label: 'الاتفاق', value: worker.totalAmount, color: 'text.primary' },
-                          { label: 'المدفوع', value: worker.paidAmount, color: '#0d9668' },
-                          { label: 'المتبقي', value: worker.remainingAmount, color: worker.remainingAmount > 0 ? '#d64545' : '#0d9668' },
-                        ].map((stat, idx) => (
-                          <Box key={idx} sx={{ py: 1.5, textAlign: 'center', borderRight: idx < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.3, fontSize: '0.6rem' }}>{stat.label}</Typography>
-                            <Typography variant="body2" fontWeight={900} sx={{ color: stat.color, fontSize: '0.8rem' }}>{formatCurrency(stat.value)}</Typography>
-                          </Box>
-                        ))}
-                      </Box>
-
-                      {/* Action Buttons */}
-                      <Box sx={{ display: 'flex', borderTop: '1px solid', borderColor: 'divider', bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
-                        <Button
-                          fullWidth variant="text"
-                          startIcon={<Payment sx={{ fontSize: '16px !important' }} />}
-                          onClick={() => { resetExp({ description: `دفعة حساب: ${worker.name}`, amount: '' as any, category: 'labor', date: dayjs().format('YYYY-MM-DD'), notes: '', workerId: worker.id }); setEditingExpense(null); setExpenseDialogOpen(true); }}
-                          sx={{ py: 1.3, borderRadius: 0, fontWeight: 700, color: '#0d9668', fontSize: '0.8rem', flex: 2, gap: 0.5, '&:hover': { bgcolor: 'rgba(13,150,104,0.06)' } }}
-                        >
-                          صرف دفعة
-                        </Button>
-                        <Divider orientation="vertical" flexItem />
-                        <IconButton
-                          onClick={() => { setEditingWorker(worker); setWorkVal('name', worker.name); setWorkVal('jobType', worker.jobType || ''); setWorkVal('totalAmount', worker.totalAmount); setWorkerDialogOpen(true); }}
-                          sx={{ borderRadius: 0, px: 2.5, color: 'text.secondary', '&:hover': { bgcolor: alpha('#6D28D9', 0.06), color: '#6D28D9' } }}
-                        >
-                          <Edit sx={{ fontSize: 18 }} />
-                        </IconButton>
-                        <Divider orientation="vertical" flexItem />
-                        <IconButton
-                          onClick={() => { if (window.confirm('هل تريد حذف هذا العامل؟')) deleteWorker(worker.id).then(() => msg('تم الحذف')); }}
-                          sx={{ borderRadius: 0, px: 2.5, color: 'text.disabled', '&:hover': { bgcolor: 'rgba(214,69,69,0.06)', color: '#d64545' } }}
-                        >
-                          <Delete sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Stack>
-            )}
-          </Container>
-        </Box>
-      </Dialog>
-
-      {/* ===== ADD/EDIT WORKER DIALOG ===== */}
-      <Dialog open={workerDialogOpen} onClose={() => setWorkerDialogOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: 'background.default' } }}>
-        <form onSubmit={handleWorkSubmit(onSubmitWorker)} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* MD3 Top App Bar */}
-          <Box sx={{ background: headerGradient, color: 'white', px: 1, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton onClick={() => setWorkerDialogOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
-            <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>{editingWorker ? 'تعديل بيانات العامل' : 'إضافة عامل / مقاول'}</Typography>
-          </Box>
-          {/* Flat Form - No Cards, No Radius */}
-          <Box sx={{ flex: 1, overflowY: 'auto', bgcolor: 'background.paper' }}>
-            <Box sx={{ px: 0 }}>
-              <Box sx={{ px: 3, pt: 3, pb: 1 }}>
-                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 2 }}>بيانات العامل</Typography>
-              </Box>
-              <Divider />
-              <Stack divider={<Divider />}>
-                <Controller name="name" control={workCtrl} render={({ field }) => (
-                  <TextField {...field} fullWidth label="اسم العامل أو المقاول" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Person sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
-                  />
-                )} />
-                <Controller name="jobType" control={workCtrl} render={({ field }) => (
-                  <TextField {...field} fullWidth label="طبيعة العمل (بياض، كهرباء، مقاول...)" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><Business sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
-                  />
-                )} />
-                <Controller name="totalAmount" control={workCtrl} render={({ field: { value, onChange, ...rest } }) => (
-                  <TextField {...rest} value={value === 0 && !editingWorker ? '' : value} onChange={e => { const val = e.target.value; onChange(val === '' ? '' : val); }}
-                    fullWidth label="إجمالي المبلغ المتفق عليه" type="number" variant="filled"
-                    InputProps={{ disableUnderline: false, startAdornment: <InputAdornment position="start"><AccountBalanceWallet sx={{ color: '#6D28D9', fontSize: 20 }} /></InputAdornment>, endAdornment: <InputAdornment position="end"><Typography fontWeight={800} color="text.secondary" fontSize="0.85rem">د.ل</Typography></InputAdornment> }}
-                    sx={{ '& .MuiFilledInput-root': { borderRadius: 0, bgcolor: 'background.paper', '&:hover': { bgcolor: alpha('#6D28D9', 0.04) }, '&.Mui-focused': { bgcolor: alpha('#6D28D9', 0.06) } }, '& .MuiInputLabel-root': { fontWeight: 600 } }}
-                  />
-                )} />
-              </Stack>
-            </Box>
-          </Box>
-          {/* Bottom Action Bar - MD3 style */}
-          <Box sx={{ display: 'flex', gap: 0, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-            <Button onClick={() => setWorkerDialogOpen(false)} fullWidth size="large"
-              sx={{ borderRadius: 0, fontWeight: 700, color: 'text.secondary', py: 2, fontSize: '1rem' }}>إلغاء</Button>
-            <Divider orientation="vertical" flexItem />
-            <Button type="submit" variant="contained" fullWidth size="large"
-              sx={{ borderRadius: 0, fontWeight: 900, bgcolor: '#6D28D9', color: '#fff', py: 2, fontSize: '1rem', boxShadow: 'none', '&:hover': { bgcolor: '#5B21B6', boxShadow: 'none' } }}>
-              {editingWorker ? 'حفظ التعديلات' : 'إضافة العامل'}
+      {/* ═══ PDF reports ═══ */}
+      {canAccess('stats') && (
+        <section data-reveal className="space-y-3">
+          <h2 className="text-sm font-bold text-fg">التقرير الشامل</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              block
+              leftIcon={pdfLoading ? <span className="inline-block h-4 w-4 rounded-full border-2 border-current border-r-transparent animate-spin" /> : <PictureAsPdf sx={{ fontSize: 18 }} />}
+              onClick={pdfFull}
+              disabled={pdfLoading}
+            >
+              تحميل PDF
             </Button>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* ===== BALANCES LIST DIALOG ===== */}
-      <Dialog open={balancesListOpen} onClose={() => setBalancesListOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#0a0e14' : '#f0f2f5' } }}>
-        <Box sx={{ 
-          background: theme.palette.mode === 'dark' 
-            ? 'radial-gradient(120% 120% at 50% 0%, #152219 0%, #0a110c 50%, #050806 100%)' 
-            : 'radial-gradient(120% 120% at 50% 0%, #213526 0%, #132217 50%, #0b140e 100%)', 
-          color: 'white', px: 2, pt: 'calc(env(safe-area-inset-top) + 24px)', pb: 3.5, position: 'relative', overflow: 'hidden',
-          borderBottomLeftRadius: 28, borderBottomRightRadius: 28, boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
-        }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ position: 'relative', zIndex: 1 }}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <IconButton onClick={() => setBalancesListOpen(false)} sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', '&:active': { transform: 'scale(0.95)' } }}>
-                <ArrowBack />
-              </IconButton>
-              <Box>
-                 <Typography variant="h6" fontWeight={900} sx={{ lineHeight: 1.2, letterSpacing: '-0.3px' }}>أرصدة العميل (العهد)</Typography>
-                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>يوجد {clientUserBalances.length} سجل للعهد والمصروفات</Typography>
-              </Box>
-            </Stack>
-            <IconButton onClick={() => { setEditingBalance(null); resetBal(); setBalanceDialogOpen(true); }} sx={{ bgcolor: '#6D28D9', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', '&:hover': { bgcolor: '#5B21B6' } }}>
-              <Add />
-            </IconButton>
-          </Stack>
-        </Box>
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 4, pt: 2.5 }}>
-          <Container maxWidth="sm">
-            {/* Show User Summary Cards first */}
-            {Object.entries(userBalancesSummary).length > 0 && (
-              <Box sx={{ mb: {xs: 4, sm: 5} }}>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, px: 0.5, fontWeight: 900, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
-                  <TrendingUp sx={{ color: '#6D28D9', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-                  ملخص الأرصدة والمصروفات المنفذة للمستخدمين:
-                </Typography>
-                <Grid container spacing={{xs: 1.5, sm: 2}}>
-                  {Object.entries(userBalancesSummary).map(([uId, sum]) => (
-                    <Grid size={{xs: 12}} key={uId}>
-                      <Card sx={{ borderRadius: 3, position: 'relative', overflow: 'hidden', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                        <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 8, background: sum.remaining > 0 ? '#6D28D9' : '#d64545' }} />
-                        <CardContent sx={{ p: {xs: 2.5, sm: 3}, pl: {xs: 3, sm: 4}, '&:last-child': { pb: {xs: 2.5, sm: 3} } }}>
-                          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: {xs: 2, sm: 2.5} }}>
-                            <Stack direction="row" alignItems="center" spacing={2} sx={{ minWidth: 0 }}>
-                               <Avatar sx={{ width: {xs: 44, sm: 52}, height: {xs: 44, sm: 52}, bgcolor: alpha('#6D28D9', 0.1), color: '#6D28D9', fontSize: {xs: '1.1rem', sm: '1.3rem'}, fontWeight: 900, border: `2px solid ${alpha('#6D28D9', 0.15)}`, flexShrink: 0 }}>
-                                 {sum.name?.charAt(0) || 'م'}
-                               </Avatar>
-                               <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                 <Typography fontWeight={900} noWrap sx={{ fontSize: {xs: '1rem', sm: '1.15rem'}, color: '#4C1D95' }}>{sum.name}</Typography>
-                                 <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, fontSize: {xs: '0.75rem', sm: '0.8rem'} }}>مكلف بالعهد والمصروفات</Typography>
-                               </Box>
-                            </Stack>
-                            <Box sx={{ textAlign: 'left', background: sum.remaining > 0 ? alpha('#6D28D9',0.04) : alpha('#d64545',0.04), px: {xs: 2, sm: 2.5}, py: {xs: 1, sm: 1.5}, borderRadius: 0, flexShrink: 0, ml: 1, border: `1px solid ${sum.remaining > 0 ? alpha('#6D28D9',0.2) : alpha('#d64545',0.2)}` }}>
-                               <Typography variant="caption" sx={{ color: sum.remaining > 0 ? '#6D28D9' : '#d64545', fontWeight: 800, display: 'block', fontSize: {xs: '0.7rem', sm: '0.75rem'}, mb: 0.5 }}>الرصيد المتاح</Typography>
-                               <Typography variant="body1" fontWeight={900} sx={{ color: sum.remaining > 0 ? '#6D28D9' : '#d64545', fontSize: {xs: '1.1rem', sm: '1.3rem'} }}>{formatCurrency(sum.remaining)}</Typography>
-                            </Box>
-                          </Stack>
-                          <Stack direction="row" spacing={0} sx={{ borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', mb: 1.5 }}>
-                            <Box sx={{ flex: 1, p: 1.5, borderRight: '1px solid', borderColor: 'divider' }}>
-                              <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.5, fontSize: {xs: '0.7rem', sm: '0.75rem'} }}>إجمالي العهدة الممنوحة</Typography>
-                              <Typography variant="body2" fontWeight={900} noWrap sx={{ color: '#4C1D95', fontSize: {xs: '0.9rem', sm: '1rem'} }}>{formatCurrency(sum.given)}</Typography>
-                            </Box>
-                            <Box sx={{ flex: 1, p: 1.5 }}>
-                              <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.5, fontSize: {xs: '0.7rem', sm: '0.75rem'} }}>المنفذ بالمصروفات</Typography>
-                              <Typography variant="body2" fontWeight={900} noWrap color="error.main" sx={{ fontSize: {xs: '0.9rem', sm: '1rem'} }}>{formatCurrency(sum.spent)}</Typography>
-                            </Box>
-                          </Stack>
-
-                          {/* Beautiful Expenses Review for That User */}
-                          <Button 
-                            fullWidth onClick={() => setExpandedUserExpenses(expandedUserExpenses === uId ? null : uId)}
-                            endIcon={expandedUserExpenses === uId ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                            sx={{ borderRadius: 0, fontWeight: 800, color: '#6D28D9', bgcolor: expandedUserExpenses === uId ? alpha('#6D28D9',0.08) : 'transparent', '&:hover': { bgcolor: alpha('#6D28D9',0.05) } }}
-                          >
-                            {expandedUserExpenses === uId ? 'إخفاء سجل المصروفات التفصيلي' : `مراجعة المصروفات المنفذة (${sum.expenses?.length || 0})`}
-                          </Button>
-
-                          <Collapse in={expandedUserExpenses === uId} timeout="auto" unmountOnExit>
-                            <Box sx={{ mt: 2, borderTop: `1px dashed ${alpha('#000',0.1)}`, pt: 2 }}>
-                              {sum.expenses?.length === 0 ? (
-                                <Typography variant="body2" textAlign="center" color="text.secondary" py={2}>لم يقم هذا المستخدم بتسجيل أي مصروفات بعد.</Typography>
-                              ) : (
-                                <Stack spacing={1}>
-                                  {sum.expenses?.map((e: any, idx: number) => (
-                                    <Stack direction="row" justifyContent="space-between" alignItems="center" key={e.id} sx={{ p: 1.5, bgcolor: alpha('#6D28D9',0.03), borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }}>
-                                      <Box>
-                                        <Typography variant="body2" fontWeight={800} color="#4C1D95" noWrap>{e.description}</Typography>
-                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>{formatDate(e.date)} • {getExpenseCategoryLabel(e.category)}</Typography>
-                                      </Box>
-                                      <Typography variant="body2" fontWeight={900} color="error.main">-{formatCurrency(e.amount)}</Typography>
-                                    </Stack>
-                                  ))}
-                                </Stack>
-                              )}
-                            </Box>
-                          </Collapse>
-
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            <Typography variant="subtitle1" sx={{ mb: {xs: 1.5, sm: 2}, px: 1, fontWeight: 800, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-              <AccountBalanceWallet sx={{ color: '#6D28D9', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-              سجل الحركات (إيداعات الأرصدة):
-            </Typography>
-            {clientUserBalances.length === 0 ? (
-              <Card sx={{ borderRadius: 3, textAlign: 'center', py: {xs: 5, sm: 8}, boxShadow: 'none', border: '1px dashed', borderColor: 'divider', bgcolor: 'transparent' }}>
-                 <Box sx={{ width: {xs: 60, sm: 80}, height: {xs: 60, sm: 80}, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'rgba(245,158,11,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-                   <AccountBalanceWallet sx={{ fontSize: {xs: 32, sm: 40}, color: '#f59e0b', opacity: 0.5 }} />
-                 </Box>
-                 <Typography variant="h6" fontWeight={700} color="text.secondary" sx={{ fontSize: {xs: '1rem', sm: '1.25rem'} }}>لا توجد أرصدة مسجلة</Typography>
-                 <Typography variant="body2" color="text.disabled" sx={{ mt: 1, maxWidth: 300, mx: 'auto', fontSize: {xs: '0.75rem', sm: '0.875rem'} }}>قم بالضغط على إضافة رصيد لمنح المستخدمين أرصدة للاستخدام في قسم المصروفات.</Typography>
-              </Card>
-            ) : (
-              <Stack spacing={0} sx={{ border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>{clientUserBalances.map((bal, idx) => (
-                <Box key={bal.id} sx={{ borderBottom: idx < clientUserBalances.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: alpha('#000', 0.02) } }}>
-                  <Box sx={{ p: {xs: '16px', sm: '20px'} }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box sx={{ flex: 1, pl: {xs: 1, sm: 2}, minWidth: 0 }}>
-                        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
-                          <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1.5, bgcolor: alpha('#6D28D9',0.1), color: '#6D28D9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${alpha('#6D28D9',0.2)}` }}>
-                            <Typography fontWeight={900} fontSize="0.75rem"># {clientUserBalances.length - clientUserBalances.indexOf(bal)}</Typography>
-                          </Box>
-                          <Avatar sx={{ width: {xs: 32, sm: 36}, height: {xs: 32, sm: 36}, bgcolor: '#f5f3ef', color: '#5B21B6', flexShrink: 0 }}>
-                            <Person sx={{ fontSize: {xs: 18, sm: 20} }} />
-                          </Avatar>
-                          <Typography fontWeight={800} noWrap sx={{ fontSize: {xs: '1rem', sm: '1.1rem'}, color: '#111827' }}>{bal.userName}</Typography>
-                        </Stack>
-                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1, mt: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
-                           <Typography variant="body2" sx={{ color: '#6D28D9', fontWeight: 900, bgcolor: alpha('#6D28D9',0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: {xs: '0.8rem', sm: '0.9rem'} }}>
-                             + {formatCurrency(bal.amount)} الرصيد المضاف
-                           </Typography>
-                           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: {xs: '0.7rem', sm: '0.8rem'} }}>تاريخ الإضافة: {formatDate(bal.date)}</Typography>
-                        </Stack>
-                        {bal.notes && <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1, bgcolor: alpha('#F59E0B',0.15), p: 1.5, borderRadius: 2, fontSize: {xs: '0.7rem', sm: '0.8rem'}, fontWeight: 600 }}>{bal.notes}</Typography>}
-                        {bal.createdBy && <Typography variant="caption" display="block" sx={{ mt: 1.5, color: 'text.disabled', fontWeight: 600, fontSize: {xs: '0.65rem', sm: '0.75rem'} }}>بواسطة: {bal.createdBy}</Typography>}
-                      </Box>
-                      <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
-                        <IconButton size="small" onClick={() => { setEditingBalance(bal); setBalVal('userId', bal.userId); setBalVal('amount', bal.amount); setBalVal('date', bal.date); setBalVal('notes', bal.notes || ''); setBalanceDialogOpen(true); }} sx={{ bgcolor: alpha('#6D28D9', 0.05), color: '#6D28D9', '&:hover': { bgcolor: alpha('#6D28D9', 0.15) } }}><Edit sx={{ fontSize: 18 }} /></IconButton>
-                        <IconButton size="small" onClick={() => { if (window.confirm('هل أنت متأكد من حذف حركة الرصيد هذه؟')) deleteUserBalance(bal.id).then(() => msg('تم الحذف')); }} sx={{ bgcolor: 'rgba(214,69,69,0.05)', color: '#d64545', '&:hover': { bgcolor: 'rgba(214,69,69,0.15)' } }}><Delete sx={{ fontSize: 18 }} /></IconButton>
-                      </Stack>
-                    </Stack>
-                  </Box>
-                </Box>
-              ))}</Stack>
-            )}
-          </Container>
-        </Box>
-      </Dialog>
-
-      {/* ===== ADD/EDIT BALANCE DIALOG (MOBILE OPTIMIZED) ===== */}
-      <Dialog open={balanceDialogOpen} onClose={() => setBalanceDialogOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#0a0e14' : '#f0f2f5' } }}>
-        <form onSubmit={handleBalSubmit(onSubmitBalance)} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          
-          <Box sx={{ 
-            background: theme.palette.mode === 'dark' 
-              ? 'radial-gradient(120% 120% at 50% 0%, #152219 0%, #0a110c 50%, #050806 100%)' 
-              : 'radial-gradient(120% 120% at 50% 0%, #213526 0%, #132217 50%, #0b140e 100%)', 
-            pt: 'calc(env(safe-area-inset-top) + 24px)', pb: 4, px: 2, position: 'relative', overflow: 'hidden'
-          }}>
-            <Stack direction="row" alignItems="center" spacing={1.5} mb={2}>
-              <IconButton onClick={() => setBalanceDialogOpen(false)} sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', '&:active': { transform: 'scale(0.95)' } }}>
-                <ArrowBack fontSize="small" />
-              </IconButton>
-              <Box>
-                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
-                  {editingBalance ? 'تعديل رصيد العهدة' : 'إضافة عهدة للمشروع'}
-                </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', fontWeight: 500 }}>
-                  يرجى تحديد الموظف وإدخال تفاصيل الدفعة المالية
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-
-          <Box sx={{ flex: 1, overflowY: 'auto', p: 3, mt: -2, bgcolor: theme.palette.mode === 'dark' ? '#0a0e14' : '#f0f2f5', borderTopLeftRadius: 16, borderTopRightRadius: 16, zIndex: 2 }}>
-            <Stack spacing={3}>
-              
-              <Controller name="userId" control={balCtrl} render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel sx={{ fontWeight: 700 }}>الموظف / المستلم</InputLabel>
-                  <Select {...field} label="الموظف / المستلم" sx={{ borderRadius: 3, bgcolor: 'background.paper', '& .MuiSelect-select': { py: 2 } }}>
-                    {systemUsers.map(u => (
-                       <MenuItem key={u.id} value={u.uid || u.id} sx={{ fontWeight: 600 }}>
-                         <Stack direction="row" alignItems="center" spacing={1.5}>
-                           <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'rgba(109,40,217,0.1)', color: '#6D28D9' }}>{u.displayName?.charAt(0)}</Avatar>
-                           <Typography>{u.displayName}</Typography>
-                         </Stack>
-                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )} />
-
-              <Controller name="amount" control={balCtrl} render={({ field }) => (
-                <TextField {...field} fullWidth label="مبلغ العهدة (د.ل)" type="number" 
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><AccountBalanceWallet sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
-                />
-              )} />
-
-              <Controller name="date" control={balCtrl} render={({ field }) => (
-                <TextField {...field} fullWidth label="تاريخ الإضافة" type="date"
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ mr: 1, ml: 1 }}><CalendarToday sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
-                />
-              )} />
-
-              <Controller name="notes" control={balCtrl} render={({ field }) => (
-                <TextField {...field} fullWidth label="ملاحظات توضيحية (اختياري)" multiline rows={3}
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5, mr: 1, ml: 1 }}><NoteAlt sx={{ color: '#6D28D9', opacity: 0.7 }} /></InputAdornment> }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }}
-                />
-              )} />
-              
-            </Stack>
-          </Box>
-
-          {/* Bottom Action Area */}
-          <Box sx={{ p: 2, pb: 'calc(env(safe-area-inset-bottom) + 16px)', bgcolor: theme.palette.mode === 'dark' ? '#0a0e14' : '#f0f2f5', borderTop: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-            <Stack direction="row" spacing={2}>
-              <Button onClick={() => setBalanceDialogOpen(false)} variant="outlined" fullWidth size="large" sx={{ borderRadius: 3, p: 1.5, fontWeight: 700, borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', color: 'text.secondary' }}>
-                رجوع
-              </Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 3, p: 1.5, fontWeight: 900, bgcolor: '#6D28D9', color: '#fff', '&:hover': { bgcolor: '#5B21B6' }, boxShadow: '0 4px 12px rgba(109,40,217,0.3)' }}>
-                {editingBalance ? 'حفظ التعديل' : 'إيداع العهدة'}
-              </Button>
-            </Stack>
-          </Box>
-        </form>
-      </Dialog>
-
-      {/* ===== EDIT CLIENT DIALOG ===== */}
-      <Dialog open={editClientOpen} onClose={() => setEditClientOpen(false)} fullScreen sx={{ '& .MuiDialog-paper': { bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef' } }}>
-        <form onSubmit={handleClientSubmit(onSubmitClient)}>
-          <Box sx={{ background: headerGradient, color: 'white', p: 2, pt: 'calc(max(env(safe-area-inset-top), 50px) + 16px)' }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <IconButton onClick={() => setEditClientOpen(false)} sx={{ color: 'white' }}><ArrowBack /></IconButton>
-                <Typography variant="h5" fontWeight={800}>تعديل العميل</Typography>
-              </Stack>
-            </Stack>
-          </Box>
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              <Controller name="name" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="اسم العميل" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="phone" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="رقم الهاتف" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="address" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="العنوان" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="email" control={clientControl} render={({ field }) => <TextField {...field} fullWidth label="البريد الإلكتروني (اختياري)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }} />} />
-              <Controller name="type" control={clientControl} render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel>النوع</InputLabel>
-                  <Select {...field} label="النوع" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}>
-                    <MenuItem value="individual">فرد</MenuItem>
-                    <MenuItem value="company">شركة</MenuItem>
-                  </Select>
-                </FormControl>
-              )} />
-            </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setEditClientOpen(false)} fullWidth size="large" sx={{ borderRadius: 2.5 }}>إلغاء</Button>
-              <Button type="submit" variant="contained" fullWidth size="large" sx={{ borderRadius: 2.5, bgcolor: '#6D28D9', '&:hover': { bgcolor: '#5B21B6' } }}>حفظ التعديلات</Button>
-            </Stack>
-            <Divider sx={{ my: 4 }} />
-            <Button fullWidth size="large" variant="outlined" color="error" onClick={handleDeleteClient} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1.5 }}>
-              حذف العميل وجميع بياناته
+            <Button
+              variant="outline"
+              block
+              leftIcon={<Share sx={{ fontSize: 18 }} />}
+              onClick={sharePdfFull}
+              disabled={pdfLoading}
+            >
+              مشاركة التقرير
             </Button>
-          </Box>
-        </form>
-      </Dialog>
+          </div>
+        </section>
+      )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" sx={{ borderRadius: 2 }}>{snackbar.message}</Alert>
-      </Snackbar>
-    </Box>
+      {/* ═══════════════════════════════════════════════════════════════════
+         SHEETS (sub-views)
+      ═══════════════════════════════════════════════════════════════════ */}
+
+      <ExpensesSheet
+        open={activeSheet === 'expenses'}
+        onClose={() => setActiveSheet(null)}
+        client={client}
+        clientExpenses={clientExpenses}
+        globalFundStats={globalFundStats}
+        currentUserBalanceInfo={currentUserBalanceInfo}
+        userName={user?.displayName || currentUserBalanceInfo?.name || ''}
+        summary={summary}
+        pdfLoading={pdfLoading}
+        onAdd={() => setActiveForm({ kind: 'expense', edit: null })}
+        onEdit={(e) => setActiveForm({ kind: 'expense', edit: e })}
+        onDelete={async (id) => {
+          if (!window.confirm('حذف هذا المصروف؟')) return;
+          await deleteExpense(id);
+          toast.success('تم الحذف');
+        }}
+        onDownloadPdf={pdfExpenses}
+        onSharePdf={shareExpenses}
+      />
+
+      <PaymentsSheet
+        open={activeSheet === 'payments'}
+        onClose={() => setActiveSheet(null)}
+        clientPayments={clientPayments}
+        summary={summary}
+        pdfLoading={pdfLoading}
+        onAdd={() => setActiveForm({ kind: 'payment', edit: null })}
+        onEdit={(p) => setActiveForm({ kind: 'payment', edit: p })}
+        onDelete={async (id) => {
+          if (!window.confirm('حذف هذه الدفعة؟')) return;
+          await deletePayment(id);
+          toast.success('تم الحذف');
+        }}
+        onDownloadPdf={pdfPayments}
+        onSharePdf={sharePayments}
+      />
+
+      <DebtsSheet
+        open={activeSheet === 'debts'}
+        onClose={() => setActiveSheet(null)}
+        clientDebts={clientDebts}
+        summary={summary}
+        pdfLoading={pdfLoading}
+        onAdd={() => setActiveForm({ kind: 'debt', edit: null })}
+        onEdit={(d) => setActiveForm({ kind: 'debt', edit: d })}
+        onDelete={async (id) => {
+          if (!window.confirm('حذف هذا الدين؟')) return;
+          await deleteStandaloneDebt(id);
+          toast.success('تم الحذف');
+        }}
+        onDownloadPdf={pdfDebts}
+        onSharePdf={shareDebts}
+      />
+
+      <WorkersSheet
+        open={activeSheet === 'workers'}
+        onClose={() => setActiveSheet(null)}
+        clientWorkers={clientWorkers}
+        summary={summary}
+        pdfLoading={pdfLoading}
+        onAdd={() => setActiveForm({ kind: 'worker', edit: null })}
+        onEdit={(w) => setActiveForm({ kind: 'worker', edit: w })}
+        onPay={(w) => setActiveForm({ kind: 'expense', edit: null, presetWorker: w })}
+        onDelete={async (id) => {
+          if (!window.confirm('حذف هذا العامل؟')) return;
+          await deleteWorker(id);
+          toast.success('تم الحذف');
+        }}
+        onDownloadPdf={pdfWorkers}
+        onSharePdf={shareWorkersPdf}
+      />
+
+      <BalancesSheet
+        open={activeSheet === 'balances'}
+        onClose={() => setActiveSheet(null)}
+        clientUserBalances={clientUserBalances}
+        userBalancesSummary={userBalancesSummary}
+        onAdd={() => setActiveForm({ kind: 'balance', edit: null })}
+        onEdit={(b) => setActiveForm({ kind: 'balance', edit: b })}
+        onDelete={async (id) => {
+          if (!window.confirm('حذف حركة الرصيد؟')) return;
+          await deleteUserBalance(id);
+          toast.success('تم الحذف');
+        }}
+      />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+         FORMS
+      ═══════════════════════════════════════════════════════════════════ */}
+
+      {activeForm?.kind === 'payment' && (
+        <PaymentFormSheet
+          edit={activeForm.edit}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            const amount = parseFloat(data.amount) || 0;
+            try {
+              if (activeForm.edit) {
+                await updatePayment(activeForm.edit.id, {
+                  amount,
+                  paymentMethod: data.paymentMethod,
+                  paymentDate: data.paymentDate,
+                  invoiceId: data.invoiceId,
+                  notes: data.notes,
+                });
+                toast.success('تم التعديل');
+              } else {
+                await addPayment({
+                  id: crypto.randomUUID(),
+                  invoiceId: data.invoiceId || '',
+                  clientId: clientId!,
+                  amount,
+                  paymentMethod: data.paymentMethod,
+                  paymentDate: data.paymentDate,
+                  notes: data.notes || '',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  createdBy: user?.displayName || 'المستخدم',
+                });
+                toast.success('تمت الإضافة');
+              }
+              setActiveForm(null);
+              setActiveSheet('payments');
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+        />
+      )}
+
+      {activeForm?.kind === 'expense' && (
+        <ExpenseFormSheet
+          edit={activeForm.edit}
+          presetWorker={activeForm.presetWorker}
+          clientWorkers={clientWorkers}
+          currentUserBalanceInfo={currentUserBalanceInfo}
+          userName={user?.displayName || currentUserBalanceInfo?.name || ''}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            const amount = parseFloat(data.amount) || 0;
+            const workerId = data.workerId || null;
+            const workerName = workerId ? workers.find((w) => w.id === workerId)?.name : null;
+            const userId = activeForm.edit?.userId || user?.id || '';
+            const createdBy = activeForm.edit?.createdBy || user?.displayName || 'المستخدم';
+            try {
+              if (activeForm.edit) {
+                await updateExpense(activeForm.edit.id, {
+                  description: data.description, amount, category: data.category,
+                  date: data.date, invoiceNumber: data.invoiceNumber, notes: data.notes,
+                  workerId, workerName, userId, createdBy,
+                });
+                toast.success('تم التعديل');
+              } else {
+                await addExpense({
+                  id: crypto.randomUUID(),
+                  clientId: clientId!,
+                  description: data.description, amount, category: data.category,
+                  date: data.date, invoiceNumber: data.invoiceNumber || '',
+                  notes: data.notes, isClosed: false,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  workerId, workerName, userId, createdBy,
+                });
+                toast.success('تمت الإضافة');
+              }
+              setActiveForm(null);
+              setActiveSheet('expenses');
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+        />
+      )}
+
+      {activeForm?.kind === 'debt' && (
+        <DebtFormSheet
+          edit={activeForm.edit}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            const amount = parseFloat(data.amount) || 0;
+            try {
+              if (activeForm.edit) {
+                const newPaid = Math.min(activeForm.edit.paidAmount, amount);
+                await updateStandaloneDebt(activeForm.edit.id, {
+                  partyName: data.partyName, description: data.description, amount,
+                  paidAmount: newPaid, remainingAmount: Math.max(0, amount - newPaid),
+                  status: amount - newPaid <= 0 ? 'paid' : 'unpaid',
+                  date: data.date, notes: data.notes,
+                });
+                toast.success('تم التعديل');
+              } else {
+                await addStandaloneDebt({
+                  id: crypto.randomUUID(),
+                  clientId: clientId!,
+                  partyType: 'external',
+                  partyName: data.partyName, description: data.description,
+                  amount, paidAmount: 0, remainingAmount: amount,
+                  status: 'unpaid', date: data.date,
+                  notes: data.notes || '',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+                toast.success('تمت الإضافة');
+              }
+              setActiveForm(null);
+              setActiveSheet('debts');
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+        />
+      )}
+
+      {activeForm?.kind === 'worker' && (
+        <WorkerFormSheet
+          edit={activeForm.edit}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            const totalAmount = parseFloat(data.totalAmount) || 0;
+            try {
+              if (activeForm.edit) {
+                await updateWorker(activeForm.edit.id, {
+                  name: data.name, jobType: data.jobType, totalAmount, status: 'active',
+                });
+                toast.success('تم التعديل');
+              } else {
+                await addWorker({
+                  id: crypto.randomUUID(),
+                  clientId: clientId!,
+                  name: data.name, jobType: data.jobType, totalAmount,
+                  paidAmount: 0, remainingAmount: totalAmount, status: 'active',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+                toast.success('تمت الإضافة');
+              }
+              setActiveForm(null);
+              setActiveSheet('workers');
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+        />
+      )}
+
+      {activeForm?.kind === 'balance' && (
+        <BalanceFormSheet
+          edit={activeForm.edit}
+          systemUsers={systemUsers}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            const amount = parseFloat(data.amount) || 0;
+            const assignedUser = systemUsers.find((u) => (u.uid || u.id) === data.userId);
+            const userName = assignedUser ? assignedUser.displayName : user?.displayName || 'المستخدم';
+            try {
+              if (activeForm.edit) {
+                await updateUserBalance(activeForm.edit.id, {
+                  userId: data.userId, userName, amount, date: data.date, notes: data.notes,
+                });
+                toast.success('تم التعديل');
+              } else {
+                await addUserBalance({
+                  id: crypto.randomUUID(),
+                  clientId: clientId!,
+                  userId: data.userId, userName, amount, date: data.date,
+                  notes: data.notes || '',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  createdBy: user?.displayName || 'المستخدم',
+                });
+                toast.success('تمت الإضافة');
+              }
+              setActiveForm(null);
+              setActiveSheet('balances');
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+        />
+      )}
+
+      {activeForm?.kind === 'editClient' && (
+        <EditClientFormSheet
+          client={client}
+          onClose={() => setActiveForm(null)}
+          onSubmit={async (data) => {
+            if (!clientId) return;
+            try {
+              await updateClient(clientId, data);
+              toast.success('تم التحديث');
+              setActiveForm(null);
+            } catch {
+              toast.error('خطأ');
+            }
+          }}
+          onDelete={handleDeleteClient}
+        />
+      )}
+
+      {/* Profit modal — small, centered (not a full sheet) */}
+      <Modal
+        open={activeForm?.kind === 'profit'}
+        onClose={() => setActiveForm(null)}
+        title="حساب الأرباح"
+        description="النسبة تطبّق على إجمالي المدفوعات"
+        maxWidth="sm"
+      >
+        <div className="space-y-3">
+          <Input
+            label="نسبة الربح"
+            type="number"
+            inputMode="decimal"
+            value={profitPercentage}
+            onChange={(e) => setProfitPercentage(e.target.value)}
+            placeholder="مثال: 15"
+            rightIcon={<span className="text-2xs font-semibold">%</span>}
+          />
+          {summary.profit > 0 && summary.profitPercentage > 0 && (
+            <div
+              className="rounded-lg p-3 text-sm font-semibold"
+              style={{
+                background: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary)',
+              }}
+            >
+              الربح الحالي: {formatCurrency(summary.profit)}
+            </div>
+          )}
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" block onClick={() => setActiveForm(null)}>إلغاء</Button>
+            <Button block onClick={handleSaveProfit}>حفظ النسبة</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════════════════════════════════════ */
+
+function toneVars(tone: 'brand' | 'success' | 'danger' | 'warning' | 'info' | 'amber') {
+  switch (tone) {
+    case 'success': return { fg: 'var(--brand-success)', soft: 'color-mix(in srgb, var(--brand-success) 12%, transparent)' };
+    case 'danger':  return { fg: 'var(--brand-danger)',  soft: 'color-mix(in srgb, var(--brand-danger) 12%, transparent)' };
+    case 'warning': return { fg: 'var(--brand-warning)', soft: 'color-mix(in srgb, var(--brand-warning) 14%, transparent)' };
+    case 'info':    return { fg: 'var(--brand-info)',    soft: 'color-mix(in srgb, var(--brand-info) 12%, transparent)' };
+    case 'amber':   return { fg: '#D97706',              soft: 'color-mix(in srgb, #F59E0B 14%, transparent)' };
+    default:        return { fg: 'var(--brand-primary)', soft: 'var(--brand-primary-soft)' };
+  }
+}
+
+function KpiTile({ label, value, sub, Icon, tone, onClick }: any) {
+  const t = toneVars(tone);
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'relative text-start bg-surface-panel border border-border rounded-2xl p-3.5 lg:p-4',
+        'shadow-xs hover:shadow-md hover:border-strong transition-all duration-base',
+        'cursor-pointer pressable focus:outline-none focus-visible:shadow-focus',
+        'overflow-hidden'
+      )}
+      style={{ backgroundImage: `radial-gradient(140% 70% at 100% 0%, ${t.soft} 0%, transparent 60%)` }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xs uppercase tracking-wider text-fg-muted font-bold truncate">{label}</span>
+        <span
+          aria-hidden
+          className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: t.soft, color: t.fg }}
+        >
+          <Icon sx={{ fontSize: 16 }} />
+        </span>
+      </div>
+      <div
+        className="text-base sm:text-lg lg:text-xl font-extrabold font-num tabular tracking-tight truncate"
+        style={{ color: t.fg }}
+      >
+        {value}
+      </div>
+      <div className="text-2xs text-fg-muted mt-0.5 truncate">{sub}</div>
+    </button>
+  );
+}
+
+function ModuleCard({ title, count, amount, Icon, tone, onClick, ChevronStart, isProfitTile }: any) {
+  const t = toneVars(tone);
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'group text-start bg-surface-panel border border-border rounded-2xl p-3.5 lg:p-4',
+        'shadow-xs hover:shadow-md hover:border-strong transition-all duration-base',
+        'cursor-pointer pressable focus:outline-none focus-visible:shadow-focus',
+        'min-h-[120px]'
+      )}
+    >
+      <div className="flex items-start justify-between gap-2 h-full">
+        <div className="flex-1 min-w-0">
+          <span
+            aria-hidden
+            className="inline-flex h-10 w-10 rounded-xl items-center justify-center mb-2.5"
+            style={{ background: t.soft, color: t.fg }}
+          >
+            <Icon sx={{ fontSize: 20 }} />
+          </span>
+          <div className="text-[0.9375rem] font-bold text-fg leading-snug truncate">{title}</div>
+          <div className="text-2xs text-fg-muted mt-0.5 truncate font-num tabular">
+            {isProfitTile
+              ? count > 0
+                ? `${count}% — ${formatCurrency(amount)}`
+                : 'اضغط لتحديد النسبة'
+              : `${count} سجل · ${formatCurrency(amount)}`}
+          </div>
+        </div>
+        <ChevronStart
+          sx={{ fontSize: 16 }}
+          className="text-fg-muted group-hover:text-[color:var(--brand-primary)] transition-colors mt-1 shrink-0"
+        />
+      </div>
+    </button>
+  );
+}
+
+function AlertBanner({ tone, icon, text }: { tone: 'danger' | 'warning'; icon: React.ReactNode; text: string }) {
+  const isDanger = tone === 'danger';
+  return (
+    <div
+      className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-semibold"
+      style={{
+        background: isDanger
+          ? 'color-mix(in srgb, var(--brand-danger) 10%, transparent)'
+          : 'color-mix(in srgb, var(--brand-warning) 14%, transparent)',
+        borderColor: isDanger
+          ? 'color-mix(in srgb, var(--brand-danger) 30%, transparent)'
+          : 'color-mix(in srgb, var(--brand-warning) 30%, transparent)',
+        color: isDanger ? 'var(--brand-danger)' : '#92400E',
+      }}
+    >
+      <span className="shrink-0" style={{ color: 'inherit' }}>{icon}</span>
+      <span className="flex-1">{text}</span>
+    </div>
+  );
+}
+
+function PdfBar({ onDownload, onShare, loading }: { onDownload: () => void; onShare: () => void; loading: boolean }) {
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={onDownload}
+        disabled={loading}
+        className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-white/12 hover:bg-white/20 text-white/95 backdrop-blur border border-white/15 text-xs font-bold transition-colors disabled:opacity-50"
+      >
+        {loading ? (
+          <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white/90 border-r-transparent animate-spin" />
+        ) : (
+          <PictureAsPdf sx={{ fontSize: 14 }} />
+        )}
+        تحميل PDF
+      </button>
+      <button
+        onClick={onShare}
+        disabled={loading}
+        className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-white/12 hover:bg-white/20 text-white/95 backdrop-blur border border-white/15 text-xs font-bold transition-colors disabled:opacity-50"
+      >
+        <Share sx={{ fontSize: 14 }} />
+        مشاركة
+      </button>
+    </div>
+  );
+}
+
+function AddHeaderButton({ onClick, label = 'إضافة' }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-white text-[color:var(--brand-primary)] hover:bg-white/95 font-bold text-sm pressable transition-colors shadow-xs shrink-0"
+    >
+      <Add sx={{ fontSize: 16 }} />
+      {label}
+    </button>
+  );
+}
+
+function EmptyState({ Icon, title, sub, cta }: { Icon: any; title: string; sub?: string; cta?: React.ReactNode }) {
+  return (
+    <div className="bg-surface-panel border border-border rounded-2xl p-10 text-center mx-4 my-4">
+      <div
+        className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-3"
+        style={{ background: 'var(--brand-primary-soft)', color: 'var(--brand-primary)' }}
+      >
+        <Icon sx={{ fontSize: 28 }} />
+      </div>
+      <div className="text-fg font-bold">{title}</div>
+      {sub && <div className="text-2xs text-fg-muted mt-1">{sub}</div>}
+      {cta && <div className="mt-4">{cta}</div>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXPENSES SHEET
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ExpensesSheet({
+  open, onClose, client, clientExpenses, globalFundStats, currentUserBalanceInfo,
+  userName, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
+}: any) {
+  const [search, setSearch] = useState('');
+  const [expandedBreakdown, setExpandedBreakdown] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!search) return clientExpenses;
+    const q = search.toLowerCase();
+    return clientExpenses.filter(
+      (e: Expense) =>
+        e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q)
+    );
+  }, [clientExpenses, search]);
+
+  const byUser = useMemo(() => {
+    const totals: Record<string, number> = {};
+    clientExpenses.forEach((e: Expense) => {
+      const u = e.createdBy || 'المستخدم';
+      totals[u] = (totals[u] || 0) + e.amount;
+    });
+    return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  }, [clientExpenses]);
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={`المصروفات (${clientExpenses.length})`}
+      subtitle={client?.name}
+      headerAction={<AddHeaderButton onClick={onAdd} label="جديد" />}
+      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      maxWidth="lg"
+    >
+      <div className="p-4 space-y-3">
+        {/* Fund banners */}
+        {globalFundStats && (
+          <FundBanner title="رصيد العهدة العام المتاح" stats={globalFundStats} />
+        )}
+        {currentUserBalanceInfo && (
+          <UserBalanceBanner info={currentUserBalanceInfo} userName={userName} />
+        )}
+
+        {/* Search */}
+        <Input
+          leftIcon={<Search sx={{ fontSize: 18 }} />}
+          placeholder="ابحث في المصروفات..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {/* List */}
+        {filtered.length === 0 ? (
+          <EmptyState
+            Icon={TrendingDown}
+            title="لا توجد مصروفات"
+            sub={search ? 'لا نتائج مطابقة' : 'أضف أول مصروف'}
+          />
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((exp: Expense) => (
+              <div
+                key={exp.id}
+                className="bg-surface-panel border border-border rounded-xl p-4 content-auto"
+                style={{ borderInlineEndWidth: 3, borderInlineEndColor: 'var(--brand-danger)' }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-fg truncate">{exp.description}</div>
+                    <div className="flex flex-wrap gap-1.5 items-center mt-1.5">
+                      <span className="inline-flex items-center h-5 px-2 rounded-full bg-surface-sunken text-2xs font-bold text-fg-subtle border border-border">
+                        {getExpenseCategoryLabel(exp.category)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                        <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(exp.date)}
+                      </span>
+                      {exp.invoiceNumber && (
+                        <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                          <Description sx={{ fontSize: 11 }} /> {exp.invoiceNumber}
+                        </span>
+                      )}
+                    </div>
+                    {exp.createdBy && (
+                      <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {exp.createdBy}</div>
+                    )}
+                    {exp.notes && (
+                      <div className="text-2xs text-fg-muted mt-1 line-clamp-2">{exp.notes}</div>
+                    )}
+                  </div>
+                  <div className="text-start shrink-0 flex flex-col items-end gap-1">
+                    <div className="font-extrabold text-base font-num tabular" style={{ color: 'var(--brand-danger)' }}>
+                      {formatCurrency(exp.amount)}
+                    </div>
+                    <div className="flex gap-0.5">
+                      <button
+                        onClick={() => onEdit(exp)}
+                        aria-label="تعديل"
+                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                      >
+                        <Edit sx={{ fontSize: 14 }} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(exp.id)}
+                        aria-label="حذف"
+                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                      >
+                        <Delete sx={{ fontSize: 14 }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Total + per-user breakdown */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
+            color: '#fff',
+          }}
+        >
+          <button
+            onClick={() => setExpandedBreakdown((v) => !v)}
+            className="w-full flex items-center justify-between p-4 text-start"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold">إجمالي المصروفات</span>
+              {expandedBreakdown ? <ExpandLess sx={{ fontSize: 20 }} /> : <ExpandMore sx={{ fontSize: 20 }} />}
+            </div>
+            <span className="font-extrabold text-xl font-num tabular">
+              {formatCurrency(summary.totalExpenses)}
+            </span>
+          </button>
+          {expandedBreakdown && byUser.length > 0 && (
+            <div className="p-4 pt-0 space-y-2 border-t border-white/10">
+              <div className="text-2xs text-white/70 font-bold tracking-wider mt-3 mb-2">
+                التوزيع حسب المستخدم
+              </div>
+              {byUser.map(([name, total]) => {
+                const pct = summary.totalExpenses > 0 ? (total / summary.totalExpenses) * 100 : 0;
+                return (
+                  <div key={name} className="bg-white/8 rounded-lg p-2.5">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-white/15 flex items-center justify-center text-sm font-bold shrink-0">
+                          {name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">{name}</div>
+                          <div className="text-[0.6rem] text-white/60">{pct.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                      <div className="text-sm font-extrabold font-num tabular">
+                        {formatCurrency(total)}
+                      </div>
+                    </div>
+                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-base"
+                        style={{
+                          width: `${pct}%`,
+                          background: 'linear-gradient(90deg, #F59E0B, #FBBF24)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+function FundBanner({ title, stats }: any) {
+  const positive = stats.remaining > 0;
+  return (
+    <div
+      className="flex items-center justify-between rounded-xl px-4 py-3 border"
+      style={{
+        background: positive
+          ? 'color-mix(in srgb, var(--brand-success) 10%, transparent)'
+          : 'color-mix(in srgb, var(--brand-danger) 10%, transparent)',
+        borderColor: positive
+          ? 'color-mix(in srgb, var(--brand-success) 22%, transparent)'
+          : 'color-mix(in srgb, var(--brand-danger) 22%, transparent)',
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <AccountBalanceWallet
+          sx={{ fontSize: 20 }}
+          style={{ color: positive ? 'var(--brand-success)' : 'var(--brand-danger)' }}
+        />
+        <span className="text-xs font-bold text-fg-subtle">{title}</span>
+      </div>
+      <div
+        className="font-extrabold text-base font-num tabular"
+        style={{ color: positive ? 'var(--brand-success)' : 'var(--brand-danger)' }}
+      >
+        {formatCurrency(stats.remaining)}
+      </div>
+    </div>
+  );
+}
+
+function UserBalanceBanner({ info, userName }: any) {
+  const positive = info.remaining > 0;
+  return (
+    <div className="rounded-2xl overflow-hidden border"
+      style={{ borderColor: positive ? 'color-mix(in srgb, var(--brand-success) 25%, transparent)' : 'color-mix(in srgb, var(--brand-danger) 25%, transparent)' }}
+    >
+      <div
+        className="p-4 text-white"
+        style={{
+          background: positive
+            ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)'
+            : 'linear-gradient(135deg, #E11D48 0%, #F43F5E 100%)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="min-w-0">
+            <div className="text-2xs uppercase tracking-wider text-white/80 font-bold">
+              رصيد عهدة — {userName}
+            </div>
+            <div className="text-2xl font-extrabold font-num tabular mt-1 leading-none">
+              {formatCurrency(info.remaining)}
+            </div>
+          </div>
+          <AccountBalanceWallet sx={{ fontSize: 36, opacity: 0.5 }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 bg-surface-panel">
+        <div className="p-2.5 text-center border-l border-border rtl:border-l-0 rtl:border-r rtl:border-border">
+          <div className="text-2xs text-fg-muted font-bold">إجمالي العهدة</div>
+          <div className="text-sm font-extrabold font-num tabular mt-0.5" style={{ color: 'var(--brand-primary)' }}>
+            {formatCurrency(info.given)}
+          </div>
+        </div>
+        <div className="p-2.5 text-center">
+          <div className="text-2xs text-fg-muted font-bold">المصروف</div>
+          <div className="text-sm font-extrabold font-num tabular mt-0.5" style={{ color: 'var(--brand-danger)' }}>
+            {formatCurrency(info.spent)}
+          </div>
+        </div>
+      </div>
+      {info.remaining <= 0 && info.given > 0 && (
+        <div
+          className="flex items-center gap-2 px-4 py-2 text-white text-xs font-bold"
+          style={{ background: '#7F1D1D' }}
+        >
+          <WarningAmber sx={{ fontSize: 14 }} />
+          تحذير: رصيد العهدة نفد بالكامل
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAYMENTS SHEET
+═══════════════════════════════════════════════════════════════════════════ */
+
+function PaymentsSheet({
+  open, onClose, clientPayments, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
+}: any) {
+  const [search, setSearch] = useState('');
+  const methodLabel: Record<string, string> = {
+    cash: 'نقدي',
+    bank_transfer: 'تحويل بنكي',
+    check: 'شيك',
+    credit_card: 'بطاقة',
+    mobile_payment: 'محفظة',
+  };
+  const filtered = useMemo(() => {
+    if (!search) return clientPayments;
+    const q = search.toLowerCase();
+    return clientPayments.filter(
+      (p: PaymentType) =>
+        formatCurrency(p.amount).includes(q) ||
+        p.paymentMethod.includes(q) ||
+        (p.notes || '').toLowerCase().includes(q)
+    );
+  }, [clientPayments, search]);
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={`المدفوعات (${clientPayments.length})`}
+      subtitle={`إجمالي: ${formatCurrency(summary.totalPaid)}`}
+      headerAction={<AddHeaderButton onClick={onAdd} label="دفعة" />}
+      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      maxWidth="lg"
+    >
+      <div className="p-4 space-y-3">
+        <Input
+          leftIcon={<Search sx={{ fontSize: 18 }} />}
+          placeholder="ابحث في المدفوعات..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {filtered.length === 0 ? (
+          <EmptyState Icon={Payment} title="لا توجد مدفوعات" sub="أضف أول دفعة" />
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((pay: PaymentType) => (
+              <div
+                key={pay.id}
+                className="bg-surface-panel border border-border rounded-xl p-4 content-auto"
+                style={{ borderInlineEndWidth: 3, borderInlineEndColor: 'var(--brand-success)' }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-extrabold text-base font-num tabular" style={{ color: 'var(--brand-success)' }}>
+                      +{formatCurrency(pay.amount)}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 items-center mt-1.5">
+                      <span
+                        className="inline-flex items-center h-5 px-2 rounded-full text-2xs font-bold"
+                        style={{ background: 'var(--brand-primary-soft)', color: 'var(--brand-primary)' }}
+                      >
+                        {methodLabel[pay.paymentMethod] || pay.paymentMethod}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                        <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(pay.paymentDate)}
+                      </span>
+                    </div>
+                    {pay.createdBy && (
+                      <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {pay.createdBy}</div>
+                    )}
+                    {pay.notes && (
+                      <div className="text-2xs text-fg-muted mt-1 line-clamp-2">{pay.notes}</div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button
+                      onClick={() => onEdit(pay)}
+                      aria-label="تعديل"
+                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                    >
+                      <Edit sx={{ fontSize: 14 }} />
+                    </button>
+                    <button
+                      onClick={() => onDelete(pay.id)}
+                      aria-label="حذف"
+                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                    >
+                      <Delete sx={{ fontSize: 14 }} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div
+          className="rounded-2xl p-4 flex items-center justify-between"
+          style={{
+            background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
+            color: '#fff',
+          }}
+        >
+          <span className="font-extrabold">إجمالي المحصّل</span>
+          <span className="font-extrabold text-xl font-num tabular">{formatCurrency(summary.totalPaid)}</span>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEBTS SHEET
+═══════════════════════════════════════════════════════════════════════════ */
+
+function DebtsSheet({
+  open, onClose, clientDebts, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
+}: any) {
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={`الديون (${clientDebts.length})`}
+      subtitle={`متبقي: ${formatCurrency(summary.totalDebts)}`}
+      headerAction={<AddHeaderButton onClick={onAdd} label="دين" />}
+      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      maxWidth="lg"
+    >
+      <div className="p-4 space-y-2">
+        {clientDebts.length === 0 ? (
+          <EmptyState Icon={CreditCard} title="لا توجد ديون" sub="أضف أول دين" />
+        ) : (
+          clientDebts.map((d: StandaloneDebt) => {
+            const pct = d.amount > 0 ? (d.paidAmount / d.amount) * 100 : 0;
+            const isPaid = d.status === 'paid';
+            return (
+              <div key={d.id} className="bg-surface-panel border border-border rounded-xl p-4 content-auto">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-fg truncate">{d.partyName}</div>
+                    <div className="text-2xs text-fg-muted truncate">{d.description}</div>
+                  </div>
+                  <span
+                    className="inline-flex items-center h-6 px-2 rounded-full text-[0.65rem] font-bold shrink-0"
+                    style={{
+                      background: isPaid
+                        ? 'color-mix(in srgb, var(--brand-success) 12%, transparent)'
+                        : 'color-mix(in srgb, var(--brand-warning) 14%, transparent)',
+                      color: isPaid ? 'var(--brand-success)' : 'var(--brand-warning)',
+                    }}
+                  >
+                    {isPaid ? 'مسدد' : 'غير مسدد'}
+                  </span>
+                </div>
+
+                <div className="rounded-lg bg-surface-sunken border border-border p-2.5 space-y-1 mb-2">
+                  <div className="flex items-center justify-between text-2xs">
+                    <span className="text-fg-muted">قيمة الدين</span>
+                    <span className="font-bold text-fg font-num tabular">{formatCurrency(d.amount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-2xs">
+                    <span className="text-fg-muted">المدفوع</span>
+                    <span className="font-bold font-num tabular" style={{ color: 'var(--brand-success)' }}>
+                      {formatCurrency(d.paidAmount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-2xs">
+                    <span className="text-fg-muted">المتبقي</span>
+                    <span className="font-extrabold font-num tabular" style={{ color: 'var(--brand-danger)' }}>
+                      {formatCurrency(d.remainingAmount)}
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full bg-black/5 overflow-hidden mt-1">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-base"
+                      style={{
+                        width: `${Math.min(100, pct)}%`,
+                        background: isPaid ? 'var(--brand-success)' : 'var(--brand-primary)',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                    <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(d.date)}
+                  </span>
+                  <div className="flex gap-0.5">
+                    <button
+                      onClick={() => onEdit(d)}
+                      aria-label="تعديل"
+                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                    >
+                      <Edit sx={{ fontSize: 14 }} />
+                    </button>
+                    <button
+                      onClick={() => onDelete(d.id)}
+                      aria-label="حذف"
+                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                    >
+                      <Delete sx={{ fontSize: 14 }} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WORKERS SHEET
+═══════════════════════════════════════════════════════════════════════════ */
+
+function WorkersSheet({
+  open, onClose, clientWorkers, summary, pdfLoading, onAdd, onEdit, onDelete, onPay, onDownloadPdf, onSharePdf,
+}: any) {
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={`سجل العمال (${clientWorkers.length})`}
+      subtitle={`متبقي: ${formatCurrency(summary.totalWorkersDue)}`}
+      headerAction={<AddHeaderButton onClick={onAdd} label="عامل" />}
+      headerExtras={
+        <div className="space-y-2">
+          {clientWorkers.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'الاتفاق', val: summary.totalWorkersAgreed, color: '#FBBF24' },
+                { label: 'المدفوع', val: summary.totalWorkersPaid, color: '#6EE7B7' },
+                { label: 'المتبقي', val: summary.totalWorkersDue, color: '#FCA5A5' },
+              ].map((s, i) => (
+                <div key={i} className="text-center bg-white/8 rounded-lg py-2 border border-white/10">
+                  <div className="text-[0.6rem] text-white/60 font-semibold">{s.label}</div>
+                  <div className="text-xs font-extrabold mt-0.5 font-num tabular truncate" style={{ color: s.color }}>
+                    {formatCurrency(s.val)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />
+        </div>
+      }
+      maxWidth="lg"
+    >
+      <div className="p-4 space-y-2">
+        {clientWorkers.length === 0 ? (
+          <EmptyState Icon={PersonAdd} title="لا يوجد عمال بعد" sub="أضف أول عامل / مقاول" />
+        ) : (
+          clientWorkers.map((w: any) => {
+            const pct = w.totalAmount > 0 ? Math.min(100, (w.paidAmount / w.totalAmount) * 100) : 0;
+            const done = w.remainingAmount <= 0;
+            const accent = done ? 'var(--brand-success)' : '#D97706';
+            return (
+              <div key={w.id} className="bg-surface-panel border border-border rounded-2xl overflow-hidden content-auto">
+                <div className="h-1" style={{ background: accent }} />
+                <div className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-extrabold"
+                      style={{
+                        background: done
+                          ? 'color-mix(in srgb, var(--brand-success) 15%, transparent)'
+                          : 'color-mix(in srgb, #F59E0B 15%, transparent)',
+                        color: accent,
+                      }}
+                    >
+                      {w.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-fg truncate">{w.name}</div>
+                      <div className="text-2xs text-fg-muted" style={{ color: 'var(--brand-primary)' }}>
+                        {w.jobType || 'عامل / مقاول'}
+                      </div>
+                    </div>
+                    <span
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[0.65rem] font-bold"
+                      style={{
+                        background: done
+                          ? 'color-mix(in srgb, var(--brand-success) 12%, transparent)'
+                          : 'color-mix(in srgb, var(--brand-warning) 14%, transparent)',
+                        color: accent,
+                      }}
+                    >
+                      {done ? <CheckCircle sx={{ fontSize: 11 }} /> : null}
+                      {done ? 'مكتمل' : 'جارٍ'}
+                    </span>
+                  </div>
+
+                  <div className="mb-2.5">
+                    <div className="flex items-center justify-between text-[0.65rem] font-bold mb-1">
+                      <span className="text-fg-muted">نسبة الإنجاز</span>
+                      <span style={{ color: accent }}>{Math.round(pct)}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-base"
+                        style={{ width: `${pct}%`, background: accent }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 rounded-lg bg-surface-sunken overflow-hidden mb-2">
+                    {[
+                      { label: 'الاتفاق', val: w.totalAmount, color: 'var(--text-primary)' },
+                      { label: 'المدفوع', val: w.paidAmount, color: 'var(--brand-success)' },
+                      { label: 'المتبقي', val: w.remainingAmount, color: w.remainingAmount > 0 ? 'var(--brand-danger)' : 'var(--brand-success)' },
+                    ].map((s, i) => (
+                      <div
+                        key={i}
+                        className="p-2 text-center"
+                        style={{ borderInlineStart: i > 0 ? '1px solid var(--surface-border)' : undefined }}
+                      >
+                        <div className="text-[0.6rem] text-fg-muted font-bold">{s.label}</div>
+                        <div className="text-xs font-extrabold font-num tabular mt-0.5 truncate" style={{ color: s.color }}>
+                          {formatCurrency(s.val)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" block leftIcon={<Payment sx={{ fontSize: 14 }} />} onClick={() => onPay(w)}>
+                      صرف دفعة
+                    </Button>
+                    <button
+                      onClick={() => onEdit(w)}
+                      aria-label="تعديل"
+                      className="h-9 w-9 rounded-md bg-surface-sunken hover:bg-[color:var(--brand-primary-soft)] text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                    >
+                      <Edit sx={{ fontSize: 16 }} />
+                    </button>
+                    <button
+                      onClick={() => onDelete(w.id)}
+                      aria-label="حذف"
+                      className="h-9 w-9 rounded-md bg-surface-sunken hover:bg-[color:color-mix(in_srgb,var(--brand-danger)_10%,transparent)] text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                    >
+                      <Delete sx={{ fontSize: 16 }} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BALANCES SHEET
+═══════════════════════════════════════════════════════════════════════════ */
+
+function BalancesSheet({
+  open, onClose, clientUserBalances, userBalancesSummary, onAdd, onEdit, onDelete,
+}: any) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="أرصدة العميل (العهد)"
+      subtitle={`${clientUserBalances.length} حركة`}
+      headerAction={<AddHeaderButton onClick={onAdd} label="عهدة" />}
+      maxWidth="lg"
+    >
+      <div className="p-4 space-y-4">
+        {/* Per-user summary */}
+        {Object.entries(userBalancesSummary).length > 0 && (
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold text-fg flex items-center gap-2">
+              <TrendingUp sx={{ fontSize: 18, color: 'var(--brand-primary)' }} />
+              ملخص حسب المستخدم
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {Object.entries(userBalancesSummary).map(([uid, sum]: any) => (
+                <div key={uid} className="bg-surface-panel border border-border rounded-2xl overflow-hidden">
+                  <div
+                    className="h-1"
+                    style={{
+                      background: sum.remaining > 0 ? 'var(--brand-primary)' : 'var(--brand-danger)',
+                    }}
+                  />
+                  <div className="p-4">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 text-base font-extrabold"
+                          style={{
+                            background: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary)',
+                          }}
+                        >
+                          {sum.name?.charAt(0) || 'م'}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm text-fg truncate">{sum.name}</div>
+                          <div className="text-2xs text-fg-muted truncate">مكلف بالعهد</div>
+                        </div>
+                      </div>
+                      <div
+                        className="text-start px-3 py-1.5 rounded-lg border shrink-0"
+                        style={{
+                          background: sum.remaining > 0 ? 'var(--brand-primary-soft)' : 'color-mix(in srgb, var(--brand-danger) 10%, transparent)',
+                          borderColor: sum.remaining > 0 ? 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' : 'color-mix(in srgb, var(--brand-danger) 22%, transparent)',
+                        }}
+                      >
+                        <div className="text-[0.6rem] font-bold" style={{ color: sum.remaining > 0 ? 'var(--brand-primary)' : 'var(--brand-danger)' }}>
+                          الرصيد
+                        </div>
+                        <div className="text-sm font-extrabold font-num tabular" style={{ color: sum.remaining > 0 ? 'var(--brand-primary)' : 'var(--brand-danger)' }}>
+                          {formatCurrency(sum.remaining)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 rounded-lg bg-surface-sunken overflow-hidden">
+                      <div className="p-2 text-center border-l border-border rtl:border-l-0 rtl:border-r rtl:border-border">
+                        <div className="text-[0.6rem] text-fg-muted font-bold">إجمالي العهدة</div>
+                        <div className="text-xs font-extrabold font-num tabular mt-0.5" style={{ color: 'var(--brand-primary)' }}>
+                          {formatCurrency(sum.given)}
+                        </div>
+                      </div>
+                      <div className="p-2 text-center">
+                        <div className="text-[0.6rem] text-fg-muted font-bold">المصروف</div>
+                        <div className="text-xs font-extrabold font-num tabular mt-0.5" style={{ color: 'var(--brand-danger)' }}>
+                          {formatCurrency(sum.spent)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setExpanded(expanded === uid ? null : uid)}
+                      className="w-full mt-2 h-8 rounded-md text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                      style={{
+                        color: 'var(--brand-primary)',
+                        background: expanded === uid ? 'var(--brand-primary-soft)' : 'transparent',
+                      }}
+                    >
+                      {expanded === uid ? 'إخفاء سجل المصروفات' : `مراجعة المصروفات (${sum.expenses?.length || 0})`}
+                      {expanded === uid ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
+                    </button>
+
+                    {expanded === uid && (
+                      <div className="mt-2 pt-2 border-t border-dashed border-border space-y-1.5">
+                        {sum.expenses?.length === 0 ? (
+                          <div className="text-xs text-fg-muted text-center py-2">
+                            لم يسجّل هذا المستخدم أي مصروفات.
+                          </div>
+                        ) : (
+                          sum.expenses?.map((e: Expense) => (
+                            <div key={e.id} className="flex items-center justify-between bg-surface-sunken rounded-lg p-2">
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-fg truncate">{e.description}</div>
+                                <div className="text-[0.65rem] text-fg-muted">
+                                  {formatDate(e.date)} · {getExpenseCategoryLabel(e.category)}
+                                </div>
+                              </div>
+                              <div className="text-xs font-extrabold font-num tabular" style={{ color: 'var(--brand-danger)' }}>
+                                -{formatCurrency(e.amount)}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Transaction log */}
+        <section className="space-y-3">
+          <h3 className="text-sm font-bold text-fg flex items-center gap-2">
+            <AccountBalanceWallet sx={{ fontSize: 18, color: 'var(--brand-primary)' }} />
+            سجل الحركات
+          </h3>
+          {clientUserBalances.length === 0 ? (
+            <EmptyState Icon={AccountBalanceWallet} title="لا توجد حركات" sub="أضف أول رصيد عهدة للمستخدمين" />
+          ) : (
+            <div className="space-y-2">
+              {clientUserBalances.map((bal: UserBalance, idx: number) => (
+                <div key={bal.id} className="bg-surface-panel border border-border rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span
+                        className="inline-flex items-center h-6 px-2 rounded-md border text-[0.65rem] font-extrabold font-num tabular shrink-0"
+                        style={{
+                          background: 'var(--brand-primary-soft)',
+                          borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)',
+                          color: 'var(--brand-primary)',
+                        }}
+                      >
+                        #{clientUserBalances.length - idx}
+                      </span>
+                      <div
+                        className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+                        style={{ background: 'var(--surface-sunken)', color: 'var(--brand-primary)' }}
+                      >
+                        <Person sx={{ fontSize: 16 }} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-fg truncate">{bal.userName}</div>
+                        <div className="flex flex-wrap gap-1.5 items-center mt-1">
+                          <span
+                            className="inline-flex items-center h-5 px-2 rounded-full text-[0.65rem] font-bold font-num tabular"
+                            style={{ background: 'var(--brand-primary-soft)', color: 'var(--brand-primary)' }}
+                          >
+                            + {formatCurrency(bal.amount)}
+                          </span>
+                          <span className="text-2xs text-fg-muted">{formatDate(bal.date)}</span>
+                        </div>
+                        {bal.notes && (
+                          <div
+                            className="text-2xs mt-1.5 p-2 rounded-md border font-medium line-clamp-2"
+                            style={{
+                              background: 'color-mix(in srgb, #F59E0B 10%, transparent)',
+                              borderColor: 'color-mix(in srgb, #F59E0B 20%, transparent)',
+                              color: '#92400E',
+                            }}
+                          >
+                            {bal.notes}
+                          </div>
+                        )}
+                        {bal.createdBy && (
+                          <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {bal.createdBy}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button
+                        onClick={() => onEdit(bal)}
+                        aria-label="تعديل"
+                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                      >
+                        <Edit sx={{ fontSize: 14 }} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(bal.id)}
+                        aria-label="حذف"
+                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                      >
+                        <Delete sx={{ fontSize: 14 }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </Sheet>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORM SHEETS (add / edit)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold text-fg-subtle">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Select({ value, onChange, children, ...rest }: any) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      {...rest}
+      className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+    >
+      {children}
+    </select>
+  );
+}
+
+function TextArea({ rows = 2, ...rest }: any) {
+  return (
+    <textarea
+      rows={rows}
+      {...rest}
+      className="px-3 py-2 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus resize-none"
+    />
+  );
+}
+
+function PaymentFormSheet({ edit, onClose, onSubmit }: any) {
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      amount: edit?.amount ?? ('' as any),
+      paymentMethod: edit?.paymentMethod ?? 'cash',
+      paymentDate: edit?.paymentDate ?? dayjs().format('YYYY-MM-DD'),
+      invoiceId: edit?.invoiceId ?? '',
+      notes: edit?.notes ?? '',
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={edit ? 'تعديل دفعة' : 'إضافة دفعة'}
+      subtitle="بيانات الدفعة"
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2">
+          <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'إضافة'}</Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <Controller
+          name="amount"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              label="المبلغ"
+              type="number"
+              inputMode="decimal"
+              placeholder="0.00"
+              rightIcon={<span className="text-2xs font-semibold">د.ل</span>}
+            />
+          )}
+        />
+        <Controller
+          name="paymentMethod"
+          control={control}
+          render={({ field }) => (
+            <FormField label="طريقة الدفع">
+              <Select {...field}>
+                <option value="cash">نقدي</option>
+                <option value="bank_transfer">تحويل بنكي</option>
+                <option value="check">شيك</option>
+                <option value="credit_card">بطاقة</option>
+              </Select>
+            </FormField>
+          )}
+        />
+        <Controller
+          name="paymentDate"
+          control={control}
+          render={({ field }) => (
+            <FormField label="تاريخ الدفعة">
+              <input
+                type="date"
+                {...field}
+                className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus"
+              />
+            </FormField>
+          )}
+        />
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field }) => (
+            <FormField label="ملاحظات (اختياري)">
+              <TextArea {...field} />
+            </FormField>
+          )}
+        />
+      </div>
+    </Sheet>
+  );
+}
+
+function ExpenseFormSheet({
+  edit, presetWorker, clientWorkers, currentUserBalanceInfo, userName, onClose, onSubmit,
+}: any) {
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      description: edit?.description ?? (presetWorker ? `دفعة حساب: ${presetWorker.name}` : ''),
+      amount: edit?.amount ?? ('' as any),
+      category: edit?.category ?? (presetWorker ? 'labor' : 'materials'),
+      date: edit?.date ?? dayjs().format('YYYY-MM-DD'),
+      invoiceNumber: edit?.invoiceNumber ?? '',
+      notes: edit?.notes ?? '',
+      workerId: edit?.workerId ?? presetWorker?.id ?? '',
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={edit ? 'تعديل مصروف' : 'إضافة مصروف'}
+      subtitle="بيانات المصروف"
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2">
+          <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'حفظ وإصدار'}</Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        {currentUserBalanceInfo && (
+          <UserBalanceBanner info={currentUserBalanceInfo} userName={userName} />
+        )}
+        <Controller name="description" control={control} render={({ field }) => (
+          <Input {...field} label="الوصف" placeholder="مثال: شراء مواد" leftIcon={<NoteAlt sx={{ fontSize: 16 }} />} />
+        )} />
+        <Controller name="amount" control={control} render={({ field }) => (
+          <Input {...field} label="المبلغ" type="number" inputMode="decimal" placeholder="0.00"
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>} />
+        )} />
+        <div className="grid grid-cols-2 gap-3">
+          <Controller name="category" control={control} render={({ field }) => (
+            <FormField label="التصنيف">
+              <Select {...field}>
+                {Object.entries(expenseCategories).map(([k, l]) => (
+                  <option key={k} value={k}>{l}</option>
+                ))}
+              </Select>
+            </FormField>
+          )} />
+          <Controller name="workerId" control={control} render={({ field }) => (
+            <FormField label="العامل (اختياري)">
+              <Select {...field}>
+                <option value="">لا يوجد</option>
+                {clientWorkers.map((w: Worker) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </Select>
+            </FormField>
+          )} />
+        </div>
+        <Controller name="invoiceNumber" control={control} render={({ field }) => (
+          <Input {...field} label="رقم الفاتورة (اختياري)" />
+        )} />
+        <Controller name="date" control={control} render={({ field }) => (
+          <FormField label="تاريخ المصروف">
+            <input type="date" {...field}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus" />
+          </FormField>
+        )} />
+        <Controller name="notes" control={control} render={({ field }) => (
+          <FormField label="ملاحظات"><TextArea {...field} /></FormField>
+        )} />
+      </div>
+    </Sheet>
+  );
+}
+
+function DebtFormSheet({ edit, onClose, onSubmit }: any) {
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      partyName: edit?.partyName ?? '',
+      description: edit?.description ?? '',
+      amount: edit?.amount ?? ('' as any),
+      date: edit?.date ?? dayjs().format('YYYY-MM-DD'),
+      notes: edit?.notes ?? '',
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={edit ? 'تعديل دين' : 'إضافة دين'}
+      subtitle="بيانات الدين"
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2">
+          <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'إضافة'}</Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <Controller name="partyName" control={control} render={({ field }) => (
+          <Input {...field} label="اسم الطرف" placeholder="الشخص أو الجهة" />
+        )} />
+        <Controller name="description" control={control} render={({ field }) => (
+          <Input {...field} label="وصف الدين" />
+        )} />
+        <Controller name="amount" control={control} render={({ field }) => (
+          <Input {...field} label="المبلغ" type="number" inputMode="decimal" placeholder="0.00"
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>} />
+        )} />
+        <Controller name="date" control={control} render={({ field }) => (
+          <FormField label="تاريخ الدين">
+            <input type="date" {...field}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus" />
+          </FormField>
+        )} />
+        <Controller name="notes" control={control} render={({ field }) => (
+          <FormField label="ملاحظات"><TextArea {...field} /></FormField>
+        )} />
+      </div>
+    </Sheet>
+  );
+}
+
+function WorkerFormSheet({ edit, onClose, onSubmit }: any) {
+  const { control, handleSubmit } = useForm({
+    resolver: zodResolver(workerSchema),
+    defaultValues: {
+      name: edit?.name ?? '',
+      jobType: edit?.jobType ?? '',
+      totalAmount: edit?.totalAmount ?? ('' as any),
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={edit ? 'تعديل عامل' : 'إضافة عامل'}
+      subtitle="بيانات العامل / المقاول"
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2">
+          <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'إضافة'}</Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <Controller name="name" control={control} render={({ field }) => (
+          <Input {...field} label="اسم العامل" placeholder="الاسم الكامل" leftIcon={<Person sx={{ fontSize: 16 }} />} />
+        )} />
+        <Controller name="jobType" control={control} render={({ field }) => (
+          <Input {...field} label="طبيعة العمل" placeholder="بياض، كهرباء، مقاول..." leftIcon={<Business sx={{ fontSize: 16 }} />} />
+        )} />
+        <Controller name="totalAmount" control={control} render={({ field }) => (
+          <Input {...field} label="المبلغ المتفق عليه" type="number" inputMode="decimal" placeholder="0.00"
+            leftIcon={<AccountBalanceWallet sx={{ fontSize: 16 }} />}
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>} />
+        )} />
+      </div>
+    </Sheet>
+  );
+}
+
+function BalanceFormSheet({ edit, systemUsers, onClose, onSubmit }: any) {
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      userId: edit?.userId ?? '',
+      amount: edit?.amount ?? ('' as any),
+      date: edit?.date ?? dayjs().format('YYYY-MM-DD'),
+      notes: edit?.notes ?? '',
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={edit ? 'تعديل العهدة' : 'إيداع عهدة'}
+      subtitle="تفاصيل الدفعة المالية"
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2">
+          <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'إيداع'}</Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <Controller name="userId" control={control} render={({ field }) => (
+          <FormField label="الموظف / المستلم">
+            <Select {...field}>
+              <option value="">اختر الموظف</option>
+              {systemUsers.map((u: any) => (
+                <option key={u.id} value={u.uid || u.id}>{u.displayName}</option>
+              ))}
+            </Select>
+          </FormField>
+        )} />
+        <Controller name="amount" control={control} render={({ field }) => (
+          <Input {...field} label="مبلغ العهدة" type="number" inputMode="decimal" placeholder="0.00"
+            leftIcon={<AccountBalanceWallet sx={{ fontSize: 16 }} />}
+            rightIcon={<span className="text-2xs font-semibold">د.ل</span>} />
+        )} />
+        <Controller name="date" control={control} render={({ field }) => (
+          <FormField label="تاريخ الإضافة">
+            <input type="date" {...field}
+              className="h-10 px-3 rounded-md bg-surface-raised border border-border text-sm text-fg outline-none focus:border-[color:var(--brand-primary)] focus:shadow-focus" />
+          </FormField>
+        )} />
+        <Controller name="notes" control={control} render={({ field }) => (
+          <FormField label="ملاحظات (اختياري)"><TextArea {...field} rows={3} /></FormField>
+        )} />
+      </div>
+    </Sheet>
+  );
+}
+
+function EditClientFormSheet({ client, onClose, onSubmit, onDelete }: any) {
+  const { control, handleSubmit } = useForm({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      name: client.name,
+      email: client.email || '',
+      phone: client.phone,
+      address: client.address,
+      type: client.type,
+    },
+  });
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="تعديل العميل"
+      subtitle={client.name}
+      maxWidth="md"
+      footer={
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button variant="outline" block onClick={onClose}>إلغاء</Button>
+            <Button block onClick={handleSubmit(onSubmit)}>حفظ التعديلات</Button>
+          </div>
+          <Button variant="danger" block leftIcon={<Delete sx={{ fontSize: 16 }} />} onClick={onDelete}>
+            حذف العميل وكل بياناته
+          </Button>
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <Controller name="name" control={control} render={({ field }) => (
+          <Input {...field} label="اسم العميل" placeholder="الاسم الكامل" />
+        )} />
+        <Controller name="type" control={control} render={({ field }) => (
+          <FormField label="النوع">
+            <Select {...field}>
+              <option value="individual">فرد</option>
+              <option value="company">شركة</option>
+            </Select>
+          </FormField>
+        )} />
+        <Controller name="phone" control={control} render={({ field }) => (
+          <Input {...field} label="رقم الهاتف" placeholder="091..." />
+        )} />
+        <Controller name="email" control={control} render={({ field }) => (
+          <Input {...field} label="البريد الإلكتروني (اختياري)" type="email" />
+        )} />
+        <Controller name="address" control={control} render={({ field }) => (
+          <FormField label="العنوان"><TextArea {...field} rows={2} /></FormField>
+        )} />
+      </div>
+    </Sheet>
+  );
+}

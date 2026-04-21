@@ -7,4 +7,5 @@ export * from './Surface';
 export * from './Stack';
 export * from './Badge';
 export * from './Modal';
+export * from './Sheet';
 export * from './Skeleton';
