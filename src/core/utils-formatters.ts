@@ -5,13 +5,27 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 dayjs.locale('ar');
 
-export const formatCurrency = (amount: number): string => {
+/** رقم المبلغ فقط (بدون عملة). */
+export const formatCurrencyNumber = (amount: number): string => {
   const rounded = Math.round(amount);
   return new Intl.NumberFormat('ar-LY', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(rounded) + ' د.ل';
+  }).format(rounded);
+};
+
+/**
+ * عرض المبلغ + «د.ل» بترتيب عربي طبيعي متوافق 100% مع RTL
+ */
+export const formatCurrency = (amount: number): string => {
+  const rounded = Math.round(amount);
+  return new Intl.NumberFormat('ar-LY', {
+    style: 'currency',
+    currency: 'LYD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(rounded);
 };
 
 export const formatDate = (date: string | Date, format: string = 'DD/MM/YYYY'): string => {

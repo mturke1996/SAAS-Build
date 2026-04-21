@@ -102,18 +102,20 @@ export const InvoiceDetailsPage = () => {
       pb: 4,
       '@media print': { bgcolor: 'white', pb: 0, minHeight: 'auto' },
     }}>
-      {/* Header */}
+      {/* Header — minimal (aligned with invoice editor) */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
-          pt: 3, pb: 3, px: 2, color: 'white',
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          pt: 3, pb: 3, px: 2,
           '@media print': { display: 'none' },
         }}
       >
         <Container maxWidth="sm">
           <Stack direction="row" alignItems="center" spacing={1} mb={2}>
             <Box sx={{ flex: 1 }}>
-              <Typography fontWeight={800} sx={{ fontSize: '1.1rem' }}>
+              <Typography fontWeight={800} sx={{ fontSize: '1.1rem', color: 'text.primary' }}>
                 فاتورة #{invoice.invoiceNumber}
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center">
@@ -129,57 +131,55 @@ export const InvoiceDetailsPage = () => {
           
           {/* Action Buttons */}
           <Stack direction="row" spacing={1}>
-            {/* PDF Download */}
             <Button
               size="small"
-              startIcon={pdfLoading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdf />}
+              variant="outlined"
+              color="primary"
+              startIcon={pdfLoading ? <CircularProgress size={14} /> : <PictureAsPdf />}
               onClick={handleDownloadPdf}
               disabled={pdfLoading}
               sx={{
-                bgcolor: 'rgba(255,255,255,0.15)',
-                color: 'white',
                 borderRadius: 2,
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 flex: 1,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                textTransform: 'none',
               }}
             >
               تحميل PDF
             </Button>
 
-            {/* Share PDF */}
             <Button
               size="small"
+              variant="outlined"
+              color="primary"
               startIcon={<Share />}
               onClick={handleSharePdf}
               disabled={pdfLoading}
               sx={{
-                bgcolor: 'rgba(255,255,255,0.15)',
-                color: 'white',
                 borderRadius: 2,
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 flex: 1,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                textTransform: 'none',
               }}
             >
               مشاركة
             </Button>
 
-            {/* Actions Menu */}
             <Button
               size="small"
+              variant="outlined"
+              color="inherit"
               endIcon={<MoreVert />}
               onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={{
-                bgcolor: 'rgba(255,255,255,0.15)',
-                color: 'white',
                 borderRadius: 2,
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 flex: 1,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                textTransform: 'none',
+                borderColor: 'divider',
               }}
             >
               إجراءات
@@ -228,9 +228,11 @@ export const InvoiceDetailsPage = () => {
       >
         <Box
           sx={{
-            boxShadow: { xs: 'none', sm: '0 4px 20px rgba(0,0,0,0.08)' },
-            borderRadius: { xs: 0, sm: 1 },
+            border: { xs: 'none', sm: '1px solid' },
+            borderColor: 'divider',
+            borderRadius: { xs: 0, sm: 2 },
             overflow: 'hidden',
+            bgcolor: 'background.paper',
           }}
         >
           <PrintableInvoice ref={componentRef} invoice={invoice} client={client} />

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Search,
   Add,
@@ -12,7 +12,7 @@ import {
 } from '@mui/icons-material';
 import { useDataStore } from '../../store/useDataStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useGlobalFundStore } from '../../store/useGlobalFundStore';
+import { useMyFundStats } from '../../core/hooks/useMyFundStats';
 import {
   formatCurrency,
   formatDate,
@@ -21,12 +21,12 @@ import {
 } from '../../utils/formatters';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
-import { Button, Input, Modal } from '../../design-system/primitives';
+import { Button, Input, Modal, PageHero } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
 
 // Brand-aligned palette for the pie chart (violet → amber family)
 const CHART_COLORS = [
-  '#6D28D9', // brand primary
+  '#2563EB', // brand primary
   '#8B5CF6',
   '#F59E0B',
   '#E11D48',
@@ -39,17 +39,12 @@ const CHART_COLORS = [
 export const ExpensesPage = () => {
   const { expenses, addExpense, clients } = useDataStore();
   const { user } = useAuthStore();
-  const { transactions, getUserStats, initialize: initFund } = useGlobalFundStore();
+  const myFundStats = useMyFundStats();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const u = initFund();
-    return u;
-  }, []);
 
   const [form, setForm] = useState({
     description: '',
@@ -82,92 +77,6 @@ export const ExpensesPage = () => {
       .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
-  // User fund FIFO calculation (identical to FundPage)
-  const myFundStats = useMemo(() => {
-    if (!user) return null;
-    const uid = user.id;
-    const userName = user.displayName || '';
-
-    const deposits = [
-      ...transactions.filter(
-        (t) =>
-          t.type === 'deposit' &&
-          ((uid && t.userId === uid) || (userName && t.userName === userName))
-      ),
-    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
-
-    if (deposits.length === 0) {
-      const storeStats = uid ? getUserStats(uid) : null;
-      if (storeStats && storeStats.deposited > 0) {
-        return {
-          deposited: storeStats.deposited,
-          spent: storeStats.withdrawn,
-          remaining: storeStats.remaining,
-        };
-      }
-      return null;
-    }
-
-    const custodies = deposits.map((tx) => ({
-      createdAt: tx.createdAt,
-      amount: tx.amount,
-      remaining: tx.amount,
-      spent: 0,
-    }));
-
-    const allExp = [
-      ...expenses.filter(
-        (e) => (uid && e.userId === uid) || (userName && e.createdBy === userName)
-      ),
-    ].sort((a, b) => dayjs(a.createdAt).diff(dayjs(b.createdAt)));
-
-    allExp.forEach((exp) => {
-      let rem = exp.amount;
-      const expTime = dayjs(exp.createdAt);
-      for (let i = 0; i < custodies.length; i++) {
-        const c = custodies[i];
-        if (rem <= 0) break;
-        if (expTime.isBefore(dayjs(c.createdAt))) continue;
-        if (c.remaining <= 0) {
-          const hasNext = custodies
-            .slice(i + 1)
-            .some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
-          if (hasNext) continue;
-        }
-        const take = Math.min(rem, Math.max(c.remaining, 0));
-        if (take > 0) {
-          c.spent += take;
-          c.remaining -= take;
-          rem -= take;
-        }
-        if (rem > 0) {
-          const hasNext = custodies
-            .slice(i + 1)
-            .some((nc) => !expTime.isBefore(dayjs(nc.createdAt)));
-          if (!hasNext) {
-            c.spent += rem;
-            c.remaining -= rem;
-            rem = 0;
-          }
-        }
-      }
-    });
-
-    for (let i = 0; i < custodies.length - 1; i++) {
-      if (custodies[i].remaining < 0) {
-        const deficit = Math.abs(custodies[i].remaining);
-        custodies[i + 1].remaining -= deficit;
-        custodies[i + 1].spent += deficit;
-        custodies[i].remaining = 0;
-      }
-    }
-
-    const totalDeposited = custodies.reduce((s, c) => s + c.amount, 0);
-    const totalSpent = custodies.reduce((s, c) => s + c.spent, 0);
-    const totalRemaining = custodies.reduce((s, c) => s + c.remaining, 0);
-    return { deposited: totalDeposited, spent: totalSpent, remaining: totalRemaining };
-  }, [transactions, expenses, user, getUserStats]);
-
   const handleAdd = async () => {
     if (!form.amount || !form.description || !form.clientId) return;
     setLoading(true);
@@ -179,9 +88,9 @@ export const ExpensesPage = () => {
         amount: parseFloat(form.amount),
         category: form.category as any,
         date: form.date.toISOString(),
-        invoiceNumber: form.invoiceNumber || undefined,
+        ...(form.invoiceNumber?.trim() ? { invoiceNumber: form.invoiceNumber.trim() } : {}),
         isClosed: false,
-        notes: form.notes,
+        notes: form.notes || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         userId: user?.id || '',
@@ -206,55 +115,34 @@ export const ExpensesPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero + total ═══ */}
-      <section
-        className="relative overflow-hidden rounded-2xl grain text-white"
-        style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #E11D48 0%, transparent 70%)', opacity: 0.3 }}
-        />
-        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
-          <div className="flex-1 min-w-0">
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
-              <TrendingDown sx={{ fontSize: 12, color: '#FCA5A5' }} />
-              المصروفات
-            </span>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
-              إجمالي المصروفات
-            </h1>
-            <p className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-1 font-num tabular">
-              {formatCurrency(totalExpenses)}
-            </p>
-          </div>
+      <PageHero
+        accent="danger"
+        eyebrow={
+          <span className="flex items-center gap-1.5 text-inherit">
+            <TrendingDown sx={{ fontSize: 16 }} />
+            المصروفات
+          </span>
+        }
+        title="إجمالي المصروفات"
+        headline={<span dir="ltr">{formatCurrency(totalExpenses)}</span>}
+        trailing={
           <button
+            type="button"
             onClick={() => {
               setForm((p) => ({ ...p, clientId: clients[0]?.id || '' }));
               setDialogOpen(true);
             }}
-            className="shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-xl font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/95 pressable transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-[16px] font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/90 transition-colors shadow-lg"
           >
             <Add sx={{ fontSize: 18 }} />
             مصروف جديد
           </button>
-        </div>
-
-        <div className="relative grid grid-cols-2 bg-black/15 border-t border-white/10">
-          <div className="p-4 text-center border-l border-white/10 rtl:border-l-0 rtl:border-r rtl:border-white/10">
-            <div className="text-2xs text-white/60 font-semibold">عدد السجلات</div>
-            <div className="text-lg font-extrabold text-white mt-0.5">{expenses.length}</div>
-          </div>
-          <div className="p-4 text-center">
-            <div className="text-2xs text-white/60 font-semibold">عدد الفئات</div>
-            <div className="text-lg font-extrabold text-white mt-0.5">{chartData.length}</div>
-          </div>
-        </div>
-      </section>
+        }
+        footerStats={[
+          { label: 'عدد السجلات', value: expenses.length },
+          { label: 'عدد الفئات', value: chartData.length },
+        ]}
+      />
 
       {/* ═══ Fund banner (if user has custody) ═══ */}
       {myFundStats && <FundBanner stats={myFundStats} />}
@@ -561,10 +449,9 @@ function FundBanner({ stats }: { stats: { deposited: number; spent: number; rema
           <div
             className="text-2xl sm:text-3xl font-extrabold font-num tabular leading-none mt-1"
             style={{ color: tone.color }}
+            dir="ltr"
           >
-            {isDeficit
-              ? `-${formatCurrency(Math.abs(stats.remaining))}`
-              : formatCurrency(stats.remaining)}
+            {formatCurrency(stats.remaining)}
           </div>
         </div>
         {isDeficit && <WarningAmber sx={{ fontSize: 26, color: 'var(--brand-danger)' }} />}
@@ -573,8 +460,9 @@ function FundBanner({ stats }: { stats: { deposited: number; spent: number; rema
       <div className="px-4 sm:px-5 pb-3">
         <div className="flex items-center justify-between mb-1">
           <span className="text-2xs text-fg-muted font-semibold">{Math.round(pct)}% متبقي</span>
-          <span className="text-2xs text-fg-muted font-semibold">
-            من {formatCurrency(stats.deposited)}
+          <span className="text-2xs text-fg-muted font-semibold inline-flex flex-wrap items-center gap-1">
+            <span>من</span>
+            <span className="money-ltr font-num tabular">{formatCurrency(stats.deposited)}</span>
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">

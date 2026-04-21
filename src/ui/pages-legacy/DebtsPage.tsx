@@ -13,7 +13,7 @@ import { useDataStore } from '../../store/useDataStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import dayjs from 'dayjs';
-import { Button, Input, Modal } from '../../design-system/primitives';
+import { Button, Input, Modal, PageHero } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
 
 export const DebtsPage = () => {
@@ -91,65 +91,53 @@ export const DebtsPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero ═══ */}
-      <section
-        className="relative overflow-hidden rounded-2xl grain text-white"
-        style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #E11D48 0%, transparent 70%)', opacity: 0.3 }}
-        />
-        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
-          <div className="flex-1 min-w-0">
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
-              <Savings sx={{ fontSize: 12, color: '#FBBF24' }} />
-              الديون
-            </span>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
-              إجمالي المتبقّي
-            </h1>
-            <p className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-1 font-num tabular">
-              {formatCurrency(totalRemaining)}
-            </p>
-          </div>
+      <PageHero
+        accent="danger"
+        eyebrow={
+          <span className="flex items-center gap-1.5 text-inherit">
+            <Savings sx={{ fontSize: 16 }} />
+            الديون
+          </span>
+        }
+        title="إجمالي المتبقّي"
+        headline={<span dir="ltr">{formatCurrency(totalRemaining)}</span>}
+        trailing={
           <button
+            type="button"
             onClick={() => setDialogOpen(true)}
-            className="shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-xl font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/95 pressable transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-[16px] font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/90 transition-colors shadow-lg"
           >
             <Add sx={{ fontSize: 18 }} />
             جديد
           </button>
-        </div>
-
-        <div className="relative grid grid-cols-3 bg-black/15 border-t border-white/10">
-          {[
-            { label: 'عدد الديون', val: standaloneDebts.length, isCurrency: false, accent: '#fff' },
-            { label: 'الإجمالي', val: totalDebts, isCurrency: true, accent: '#FBBF24' },
-            { label: 'المسدّد', val: totalPaid, isCurrency: true, accent: '#34D399' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className="p-3 sm:p-4 text-center"
-              style={{
-                borderInlineStart: i > 0 ? '1px solid rgba(255,255,255,0.08)' : undefined,
-              }}
-            >
-              <div className="text-[0.6rem] sm:text-2xs text-white/60 font-semibold">{s.label}</div>
-              <div
-                className="text-sm sm:text-base font-extrabold mt-0.5 font-num tabular truncate"
-                style={{ color: s.accent }}
-              >
-                {s.isCurrency ? formatCurrency(s.val as number) : s.val}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        }
+        footerStatsTriple={[
+          {
+            label: 'عدد الديون',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate" style={{ color: '#fff' }}>
+                {standaloneDebts.length}
+              </span>
+            ),
+          },
+          {
+            label: 'الإجمالي',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate" style={{ color: '#FBBF24' }} dir="ltr">
+                {formatCurrency(totalDebts)}
+              </span>
+            ),
+          },
+          {
+            label: 'المسدّد',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate" style={{ color: '#34D399' }} dir="ltr">
+                {formatCurrency(totalPaid)}
+              </span>
+            ),
+          },
+        ]}
+      />
 
       {/* ═══ Search ═══ */}
       <section>

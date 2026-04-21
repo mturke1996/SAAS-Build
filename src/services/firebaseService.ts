@@ -16,6 +16,15 @@ import {
 import { db } from '../config/firebase';
 import type { Client, Invoice, Payment, StandaloneDebt, Expense, ExpenseInvoice, DebtParty, Worker, UserBalance, GlobalFundTransaction, Letter } from '../types';
 
+/** Firestore rejects `undefined`; strip top-level undefined fields before setDoc. */
+function stripUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
+  const out = {} as Record<string, unknown>;
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out as T;
+}
+
 // Generic CRUD operations
 export class FirestoreService<T extends { id: string }> {
   constructor(private collectionName: string) {}
@@ -60,7 +69,8 @@ export class FirestoreService<T extends { id: string }> {
   async add(data: any): Promise<string> {
     const id = data.id || crypto.randomUUID();
     const docRef = doc(db, this.collectionName, id);
-    await setDoc(docRef, { ...data, id } as DocumentData);
+    const payload = stripUndefinedFields({ ...data, id }) as DocumentData;
+    await setDoc(docRef, payload);
     return id;
   }
 
@@ -69,16 +79,17 @@ export class FirestoreService<T extends { id: string }> {
     const docRef = doc(db, this.collectionName, id);
     const docSnap = await getDoc(docRef);
     
+    const merged = stripUndefinedFields(data as Record<string, unknown>) as DocumentData;
     if (docSnap.exists()) {
       // Document found by its Firestore doc ID — update it directly
-      await setDoc(docRef, data as DocumentData, { merge: true });
+      await setDoc(docRef, merged, { merge: true });
     } else {
       // Fallback: the app's id might differ from the Firestore doc ID (legacy data)
       const q = query(collection(db, this.collectionName), where('id', '==', id));
       const querySnap = await getDocs(q);
       if (!querySnap.empty) {
         const realRef = doc(db, this.collectionName, querySnap.docs[0].id);
-        await setDoc(realRef, data as DocumentData, { merge: true });
+        await setDoc(realRef, merged, { merge: true });
       } else {
         console.warn(`[FirestoreService] update: document not found for id="${id}" in "${this.collectionName}"`);
       }

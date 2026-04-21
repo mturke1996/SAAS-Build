@@ -20,12 +20,15 @@ export function AppShell() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-[100dvh] bg-surface-canvas flex">
+    <div className="app-shell-root">
       <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar />
-        {/* pb accounts for the fixed mobile bottom nav (only on <lg) */}
-        <main className="flex-1 pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+        {/*
+          Mobile: page scroll is usually window/body; pb clears the fixed tab bar + home indicator.
+          lg+: .app-shell-main gets overflow-y auto + min-height 0 so iOS PWA sidebar split scrolls correctly.
+        */}
+        <main className="app-shell-main flex-1 pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
           <Outlet />
         </main>
       </div>

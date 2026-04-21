@@ -11,6 +11,7 @@ import { useBrandStore } from './stores/useBrandStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useAuthStore } from './stores/useAuthStore';
 import { useDataStore } from './stores/useDataStore';
+import { useGlobalFundStore } from './stores/useGlobalFundStore';
 import { useAppLockStore } from './stores/useAppLockStore';
 import { createMuiBridge } from './design-system/theme/createMuiBridge';
 
@@ -68,9 +69,11 @@ function AppContent() {
   useEffect(() => {
     if (isAuthenticated) {
       const unsubscribeData = initialize();
+      const unsubscribeGlobalFund = useGlobalFundStore.getState().initialize();
       const unsubscribeLock = useAppLockStore.getState().initAppLockSync();
       return () => {
         unsubscribeData?.();
+        unsubscribeGlobalFund?.();
         unsubscribeLock?.();
       };
     }
@@ -80,6 +83,7 @@ function AppContent() {
 
   return (
     <ThemeProvider theme={theme}>
+      <div className="flex min-h-[100dvh] flex-1 flex-col">
       <CssBaseline />
       <Toaster
         position="top-center"
@@ -142,6 +146,7 @@ function AppContent() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      </div>
     </ThemeProvider>
   );
 }

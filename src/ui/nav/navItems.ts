@@ -43,6 +43,31 @@ export const SECONDARY_NAV: NavItem[] = [
   { label: 'الإعدادات',    labelEn: 'Settings',    path: '/settings/branding', icon: Settings,   module: null },
 ];
 
+/**
+ * Desktop sidebar: one logical order with every screen (no duplicate sections).
+ * Flow: overview → people → sales → cashflow → custody → admin.
+ */
+export const SIDEBAR_NAV: NavItem[] = [
+  PRIMARY_NAV[0],
+  PRIMARY_NAV[1],
+  PRIMARY_NAV[2],
+  SECONDARY_NAV[0],
+  PRIMARY_NAV[3],
+  SECONDARY_NAV[2],
+  PRIMARY_NAV[4],
+  SECONDARY_NAV[1],
+  SECONDARY_NAV[3],
+  SECONDARY_NAV[4],
+  SECONDARY_NAV[5],
+];
+
+/** Slice intervals [start, end) over `SIDEBAR_NAV` for desktop section headers. */
+export const SIDEBAR_GROUP_SLICES: readonly { titleAr: string; titleEn: string; start: number; end: number }[] = [
+  { titleAr: 'عام', titleEn: 'Overview', start: 0, end: 3 },
+  { titleAr: 'المبيعات والمالية', titleEn: 'Sales & finance', start: 3, end: 8 },
+  { titleAr: 'الإدارة والإعدادات', titleEn: 'Admin', start: 8, end: 11 },
+] as const;
+
 /** Utility — pick label for current direction. */
 export function navLabel(item: NavItem, direction: 'rtl' | 'ltr'): string {
   return direction === 'rtl' ? item.label : item.labelEn;

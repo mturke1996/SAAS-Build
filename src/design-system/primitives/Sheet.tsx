@@ -25,6 +25,8 @@ interface SheetProps {
   mobile?: 'full' | 'bottom';
   /** Optional RTL awareness for the close arrow. Defaults from <html dir>. */
   rtl?: boolean;
+  /** Radial glow blob in header (default true). Set false when using a custom toneGradient. */
+  headerGlow?: boolean;
 }
 
 const widths = {
@@ -56,6 +58,7 @@ export function Sheet({
   maxWidth = 'md',
   mobile = 'full',
   rtl,
+  headerGlow = true,
 }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -78,31 +81,51 @@ export function Sheet({
     };
   }, [open, onClose]);
 
-  // GSAP intro: backdrop fade + panel slide-up
+  // GSAP intro: backdrop fade + panel slide-up (explicit from→to so cleanup never leaves panel invisible)
   useEffect(() => {
-    if (!open || !panelRef.current) return;
+    if (!open || !panelRef.current || !backdropRef.current) return;
+    const backdropEl = backdropRef.current;
+    const panelEl = panelRef.current;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    gsap.set(backdropEl, { autoAlpha: 0 });
+    gsap.set(panelEl, { autoAlpha: 0, y: reduced ? 0 : 20 });
     const tl = gsap.timeline();
-    tl.fromTo(
-      backdropRef.current,
-      { autoAlpha: 0 },
-      { autoAlpha: 1, duration: reduced ? 0.01 : 0.22, ease: 'power2.out' }
-    );
-    tl.fromTo(
-      panelRef.current,
-      { autoAlpha: 0, y: reduced ? 0 : 20 },
-      { autoAlpha: 1, y: 0, duration: reduced ? 0.01 : 0.28, ease: 'power3.out' },
+    tl.to(backdropEl, {
+      autoAlpha: 1,
+      duration: reduced ? 0.01 : 0.22,
+      ease: 'power2.out',
+    });
+    tl.to(
+      panelEl,
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: reduced ? 0.01 : 0.28,
+        ease: 'power3.out',
+      },
       '-=0.15'
     );
     return () => {
       tl.kill();
+      // When `open` becomes false, React unmounts the portal before this cleanup runs, so refs are
+      // often null. Use captured nodes and only reset if still in the document (avoids GSAP "target not found").
+      for (const el of [backdropEl, panelEl]) {
+        if (el.isConnected) {
+          gsap.set(el, {
+            autoAlpha: 1,
+            y: 0,
+            clearProps: 'transform,opacity,visibility',
+          });
+        }
+      }
     };
   }, [open]);
 
   if (!open) return null;
 
   const BackIcon = isRTL ? ArrowForward : ArrowBack;
-  const defaultGradient = 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)';
+  /** Slate / trust fintech — matches client profile sheets (no purple default). */
+  const defaultGradient = 'linear-gradient(165deg, #0f172a 0%, #1e3a8a 48%, #2563eb 100%)';
 
   return createPortal(
     <div
@@ -137,15 +160,16 @@ export function Sheet({
           className="relative text-white shrink-0"
           style={{ background: toneGradient || defaultGradient }}
         >
-          {/* Decorative glow */}
-          <div
-            aria-hidden
-            className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl pointer-events-none"
-            style={{
-              background: 'radial-gradient(closest-side, #F59E0B 0%, transparent 70%)',
-              opacity: 0.2,
-            }}
-          />
+          {headerGlow && (
+            <div
+              aria-hidden
+              className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl pointer-events-none"
+              style={{
+                background: 'radial-gradient(closest-side, rgba(14, 165, 233, 0.35) 0%, transparent 70%)',
+                opacity: 0.22,
+              }}
+            />
+          )}
 
           <div
             className={cn(

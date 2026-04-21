@@ -1,54 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   WHITE-LABEL DESIGN SYSTEM — "Royal Violet & Amber"
-   Aligned with UI/UX Pro Max (Dimensional Layering + Soft UI Evolution):
-   - 8px spacing grid
-   - 150–300ms motion
-   - WCAG AA contrast (4.5:1+)
-   - Layered elevation (3 levels of depth)
-   - iPhone PWA first-class citizen
+   WHITE-LABEL DESIGN SYSTEM — "Air Blue & Slate"
+   UI/UX Pro Max: trust / finance · Minimal Swiss · open airy surfaces
+   - 8px spacing grid · 150–300ms motion · WCAG AA · iPhone PWA
 ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
   /* ── Brand tokens (runtime-overridden by applyBrandToDocument) ── */
-  --brand-primary: #6D28D9;
-  --brand-primary-rgb: 109 40 217;
-  --brand-primary-hover: #5B21B6;
-  --brand-primary-soft: #F3EEFF;
-  --brand-primary-tint: #EDE4FF;
+  --brand-primary: #2563EB;
+  --brand-primary-rgb: 37 99 235;
+  --brand-primary-hover: #1D4ED8;
+  --brand-primary-soft: #EFF6FF;
+  --brand-primary-tint: #DBEAFE;
   --brand-secondary: #F59E0B;
   --brand-secondary-rgb: 245 158 11;
   --brand-success: #059669;
   --brand-warning: #F59E0B;
   --brand-danger: #E11D48;
   --brand-info: #0EA5E9;
-  --brand-focus-ring: 0 0 0 3px rgba(109, 40, 217, 0.24);
+  --brand-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
 
   --brand-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --brand-font-mono: 'Outfit', ui-monospace, monospace;
-  --brand-font-arabic: 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --brand-font-arabic: 'Cairo', 'Tajawal', system-ui, sans-serif;
 
-  /* ── Surface system — LIGHT (Dimensional Layering) ── */
-  --surface-canvas: #f8f7fb;         /* app background */
-  --surface-panel: #ffffff;          /* card / panel */
-  --surface-raised: #ffffff;         /* floating elements */
-  --surface-sunken: #f1eef7;         /* subtle violet tint */
-  --surface-border: rgba(24, 20, 40, 0.07);
-  --surface-border-strong: rgba(24, 20, 40, 0.14);
-  --surface-hover: rgba(109, 40, 217, 0.05);
-  --surface-tint: rgba(109, 40, 217, 0.035);
+  /* ── Surface system — LIGHT (cool slate, high whitespace) ── */
+  --surface-canvas: #F8FAFC;
+  --surface-panel: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #F1F5F9;
+  --surface-border: rgba(15, 23, 42, 0.07);
+  --surface-border-strong: rgba(15, 23, 42, 0.12);
+  --surface-hover: rgba(37, 99, 235, 0.06);
+  --surface-tint: rgba(37, 99, 235, 0.04);
 
-  --text-primary: #1b1424;
-  --text-secondary: #55506b;
-  --text-tertiary: #8b87a0;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #64748B;
   --text-inverse: #ffffff;
 
   /* ── Motion ── */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-bounce: cubic-bezier(0.34, 1.2, 0.64, 1);
   --ease-ios: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -56,13 +54,13 @@
   --dur-base: 220ms;
   --dur-slow: 300ms;
 
-  /* ── Elevation — feathery, violet-tinted shadows ── */
-  --shadow-xs: 0 1px 1px rgba(24, 20, 40, 0.04);
-  --shadow-sm: 0 1px 2px rgba(24, 20, 40, 0.04), 0 2px 6px rgba(24, 20, 40, 0.04);
-  --shadow-md: 0 2px 6px rgba(24, 20, 40, 0.05), 0 6px 16px rgba(24, 20, 40, 0.05);
-  --shadow-lg: 0 4px 12px rgba(24, 20, 40, 0.06), 0 14px 32px rgba(24, 20, 40, 0.06);
-  --shadow-xl: 0 12px 32px rgba(24, 20, 40, 0.08), 0 24px 52px rgba(24, 20, 40, 0.06);
-  --shadow-brand: 0 10px 24px -6px rgba(109, 40, 217, 0.4);
+  /* ── Elevation — soft slate-tinted shadows ── */
+  --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 2px 6px rgba(15, 23, 42, 0.05), 0 6px 16px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.06), 0 14px 32px rgba(15, 23, 42, 0.06);
+  --shadow-xl: 0 12px 32px rgba(15, 23, 42, 0.08), 0 24px 52px rgba(15, 23, 42, 0.06);
+  --shadow-brand: 0 10px 28px -6px rgba(37, 99, 235, 0.35);
 
   /* ── Safe areas (iOS) ── */
   --sa-top: env(safe-area-inset-top, 0px);
@@ -71,31 +69,31 @@
   --sa-right: env(safe-area-inset-right, 0px);
 }
 
-/* ── DARK — deep obsidian-violet ── */
+/* ── DARK — obsidian + blue accent (not violet) ── */
 :root[data-theme='dark'] {
-  --surface-canvas: #0B0A14;
-  --surface-panel: #161324;
-  --surface-raised: #1D1930;
-  --surface-sunken: #0F0D1C;
+  --surface-canvas: #0B0F19;
+  --surface-panel: #111827;
+  --surface-raised: #1E293B;
+  --surface-sunken: #0F172A;
   --surface-border: rgba(255, 255, 255, 0.06);
-  --surface-border-strong: rgba(255, 255, 255, 0.14);
-  --surface-hover: rgba(139, 92, 246, 0.08);
-  --surface-tint: rgba(139, 92, 246, 0.04);
+  --surface-border-strong: rgba(255, 255, 255, 0.12);
+  --surface-hover: rgba(59, 130, 246, 0.1);
+  --surface-tint: rgba(59, 130, 246, 0.05);
 
-  --text-primary: #F3F0FF;
-  --text-secondary: #A39EB8;
-  --text-tertiary: #6D6883;
-  --text-inverse: #0B0A14;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-inverse: #0F172A;
 
-  --brand-primary-soft: rgba(139, 92, 246, 0.14);
-  --brand-primary-tint: rgba(139, 92, 246, 0.08);
+  --brand-primary-soft: rgba(59, 130, 246, 0.16);
+  --brand-primary-tint: rgba(59, 130, 246, 0.1);
 
   --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.45), 0 14px 32px rgba(0, 0, 0, 0.35);
   --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.55), 0 24px 52px rgba(0, 0, 0, 0.4);
-  --shadow-brand: 0 12px 32px -6px rgba(139, 92, 246, 0.55);
+  --shadow-brand: 0 12px 32px -6px rgba(37, 99, 235, 0.45);
 }
 
 /* ── Reset ── */
@@ -121,18 +119,30 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  line-height: 1.55;
+  line-height: 1.6;
   font-size: 15px;
   text-rendering: optimizeLegibility;
   /* iOS: smooth momentum scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
-/* Tabular numerals */
+/* 
+ * إزالة التنسيقات القديمة التي كانت تفصل الأرقام بالاتجاه LTR، 
+ * حيث أن Intl.NumberFormat يعالجها بشكل سليم مع ثنائية الاتجاه.
+ */
 .font-num, .tabular {
   font-family: var(--brand-font-mono);
-  font-feature-settings: 'tnum', 'lnum';
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+html[dir="rtl"] .font-num.tabular,
+html[dir="rtl"] .font-num.tabular-nums {
+  /* التنسيق الجديد سيعتمد على اتجاه المتصفح الافتراضي للمخرجات العربية */
+}
+
+.money-ltr {
+  display: inline-block;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -146,7 +156,7 @@ button:disabled { cursor: not-allowed; }
   color: var(--text-primary);
 }
 
-/* Scrollbar — slim, violet-tinted */
+/* Scrollbar — slim, brand-tinted */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -219,13 +229,68 @@ button, a, [role='button'], [data-press] {
   html, body {
     overscroll-behavior: none;
     height: 100dvh;
+    min-height: -webkit-fill-available;
   }
-  body { overscroll-behavior-y: contain; }
+  body {
+    overscroll-behavior-y: contain;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Let the React tree fill the viewport so AppShell + sidebar height chain works on iPhone */
+  #root {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
 }
 
 /* iPhone notch / dynamic island spacing for sticky bars */
 .pwa-safe-top { padding-top: max(var(--sa-top), 0px); }
 .pwa-safe-bottom { padding-bottom: max(var(--sa-bottom), 0px); }
+
+/**
+ * Authenticated shell — fills the screen on iPhone PWA without breaking mobile page scroll.
+ * At lg+: lock height so the sidebar + main column share one viewport (fixes 100vh bugs on iOS).
+ */
+.app-shell-root {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  flex-direction: column;
+  background: var(--surface-canvas);
+}
+
+@media (min-width: 1024px) {
+  .app-shell-root {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 0;
+    height: 100dvh;
+    height: -webkit-fill-available;
+    max-height: 100dvh;
+    max-height: -webkit-fill-available;
+    overflow: hidden;
+  }
+
+  .app-shell-sidebar {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    align-self: stretch;
+  }
+
+  .app-shell-main {
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Premium animations
@@ -324,7 +389,7 @@ button, a, [role='button'], [data-press] {
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
-.grain > * { position: relative; z-index: 2; }
+.grain > *:not([aria-hidden]) { position: relative; z-index: 2; }
 
 /* Frosted — iOS-style translucent chrome */
 .frosted {

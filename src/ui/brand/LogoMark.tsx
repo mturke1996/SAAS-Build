@@ -59,9 +59,9 @@ export function LogoMark({ size = 40, showName, inverted, className }: LogoMarkP
       )}
       {showName && (
         <div className="flex flex-col leading-tight">
-          <span className="font-semibold text-fg text-[0.95rem]">{brand.name}</span>
+          <span className={cn('font-bold text-[0.95rem]', inverted ? 'text-white' : 'text-fg')}>{brand.name}</span>
           {brand.features?.showTagline && brand.tagline && (
-            <span className="text-2xs text-fg-muted">{brand.tagline}</span>
+            <span className={cn('text-2xs', inverted ? 'text-white/65' : 'text-fg-muted')}>{brand.tagline}</span>
           )}
         </div>
       )}

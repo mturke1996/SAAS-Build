@@ -80,10 +80,10 @@ export const useAppLockStore = create<AppLockState>()(
 
       setPinCode: async (pin) => {
         const userId = useAuthStore.getState().user?.id;
-        const payload = { 
-          pinCode: pin, 
-          isLocked: true, 
-          ownerId: userId || null 
+        const payload = {
+          pinCode: String(pin).trim(),
+          isLocked: true,
+          ownerId: userId || null,
         };
         await pushToFirestore(payload);
         if (userId) {
@@ -101,7 +101,10 @@ export const useAppLockStore = create<AppLockState>()(
         await pushToFirestore({ exemptUsers: userIds });
       },
       unlockSession: (pin) => {
-        if (pin === get().pinCode) {
+        const expected = get().pinCode;
+        if (expected == null || String(expected).length === 0) return false;
+        const ok = String(pin ?? '').trim() === String(expected).trim();
+        if (ok) {
           const userId = useAuthStore.getState().user?.id;
           if (userId) {
             set((state) => ({ unlockedUsers: Array.from(new Set([...state.unlockedUsers, userId])) }));

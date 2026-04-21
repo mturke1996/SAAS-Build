@@ -1,23 +1,9 @@
 import { useState, useMemo } from 'react';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  InputAdornment,
-  Chip,
-  IconButton,
   Dialog,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Container,
-  Avatar,
-  Stack,
-  useTheme,
+  Slide,
+  Grow,
+  Fade
 } from '@mui/material';
 import {
   Add,
@@ -26,10 +12,12 @@ import {
   Delete,
   Business,
   Person,
-  ChevronLeft,
-  ArrowBack,
+  ArrowForward,
   People,
   Phone,
+  Close,
+  EmailOutlined,
+  LocationOnOutlined
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDataStore } from '../../store/useDataStore';
@@ -37,7 +25,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Client } from '../../types';
-import { formatCurrency } from '../../utils/formatters';
+import { PageHero, Button as PrimButton } from '../../design-system/primitives';
+import { cn } from '../../design-system/primitives/cn';
+import { useBrand } from '../../config/BrandProvider';
 
 const clientSchema = z.object({
   name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
@@ -51,8 +41,9 @@ type ClientFormData = z.infer<typeof clientSchema>;
 
 export const ClientsPage = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const { clients, expenses, standaloneDebts, payments, addClient, updateClient, deleteClient } = useDataStore();
+  const brand = useBrand();
+  const rtl = brand.direction === 'rtl';
+  const { clients, expenses, payments, addClient, updateClient, deleteClient } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -65,13 +56,7 @@ export const ClientsPage = () => {
     formState: { errors },
   } = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      type: 'individual',
-    },
+    defaultValues: { name: '', email: '', phone: '', address: '', type: 'individual' },
   });
 
   const filteredClients = useMemo(() => {
@@ -80,14 +65,6 @@ export const ClientsPage = () => {
       client.phone.includes(searchQuery)
     );
   }, [clients, searchQuery]);
-
-  const getClientStats = (clientId: string) => {
-    const clientExpenses = expenses.filter((exp) => exp.clientId === clientId);
-    const clientPayments = payments.filter((pay) => pay.clientId === clientId);
-    const totalExpenses = clientExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const totalPaid = clientPayments.reduce((sum, pay) => sum + pay.amount, 0);
-    return { totalExpenses, totalPaid, remaining: totalPaid - totalExpenses };
-  };
 
   const handleOpenDialog = (client?: Client) => {
     if (client) {
@@ -130,417 +107,315 @@ export const ClientsPage = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(180deg, #1a1f1a 0%, #151a15 100%)'
-          : 'linear-gradient(180deg, #f5f3ef 0%, #ede9e3 100%)',
-        pb: 3,
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          background: theme.palette.mode === 'light'
-            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
-            : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)',
-          pt: 3,
-          pb: 4,
-          px: 2,
-          borderRadius: '0 0 28px 28px',
-          boxShadow: theme.palette.mode === 'light'
-            ? '0 8px 32px -8px rgba(109, 40, 217, 0.35)'
-            : '0 8px 32px -8px rgba(0, 0, 0, 0.4)',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'radial-gradient(ellipse at 70% 20%, rgba(245, 158, 11, 0.12) 0%, transparent 55%)',
-            pointerEvents: 'none',
-          },
-        }}
-      >
-        <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-            <Typography variant="h5" fontWeight={800} sx={{ color: 'white', flexGrow: 1, letterSpacing: 0.3 }}>
-              العملاء ({clients.length})
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={() => handleOpenDialog()}
-              sx={{
-                bgcolor: '#ffffff',
-                color: '#6D28D9',
-                fontWeight: 800,
-                '&:hover': { bgcolor: '#F5F3FF', transform: 'scale(1.04)' },
-                borderRadius: 2.5,
-                px: 2.5,
-                boxShadow: '0 4px 14px -3px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.25s ease',
-              }}
-              startIcon={<Add />}
-            >
-              جديد
-            </Button>
-          </Stack>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-14 space-y-6">
+      
+      {/* Super Hero Section */}
+      <PageHero
+        reveal
+        accent="brand"
+        eyebrow={
+          <span className="flex items-center gap-1.5 text-inherit">
+            <People sx={{ fontSize: 16 }} />
+            {rtl ? 'إدارة العملاء' : 'Client Management'}
+          </span>
+        }
+        title={rtl ? 'دليل العملاء والشركات' : 'Clients & Companies Directory'}
+        subtitle={rtl ? 'أضف العملاء الجدد وتتبع تفاصيلهم المالية واللوجستية.' : 'Add new clients and track their financial details.'}
+        headline={filteredClients.length.toString()}
+        headlineLabel={rtl ? 'إجمالي العملاء' : 'Total Clients'}
+        trailing={
+          <button
+            onClick={() => handleOpenDialog()}
+            className="flex items-center gap-2 bg-white text-[var(--brand-primary)] hover:bg-white/90 px-5 py-3 rounded-2xl font-black font-arabic text-sm shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 pointer-events-auto cursor-pointer"
+          >
+            <Add sx={{ fontSize: 20 }} />
+            {rtl ? 'عميل جديد' : 'New Client'}
+          </button>
+        }
+      />
 
-          {/* Search */}
-          <TextField
-            fullWidth
-            placeholder="ابحث بالاسم أو رقم الهاتف..."
+      {/* Search & Actions */}
+      <div className="relative z-10 -mt-2 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="bg-surface-panel backdrop-blur-2xl border border-[var(--surface-border-strong)] rounded-[24px] p-2 shadow-lg flex items-center">
+          <div className="pl-4 pr-3 text-fg-muted">
+            <Search />
+          </div>
+          <input 
+            className="flex-1 bg-transparent border-none outline-none text-fg font-arabic font-bold text-base placeholder:text-fg-subtle placeholder:font-medium h-12"
+            placeholder={rtl ? "ابحث بالاسم أو رقم الهاتف..." : "Search by name or phone..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255,255,255,0.92)',
-                borderRadius: '10px',
-                '& fieldset': { border: 'none' },
-                '&:hover': { bgcolor: 'white' },
-                '&.Mui-focused': { bgcolor: 'white' },
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: 'rgba(0,0,0,0.35)' }} />
-                </InputAdornment>
-              ),
-            }}
           />
-        </Container>
-      </Box>
+        </div>
+      </div>
 
-      {/* Clients List */}
-      <Container maxWidth="sm" sx={{ mt: 1, pt: 1 }}>
-        <Stack spacing={2}>
-          {filteredClients.length === 0 ? (
-            <Card sx={{ borderRadius: 3, textAlign: 'center', py: 6, bgcolor: 'background.paper' }}>
-              <People sx={{ fontSize: 56, color: 'text.secondary', opacity: 0.2, mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                لا يوجد عملاء
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => handleOpenDialog()}
-                sx={{
-                  mt: 2, borderRadius: 2.5,
-                  bgcolor: '#6D28D9',
-                  '&:hover': { bgcolor: '#5B21B6' },
-                  boxShadow: '0 4px 14px -3px rgba(74, 93, 74, 0.35)',
-                }}
-              >
-                إضافة أول عميل
-              </Button>
-            </Card>
-          ) : (
-            filteredClients.map((client) => {
-              const stats = getClientStats(client.id);
-              return (
-                <Card
-                  key={client.id}
-                  onClick={() => navigate(`/clients/${client.id}`)}
-                  sx={{
-                    borderRadius: 3,
-                    boxShadow: theme.palette.mode === 'light'
-                      ? '0 2px 12px -2px rgba(74, 93, 74, 0.07)'
-                      : '0 4px 20px rgba(0,0,0,0.35)',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    bgcolor: 'background.paper',
-                    border: theme.palette.mode === 'dark' ? '1px solid rgba(107, 127, 107, 0.08)' : '1px solid rgba(74, 93, 74, 0.04)',
-                    '&:hover': {
-                      boxShadow: theme.palette.mode === 'light'
-                        ? '0 10px 32px -6px rgba(74, 93, 74, 0.12)'
-                        : '0 12px 40px rgba(0,0,0,0.45)',
-                      transform: 'translateY(-3px)',
-                    },
-                    '&:active': { transform: 'scale(0.98)' },
-                  }}
+      {/* Clients Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+        {filteredClients.length === 0 ? (
+          <div className="col-span-full py-16 flex flex-col items-center justify-center bg-surface-panel border border-dashed border-[var(--surface-border-strong)] rounded-3xl animate-fade-in">
+            <People sx={{ fontSize: 80 }} className="text-fg-subtle mb-4" />
+            <h3 className="text-xl font-extrabold text-fg font-arabic mb-2">لا يوجد عملاء</h3>
+            <p className="text-fg-muted font-default mb-6 text-sm">أضف أول عميل وابدأ بإدارة حساباته الان</p>
+            <PrimButton onClick={() => handleOpenDialog()} leftIcon={<Add />} className="btn-primary flex">
+              إضافة عميل
+            </PrimButton>
+          </div>
+        ) : (
+          filteredClients.map((client, idx) => (
+            <div 
+              key={client.id}
+              onClick={() => navigate(`/clients/${client.id}`)}
+              className="group cursor-pointer bg-surface-panel border border-[var(--surface-border)] rounded-[24px] p-5 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-[var(--brand-primary)]/40 relative overflow-hidden flex flex-col animate-fade-in-up"
+              style={{ animationDelay: `${(idx % 10) * 0.05}s` }}
+            >
+              {/* Internal abstract glow */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-[var(--brand-primary)]/10 to-transparent rounded-full blur-2xl group-hover:bg-[var(--brand-primary)]/20 transition-colors pointer-events-none"></div>
+
+              <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex shrink-0 items-center justify-center w-[54px] h-[54px] rounded-[18px] text-white shadow-md ring-2 ring-white/10 relative overflow-hidden group-hover:scale-105 transition-transform",
+                    client.type === 'company' ? "bg-gradient-to-tr from-[#1d4ed8] to-[#3b82f6]" : "bg-gradient-to-tr from-[#64748b] to-[#94a3b8]"
+                  )}>
+                    {/* Glossy overlay layer */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
+                    {client.type === 'company' ? <Business fontSize="medium" /> : <Person fontSize="medium" />}
+                  </div>
+                  <div>
+                    <h3 className="text-[1.1rem] font-extrabold text-fg font-arabic tracking-tight line-clamp-1">{client.name}</h3>
+                    <span className={cn(
+                      "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-black font-arabic tracking-wider",
+                      client.type === 'company' 
+                        ? "bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]"
+                        : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                    )}>
+                      {client.type === 'company' ? 'شركة / مؤسسة' : 'فرد / شخصي'}
+                    </span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleOpenDialog(client); }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-sunken hover:bg-[var(--brand-primary)] text-fg-subtle hover:text-white transition-all shadow-sm border border-[var(--surface-border)]"
                 >
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                      {/* Avatar */}
-                      <Avatar
-                        sx={{
-                          width: 50, height: 50,
-                          bgcolor: client.type === 'company'
-                            ? (theme.palette.mode === 'dark' ? 'rgba(107, 127, 107, 0.15)' : 'rgba(74, 93, 74, 0.08)')
-                            : (theme.palette.mode === 'dark' ? 'rgba(200, 192, 176, 0.15)' : 'rgba(200, 192, 176, 0.15)'),
-                          flexShrink: 0,
-                          border: client.type === 'company'
-                            ? '1.5px solid rgba(107, 127, 107, 0.2)'
-                            : '1.5px solid rgba(200, 192, 176, 0.3)',
-                        }}
-                      >
-                        {client.type === 'company' ? (
-                          <Business sx={{ color: theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9', fontSize: 22 }} />
-                        ) : (
-                          <Person sx={{ color: '#F59E0B', fontSize: 22 }} />
-                        )}
-                      </Avatar>
+                  <Edit sx={{ fontSize: 16 }} />
+                </button>
+              </div>
 
-                      {/* Client Info */}
-                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Stack
-                          direction={{ xs: 'column', sm: 'row' }}
-                          spacing={{ xs: 0.5, sm: 1.5 }}
-                          alignItems={{ xs: 'flex-start', sm: 'center' }}
-                          sx={{ mb: 0.5 }}
-                        >
-                          <Typography
-                            variant="h6"
-                            fontWeight={700}
-                            sx={{ fontSize: { xs: '0.95rem', sm: '1.15rem' }, wordBreak: 'break-word', letterSpacing: 0.2 }}
-                          >
-                            {client.name}
-                          </Typography>
-                          <Chip
-                            label={client.type === 'company' ? 'شركة' : 'فرد'}
-                            size="small"
-                            sx={{
-                              height: 22, fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
-                              bgcolor: client.type === 'company'
-                                ? (theme.palette.mode === 'dark' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(109, 40, 217, 0.08)')
-                                : (theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)'),
-                              color: client.type === 'company'
-                                ? (theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9')
-                                : '#B45309',
-                              border: 'none',
-                            }}
-                          />
-                        </Stack>
+              <div className="space-y-2 mt-auto relative z-10 pt-2 border-t border-[var(--surface-border)]">
+                <div className="flex items-center gap-2 text-fg-muted">
+                  <Phone sx={{ fontSize: 16 }} className="opacity-70" />
+                  <span className="text-sm font-semibold font-num tabular">{client.phone}</span>
+                </div>
+                {client.email && (
+                  <div className="flex items-center gap-2 text-fg-muted">
+                    <EmailOutlined sx={{ fontSize: 16 }} className="opacity-70" />
+                    <span className="text-sm font-medium truncate">{client.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
-                        <Stack direction="row" spacing={1} alignItems="center"
-                          sx={{
-                            bgcolor: theme.palette.mode === 'dark'
-                              ? 'rgba(255,255,255,0.04)'
-                              : 'rgba(74, 93, 74, 0.03)',
-                            px: 1.5, py: 0.6, borderRadius: 2, mt: 0.5,
-                          }}
-                        >
-                          <Phone sx={{ fontSize: 15, color: 'text.secondary', opacity: 0.6 }} />
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
-                            {client.phone}
-                          </Typography>
-                        </Stack>
-                      </Box>
-
-                      {/* Edit button */}
-                      <Stack direction="row" spacing={{ xs: 1, sm: 1.5 }} sx={{ marginLeft: '12px', flexShrink: 0 }}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenDialog(client);
-                          }}
-                          sx={{
-                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(167, 139, 250, 0.1)' : 'rgba(109, 40, 217, 0.06)',
-                            color: theme.palette.mode === 'dark' ? '#A78BFA' : '#6D28D9',
-                            width: 36, height: 36,
-                            borderRadius: 2,
-                            border: '1px solid rgba(109, 40, 217, 0.12)',
-                            '&:hover': { bgcolor: 'rgba(109, 40, 217, 0.12)' },
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <Edit sx={{ fontSize: 17 }} />
-                        </IconButton>
-
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </Stack>
-      </Container>
-
-      {/* Full-screen Add/Edit Dialog */}
+      {/* Pro Max Responsive Dialog */}
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
-        fullScreen
-        sx={{
-          '& .MuiDialog-paper': {
-            bgcolor: theme.palette.mode === 'dark' ? '#1a1f1a' : '#f5f3ef',
-          },
+        fullWidth
+        maxWidth="sm"
+        TransitionComponent={Fade}
+        transitionDuration={350}
+        PaperProps={{
+          className: "bg-surface-panel/95 backdrop-blur-[40px] border border-[var(--surface-border-strong)] rounded-[32px] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] m-4"
         }}
       >
+        <div className="absolute top-0 left-0 right-0 h-32 bg-[var(--brand-primary)]/10 blur-[50px] -z-10 pointer-events-none"></div>
+        
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Box
-            sx={{
-              background: theme.palette.mode === 'light'
-                ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
-                : 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 100%)',
-              color: 'white',
-              p: 2,
-              pt: 'calc(env(safe-area-inset-top) + 16px)',
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
-                background: 'radial-gradient(ellipse at 70% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 55%)',
-                pointerEvents: 'none',
-              },
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
-              <IconButton onClick={handleCloseDialog} sx={{ color: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
-                <ArrowBack />
-              </IconButton>
-              <Typography variant="h6" fontWeight={700} sx={{ letterSpacing: 0.3 }}>
-                {editingClient ? 'تعديل عميل' : 'إضافة عميل جديد'}
-              </Typography>
-            </Stack>
-          </Box>
+          <div className="flex items-center justify-between p-6 border-b border-[var(--surface-border)]">
+            <div>
+              <h2 className="text-xl font-extrabold text-fg font-arabic">{editingClient ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}</h2>
+              <p className="text-xs text-fg-muted font-medium mt-1 font-arabic">أدخل التفاصيل المطلوبة لإدراج العميل في النظام</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCloseDialog}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-sunken text-fg hover:bg-red-500 hover:text-white transition-colors"
+            >
+              <Close sx={{ fontSize: 20 }} />
+            </button>
+          </div>
 
-          <Box sx={{ p: 3.5 }}>
-            <Stack spacing={3}>
-              <Controller
-                name="name"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="الاسم"
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }}
-                  />
-                )}
-              />
+          <div className="p-6 space-y-5">
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-bold text-fg mb-1.5 font-arabic">اسم العميل / الشركة <span className="text-red-500">*</span></label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-fg-muted group-focus-within:text-[var(--brand-primary)] transition-colors">
+                      <Person sx={{ fontSize: 20 }} />
+                    </div>
+                    <input 
+                      {...field}
+                      className={cn(
+                        "w-full bg-surface-raised border rounded-xl py-3 pl-4 pr-10 text-fg font-bold font-arabic focus:outline-none transition-all",
+                        errors.name ? "border-red-500 focus:ring-2 focus:ring-red-500/20" : "border-[var(--surface-border-strong)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary)]/10 hover:border-fg-subtle"
+                      )}
+                      placeholder="محمد أحمد أو شركة التقنية"
+                    />
+                  </div>
+                  {errors.name && <p className="mt-1 text-xs text-red-500 font-bold font-arabic">{errors.name.message}</p>}
+                </div>
+              )}
+            />
 
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth>
-                    <InputLabel>النوع</InputLabel>
-                    <Select {...field} label="النوع" sx={{ borderRadius: 2.5, bgcolor: 'background.paper' }}>
-                      <MenuItem value="individual">فرد</MenuItem>
-                      <MenuItem value="company">شركة</MenuItem>
-                    </Select>
-                  </FormControl>
-                )}
-              />
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-bold text-fg mb-1.5 font-arabic">نوع الحساب</label>
+                  <div className="grid grid-cols-2 gap-3 bg-surface-raised p-1.5 rounded-[16px] border border-[var(--surface-border)]">
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('individual')}
+                      className={cn(
+                        "flex items-center justify-center gap-2 py-2.5 rounded-[12px] font-bold text-sm transition-all duration-300 font-arabic",
+                        field.value === 'individual' ? "bg-surface-panel shadow-sm text-[var(--brand-primary)] border border-transparent" : "text-fg-muted hover:text-fg hover:bg-surface-sunken"
+                      )}
+                    >
+                      <Person sx={{ fontSize: 18 }} /> حساب فرد
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('company')}
+                      className={cn(
+                        "flex items-center justify-center gap-2 py-2.5 rounded-[12px] font-bold text-sm transition-all duration-300 font-arabic",
+                        field.value === 'company' ? "bg-surface-panel shadow-sm text-[var(--brand-primary)] border border-transparent" : "text-fg-muted hover:text-fg hover:bg-surface-sunken"
+                      )}
+                    >
+                      <Business sx={{ fontSize: 18 }} /> حساب شركة
+                    </button>
+                  </div>
+                </div>
+              )}
+            />
 
-              <Controller
-                name="phone"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="رقم الهاتف"
-                    error={!!errors.phone}
-                    helperText={errors.phone?.message}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }}
-                  />
-                )}
-              />
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-bold text-fg mb-1.5 font-arabic">رقم الهاتف <span className="text-red-500">*</span></label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-fg-muted group-focus-within:text-[var(--brand-primary)] transition-colors">
+                      <Phone sx={{ fontSize: 20 }} />
+                    </div>
+                    <input 
+                      {...field}
+                      dir="ltr"
+                      className={cn(
+                        "w-full bg-surface-raised border rounded-xl py-3 pl-4 pr-10 text-right text-fg font-bold font-num tabular focus:outline-none transition-all",
+                        errors.phone ? "border-red-500 focus:ring-2 focus:ring-red-500/20" : "border-[var(--surface-border-strong)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary)]/10 hover:border-fg-subtle"
+                      )}
+                      placeholder="0912345678"
+                    />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-xs text-red-500 font-bold font-arabic">{errors.phone.message}</p>}
+                </div>
+              )}
+            />
 
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="البريد الإلكتروني (اختياري)"
-                    type="email"
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }}
-                  />
-                )}
-              />
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-bold text-fg mb-1.5 font-arabic">البريد الإلكتروني <span className="text-fg-muted font-normal text-xs">(اختياري)</span></label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-fg-muted group-focus-within:text-[var(--brand-primary)] transition-colors">
+                      <EmailOutlined sx={{ fontSize: 20 }} />
+                    </div>
+                    <input 
+                      {...field}
+                      dir="ltr"
+                      className={cn(
+                        "w-full bg-surface-raised border rounded-xl py-3 pl-4 pr-10 text-right text-fg font-medium font-sans focus:outline-none transition-all",
+                        errors.email ? "border-red-500 focus:ring-2 focus:ring-red-500/20" : "border-[var(--surface-border-strong)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary)]/10 hover:border-fg-subtle"
+                      )}
+                      placeholder="client@mail.com"
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-red-500 font-bold font-arabic">{errors.email.message}</p>}
+                </div>
+              )}
+            />
 
-              <Controller
-                name="address"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="العنوان"
-                    multiline
-                    rows={3}
-                    error={!!errors.address}
-                    helperText={errors.address?.message}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'background.paper' } }}
-                  />
-                )}
-              />
-            </Stack>
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-bold text-fg mb-1.5 font-arabic">العنوان الإقليمي المعتمد <span className="text-red-500">*</span></label>
+                  <div className="relative group">
+                    <div className="absolute top-3 right-0 flex items-center pr-3 pointer-events-none text-fg-muted group-focus-within:text-[var(--brand-primary)] transition-colors">
+                      <LocationOnOutlined sx={{ fontSize: 20 }} />
+                    </div>
+                    <textarea 
+                      {...field}
+                      rows={2}
+                      className={cn(
+                        "w-full bg-surface-raised border rounded-xl py-3 pl-4 pr-10 text-fg font-bold font-arabic focus:outline-none transition-all resize-none",
+                        errors.address ? "border-red-500 focus:ring-2 focus:ring-red-500/20" : "border-[var(--surface-border-strong)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary)]/10 hover:border-fg-subtle"
+                      )}
+                      placeholder="المدينة، الشارع، المعالم البارزة"
+                    />
+                  </div>
+                  {errors.address && <p className="mt-1 text-xs text-red-500 font-bold font-arabic">{errors.address.message}</p>}
+                </div>
+              )}
+            />
+          </div>
 
-            <Stack direction="row" spacing={2} sx={{ mt: 5 }}>
-              <Button
-                onClick={handleCloseDialog}
-                fullWidth
-                size="large"
-                sx={{
-                  borderRadius: 2.5, py: 1.5, fontWeight: 600,
-                  border: theme.palette.mode === 'dark'
-                    ? '1px solid rgba(107, 127, 107, 0.2)'
-                    : '1px solid rgba(74, 93, 74, 0.15)',
-                }}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                size="large"
-                sx={{
-                  borderRadius: 2.5, py: 1.5,
-                  bgcolor: '#6D28D9',
-                  fontWeight: 700,
-                  boxShadow: '0 4px 14px -3px rgba(109, 40, 217, 0.4)',
-                  '&:hover': {
-                    bgcolor: '#5B21B6',
-                    boxShadow: '0 8px 22px -4px rgba(109, 40, 217, 0.5)',
-                  },
-                }}
-              >
-                {editingClient ? 'حفظ التعديلات' : 'إضافة العميل'}
-              </Button>
-            </Stack>
+          <div className="p-6 border-t border-[var(--surface-border)] bg-surface-sunken/30 rounded-b-[32px] flex flex-col gap-3">
+            <button
+              type="submit"
+              className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white py-4 rounded-xl font-extrabold font-arabic text-base shadow-brand transition-all hover:scale-[1.01] active:scale-95"
+            >
+              {editingClient ? 'اعتماد التعديلات' : 'إضافة العميل وتوثيقه'}
+            </button>
             
             {editingClient && (
-              <Button
-                variant="outlined"
-                color="error"
-                fullWidth
-                size="large"
-                startIcon={<Delete />}
+              <button
+                type="button"
                 onClick={() => {
-                  if (window.confirm(`هل أنت متأكد من حذف العميل "${editingClient.name}"؟`)) {
+                  if (window.confirm(`هل أنت متأكد من حذف العميل "${editingClient.name}" نهائياً من النظام؟`)) {
                     deleteClient(editingClient.id);
                     handleCloseDialog();
                   }
                 }}
-                sx={{
-                  mt: 2,
-                  borderRadius: 2.5, py: 1.5, fontWeight: 700,
-                  border: '1px solid rgba(211, 47, 47, 0.4)',
-                  '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.04)', border: '1px solid rgba(211, 47, 47, 0.8)' },
-                }}
+                className="w-full flex items-center justify-center gap-2 bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white py-3 rounded-xl font-bold font-arabic text-sm transition-all"
               >
-                حذف العميل
-              </Button>
+                <Delete sx={{ fontSize: 18 }} />
+                حذف العميل نهائياً
+              </button>
             )}
-          </Box>
+            {!editingClient && (
+              <button
+                type="button"
+                onClick={handleCloseDialog}
+                className="w-full bg-transparent hover:bg-surface-hover text-fg-subtle py-3 rounded-xl font-bold font-arabic text-sm transition-colors"
+              >
+                تراجع وإلغاء
+              </button>
+            )}
+          </div>
         </form>
       </Dialog>
-    </Box>
+    </div>
   );
 };

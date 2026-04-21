@@ -9,7 +9,7 @@ import {
   Payment, TrendingUp, TrendingDown, CreditCard, Business, Person,
   AccountBalanceWallet, Description, PostAdd, PersonAdd, CalendarToday,
   WarningAmber, NoteAlt, CheckCircle, ChevronLeft, ChevronRight,
-  ExpandMore, ExpandLess,
+  ExpandMore, ExpandLess, Settings,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
@@ -36,7 +36,7 @@ import {
   Button, Input, Sheet, Modal,
 } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
-import { countUp } from '../../core/motion/presets';
+import { countUp, staggerChildren } from '../../core/motion/presets';
 import type {
   Payment as PaymentType, Expense, StandaloneDebt, Worker, UserBalance,
 } from '../../types';
@@ -75,7 +75,7 @@ export const ClientProfilePage = () => {
   const rtl = brand.direction === 'rtl';
   const { user } = useAuthStore();
   const { canAccess } = useAppLockStore();
-  const { transactions: fundTransactions, initialize: initFund } = useGlobalFundStore();
+  const { transactions: fundTransactions } = useGlobalFundStore();
 
   const {
     clients, payments, expenses, standaloneDebts, invoices,
@@ -106,11 +106,6 @@ export const ClientProfilePage = () => {
   const [profitPercentage, setProfitPercentage] = useState('');
   const [systemUsers, setSystemUsers] = useState<any[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
-
-  useEffect(() => {
-    const u = initFund();
-    return u;
-  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
@@ -403,19 +398,25 @@ export const ClientProfilePage = () => {
   const paidRef = useRef<HTMLSpanElement>(null);
   const netRef = useRef<HTMLSpanElement>(null);
 
+  // Page reveal once per client — separate from count-up so data updates never leave blocks invisible.
+  useGSAP(
+    () => {
+      const root = heroRef.current;
+      if (!root) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const items = root.querySelectorAll<HTMLElement>('[data-reveal]');
+      if (reduced) {
+        gsap.set(items, { autoAlpha: 1, y: 0 });
+        return;
+      }
+      staggerChildren(root, '[data-reveal]', { duration: 0.32, stagger: 0.05, delay: 0.02 });
+    },
+    { scope: heroRef, dependencies: [client?.id] }
+  );
+
   useGSAP(
     () => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduced) {
-        gsap.from('[data-reveal]', {
-          autoAlpha: 0,
-          y: 10,
-          duration: 0.32,
-          ease: 'power2.out',
-          stagger: 0.05,
-          delay: 0.02,
-        });
-      }
       if (paidRef.current) countUp(paidRef.current, summary.totalPaid, {
         duration: reduced ? 0.01 : 0.9,
         format: formatCurrency,
@@ -467,117 +468,129 @@ export const ClientProfilePage = () => {
 
   return (
     <div ref={heroRef} className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-10 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero Identity — avatar + name + phone + type chip ═══ */}
+      {/* ═══ Profile hero — Air Blue & Slate (open, trustworthy; matches global tokens) ═══ */}
       <section
         data-reveal
-        className="relative overflow-hidden rounded-3xl grain text-white"
+        className="relative overflow-hidden rounded-[28px] grain text-white border border-white/[0.08]"
         style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
+          background: 'linear-gradient(155deg, #0c1222 0%, #1e3a8a 40%, #2563eb 100%)',
+          boxShadow:
+            '0 22px 56px -16px rgba(30, 58, 138, 0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
         <div
           aria-hidden
-          className="absolute -top-16 -right-12 w-[260px] h-[260px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #F59E0B 0%, transparent 70%)', opacity: 0.35 }}
+          className="absolute -top-[40%] -end-[25%] w-[90%] max-w-[520px] h-[85%] rounded-full blur-[90px] pointer-events-none opacity-[0.38] motion-reduce:opacity-20"
+          style={{
+            background: 'radial-gradient(closest-side, rgba(125, 211, 252, 0.35) 0%, transparent 72%)',
+          }}
         />
         <div
           aria-hidden
-          className="absolute -bottom-20 -left-16 w-[240px] h-[240px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)', opacity: 0.45 }}
+          className="absolute -bottom-[45%] -start-[20%] w-[75%] h-[75%] rounded-full blur-[100px] pointer-events-none opacity-28 motion-reduce:opacity-16"
+          style={{
+            background: 'radial-gradient(closest-side, rgba(191, 219, 254, 0.22) 0%, transparent 72%)',
+          }}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
 
-        <div className="relative p-5 sm:p-7 lg:p-8">
-          <div className="flex items-start gap-4">
-            {/* Big avatar */}
+        {/* Hero body */}
+        <div className="relative p-5 sm:p-7 lg:p-8 z-10">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+            {/* Avatar */}
             <div
-              aria-hidden
-              className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shrink-0 flex items-center justify-center text-2xl sm:text-3xl font-extrabold backdrop-blur-md border border-white/20"
+              className="h-20 w-20 sm:h-24 sm:w-24 rounded-[22px] shrink-0 flex items-center justify-center text-3xl sm:text-4xl font-extrabold backdrop-blur-xl border border-white/25 shadow-2xl relative group"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04))',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
-                color: '#ffffff',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08))',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.3)',
               }}
             >
+              <div className="absolute inset-0 bg-white/15 opacity-0 group-hover:opacity-100 transition-opacity rounded-[22px]" />
               {initial}
+              <div
+                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl shadow-lg flex items-center justify-center border-2 border-white/25"
+                style={{ background: isCompany ? '#0ea5e9' : '#64748b' }}
+              >
+                {isCompany ? <Business sx={{ fontSize: 14, color: '#fff' }} /> : <Person sx={{ fontSize: 14, color: '#fff' }} />}
+              </div>
             </div>
 
-            {/* Name + chips */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span
-                  className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-2xs font-bold backdrop-blur border"
-                  style={{
-                    background: isCompany ? 'rgba(139,92,246,0.22)' : 'rgba(245,158,11,0.22)',
-                    borderColor: isCompany ? 'rgba(167,139,250,0.4)' : 'rgba(251,191,36,0.4)',
-                    color: '#ffffff',
-                  }}
-                >
-                  {isCompany ? <Business sx={{ fontSize: 12 }} /> : <Person sx={{ fontSize: 12 }} />}
-                  {isCompany ? 'شركة' : 'فرد'}
+            {/* Info */}
+            <div className="flex-1 min-w-0 text-center sm:text-right">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-bold bg-white/12 backdrop-blur border border-white/15 text-white/90 font-arabic">
+                  {isCompany ? 'حساب شركة' : 'حساب فردي'}
                 </span>
                 {summary.profitPercentage > 0 && (
-                  <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/10 backdrop-blur text-white/90 text-2xs font-bold border border-white/15">
-                    <TrendingUp sx={{ fontSize: 12 }} />
+                  <span className="inline-flex items-center gap-1 h-7 px-3 rounded-full bg-green-500/25 backdrop-blur text-white/95 text-xs font-bold border border-green-400/40 font-num tabular">
+                    <TrendingUp sx={{ fontSize: 14 }} />
                     {summary.profitPercentage}%
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight truncate font-arabic drop-shadow-md">
                 {client.name}
               </h1>
-              <div className="flex flex-wrap gap-2 mt-2.5">
+
+              {/* Contact info chips */}
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-4">
                 <a
                   href={`tel:${client.phone}`}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/12 hover:bg-white/20 backdrop-blur border border-white/15 text-white/95 text-xs font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 h-10 px-5 rounded-2xl bg-white/12 hover:bg-white/22 backdrop-blur-sm border border-white/15 text-white text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95"
                 >
-                  <Phone sx={{ fontSize: 14 }} />
+                  <Phone sx={{ fontSize: 17 }} className="opacity-85" />
                   <span className="font-num tabular" dir="ltr">{client.phone}</span>
                 </a>
                 {client.address && (
-                  <span className="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-white/8 border border-white/10 text-white/75 text-xs font-medium">
-                    {client.address}
+                  <span className="inline-flex items-center gap-2 h-10 px-5 rounded-2xl bg-white/8 border border-white/10 text-white/75 text-sm font-medium font-arabic">
+                    📍 {client.address}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Edit button */}
+            {/* Settings */}
             <button
               onClick={() => setActiveForm({ kind: 'editClient' })}
-              aria-label="تعديل العميل"
-              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-xl bg-white/12 hover:bg-white/20 text-white/95 backdrop-blur border border-white/15 transition-colors duration-fast pressable cursor-pointer"
+              aria-label={rtl ? 'خيارات العميل' : 'Client options'}
+              className="group shrink-0 h-12 w-12 flex items-center justify-center rounded-[16px] bg-white/12 hover:bg-white/22 text-white backdrop-blur-sm border border-white/15 transition-all duration-300 shadow-sm"
             >
-              <Edit sx={{ fontSize: 18 }} />
+              <Settings className="group-hover:rotate-45 transition-transform duration-500" sx={{ fontSize: 22 }} />
             </button>
           </div>
+        </div>
 
-          {/* Inline financial headline */}
-          {canAccess('stats') && (
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5">
-                <div className="text-2xs text-white/70 font-bold tracking-wider">إجمالي المحصّل</div>
-                <div className="text-xl sm:text-2xl font-extrabold font-num tabular mt-0.5 text-white">
-                  <span ref={paidRef}>{formatCurrency(0)}</span>
-                </div>
-              </div>
-              <div
-                className="rounded-2xl backdrop-blur-md border p-3.5"
-                style={{
-                  background: summary.remaining >= 0 ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.2)',
-                  borderColor: summary.remaining >= 0 ? 'rgba(52,211,153,0.4)' : 'rgba(248,113,113,0.4)',
-                }}
-              >
-                <div className="text-2xs text-white/80 font-bold tracking-wider">
-                  {summary.remaining >= 0 ? 'الصافي المتبقي' : 'عجز مالي'}
-                </div>
-                <div className="text-xl sm:text-2xl font-extrabold font-num tabular mt-0.5" style={{ color: summary.remaining >= 0 ? '#d1fae5' : '#fecaca' }}>
-                  <span ref={netRef}>{formatCurrency(0)}</span>
-                </div>
+        {/* Financial Footer Band */}
+        {canAccess('stats') && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-white/15 bg-black/25 backdrop-blur-xl relative z-10">
+            <div className="p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
+              <div className="text-xs text-white/60 font-bold font-arabic mb-1">إجمالي المحصّل</div>
+              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-green-400">
+                <span ref={paidRef}>{formatCurrency(0)}</span>
               </div>
             </div>
-          )}
-        </div>
+            <div className="p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10" style={{ background: summary.remaining >= 0 ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.08)' }}>
+              <div className="text-xs font-bold font-arabic mb-1" style={{ color: summary.remaining >= 0 ? 'rgba(255,255,255,0.7)' : '#fca5a5' }}>
+                {summary.remaining >= 0 ? 'الصافي المتبقي' : 'عجز مالي'}
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm" style={{ color: summary.remaining >= 0 ? '#d1fae5' : '#ef4444' }}>
+                <span ref={netRef}>{formatCurrency(0)}</span>
+              </div>
+            </div>
+            <div className="hidden lg:block p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
+              <div className="text-xs text-white/60 font-bold font-arabic mb-1">نسبة الربح</div>
+              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-white">
+                 {summary.profitPercentage}%
+              </div>
+            </div>
+            <div className="hidden lg:block p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
+              <div className="text-xs text-white/60 font-bold font-arabic mb-1">صافي الربح</div>
+              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-amber-400">
+                {formatCurrency(summary.profit)}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ═══ Alerts ═══ */}
@@ -608,17 +621,9 @@ export const ClientProfilePage = () => {
         </section>
       )}
 
-      {/* ═══ Bento KPI Grid (4 tiles: profit / expenses / debts / remaining) ═══ */}
+      {/* ═══ Bento KPI Grid ═══ */}
       {canAccess('stats') && (
-        <section data-reveal className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <KpiTile
-            label="الأرباح"
-            value={formatCurrency(summary.profit)}
-            sub={summary.profitPercentage > 0 ? `${summary.profitPercentage}%` : 'لم تُحدد النسبة'}
-            Icon={TrendingUp}
-            tone="brand"
-            onClick={() => setActiveForm({ kind: 'profit' })}
-          />
+        <section data-reveal className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
           <KpiTile
             label="المصروفات"
             value={formatCurrency(summary.totalExpenses)}
@@ -626,6 +631,14 @@ export const ClientProfilePage = () => {
             Icon={TrendingDown}
             tone="danger"
             onClick={() => setActiveSheet('expenses')}
+          />
+          <KpiTile
+            label="المدفوعات"
+            value={formatCurrency(summary.totalPaid)}
+            sub={`${clientPayments.length} سجل`}
+            Icon={Payment}
+            tone="success"
+            onClick={() => setActiveSheet('payments')}
           />
           <KpiTile
             label="الديون"
@@ -736,6 +749,7 @@ export const ClientProfilePage = () => {
       <PaymentsSheet
         open={activeSheet === 'payments'}
         onClose={() => setActiveSheet(null)}
+        client={client}
         clientPayments={clientPayments}
         summary={summary}
         pdfLoading={pdfLoading}
@@ -753,6 +767,7 @@ export const ClientProfilePage = () => {
       <DebtsSheet
         open={activeSheet === 'debts'}
         onClose={() => setActiveSheet(null)}
+        client={client}
         clientDebts={clientDebts}
         summary={summary}
         pdfLoading={pdfLoading}
@@ -770,6 +785,7 @@ export const ClientProfilePage = () => {
       <WorkersSheet
         open={activeSheet === 'workers'}
         onClose={() => setActiveSheet(null)}
+        client={client}
         clientWorkers={clientWorkers}
         summary={summary}
         pdfLoading={pdfLoading}
@@ -788,6 +804,7 @@ export const ClientProfilePage = () => {
       <BalancesSheet
         open={activeSheet === 'balances'}
         onClose={() => setActiveSheet(null)}
+        client={client}
         clientUserBalances={clientUserBalances}
         userBalancesSummary={userBalancesSummary}
         onAdd={() => setActiveForm({ kind: 'balance', edit: null })}
@@ -1132,7 +1149,7 @@ function ModuleCard({ title, count, amount, Icon, tone, onClick, ChevronStart, i
         </div>
         <ChevronStart
           sx={{ fontSize: 16 }}
-          className="text-fg-muted group-hover:text-[color:var(--brand-primary)] transition-colors mt-1 shrink-0"
+          className="text-fg-muted group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors mt-1 shrink-0"
         />
       </div>
     </button>
@@ -1191,7 +1208,7 @@ function AddHeaderButton({ onClick, label = 'إضافة' }: { onClick: () => voi
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-white text-[color:var(--brand-primary)] hover:bg-white/95 font-bold text-sm pressable transition-colors shadow-xs shrink-0"
+      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-white text-slate-900 hover:bg-white/95 font-bold text-sm pressable transition-colors shadow-xs shrink-0"
     >
       <Add sx={{ fontSize: 16 }} />
       {label}
@@ -1211,6 +1228,98 @@ function EmptyState({ Icon, title, sub, cta }: { Icon: any; title: string; sub?:
       <div className="text-fg font-bold">{title}</div>
       {sub && <div className="text-2xs text-fg-muted mt-1">{sub}</div>}
       {cta && <div className="mt-4">{cta}</div>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROFILE MODULE SHEETS — unified slate header; semantic accent on glass hero only
+   (ui-ux-pro-max: trust/finance = graphite + navy; color = status chips / borders)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const PROFILE_SHEET_HEADER_BG =
+  'linear-gradient(165deg, #0f172a 0%, #1e3a8a 48%, #2563eb 100%)';
+
+const PROFILE_SHEET_GRADIENT = {
+  expenses: PROFILE_SHEET_HEADER_BG,
+  payments: PROFILE_SHEET_HEADER_BG,
+  debts: PROFILE_SHEET_HEADER_BG,
+  workers: PROFILE_SHEET_HEADER_BG,
+  balances: PROFILE_SHEET_HEADER_BG,
+} as const;
+
+const PROFILE_HERO_ACCENT: Record<
+  'expenses' | 'payments' | 'debts' | 'workers' | 'balances',
+  string
+> = {
+  expenses: 'border-s-[3px] border-s-red-400/90',
+  payments: 'border-s-[3px] border-s-emerald-400/90',
+  debts: 'border-s-[3px] border-s-amber-400/90',
+  workers: 'border-s-[3px] border-s-sky-400/90',
+  balances: 'border-s-[3px] border-s-teal-400/90',
+};
+
+function ProfileModuleHero({
+  eyebrow,
+  headline,
+  subline,
+  stats,
+  Icon,
+  accent = 'expenses',
+}: {
+  eyebrow: string;
+  headline: React.ReactNode;
+  subline?: string;
+  stats?: { label: string; value: React.ReactNode }[];
+  Icon?: React.ElementType;
+  accent?: keyof typeof PROFILE_HERO_ACCENT;
+}) {
+  const Ico = Icon;
+  const n = stats?.length ?? 0;
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border border-white/15 bg-white/[0.08] backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.22)] px-4 py-4 sm:px-5 sm:py-5 ring-1 ring-white/[0.07] motion-reduce:transition-none',
+        PROFILE_HERO_ACCENT[accent]
+      )}
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        {Ico && (
+          <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 border border-white/25 shadow-inner">
+            <Ico sx={{ fontSize: 28, color: '#fff' }} />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-white/65">{eyebrow}</p>
+          <div
+            className="mt-1.5 text-3xl sm:text-[2.05rem] font-black font-num tabular-nums text-white leading-none tracking-tight drop-shadow-sm"
+            dir="ltr"
+          >
+            {headline}
+          </div>
+          {subline && (
+            <p className="mt-2 text-xs sm:text-sm text-white/82 font-medium leading-snug max-w-[22rem]">{subline}</p>
+          )}
+        </div>
+      </div>
+      {stats && n > 0 && (
+        <div
+          className={cn(
+            'mt-4 pt-4 border-t border-white/15 grid gap-3',
+            n === 3 && 'grid-cols-3',
+            n === 2 && 'grid-cols-2',
+            n === 4 && 'grid-cols-2 sm:grid-cols-4',
+            n !== 2 && n !== 3 && n !== 4 && 'grid-cols-2 sm:grid-cols-4'
+          )}
+        >
+          {stats.map((s, i) => (
+            <div key={i} className="min-w-0 text-center sm:text-start">
+              <div className="text-[0.58rem] font-bold text-white/55 uppercase tracking-wide truncate">{s.label}</div>
+              <div className="text-sm font-extrabold text-white font-num tabular mt-0.5 truncate">{s.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1248,151 +1357,176 @@ function ExpensesSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={`المصروفات (${clientExpenses.length})`}
+      title="المصروفات"
       subtitle={client?.name}
+      toneGradient={PROFILE_SHEET_GRADIENT.expenses}
+      headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="جديد" />}
-      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      headerExtras={
+        <div className="space-y-3">
+          <ProfileModuleHero
+            accent="expenses"
+            eyebrow="إجمالي المصروفات"
+            headline={formatCurrency(summary.totalExpenses)}
+            subline={`تتبع تكاليف ومصروفات المشروع — ${clientExpenses.length} عملية`}
+            Icon={TrendingDown}
+            stats={[
+              { label: 'سجلات', value: clientExpenses.length },
+              { label: 'بعد البحث', value: filtered.length },
+            ]}
+          />
+          <PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />
+        </div>
+      }
       maxWidth="lg"
     >
-      <div className="p-4 space-y-3">
-        {/* Fund banners */}
-        {globalFundStats && (
-          <FundBanner title="رصيد العهدة العام المتاح" stats={globalFundStats} />
-        )}
-        {currentUserBalanceInfo && (
-          <UserBalanceBanner info={currentUserBalanceInfo} userName={userName} />
-        )}
-
-        {/* Search */}
-        <Input
-          leftIcon={<Search sx={{ fontSize: 18 }} />}
-          placeholder="ابحث في المصروفات..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        {/* List */}
-        {filtered.length === 0 ? (
-          <EmptyState
-            Icon={TrendingDown}
-            title="لا توجد مصروفات"
-            sub={search ? 'لا نتائج مطابقة' : 'أضف أول مصروف'}
-          />
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((exp: Expense) => (
-              <div
-                key={exp.id}
-                className="bg-surface-panel border border-border rounded-xl p-4 content-auto"
-                style={{ borderInlineEndWidth: 3, borderInlineEndColor: 'var(--brand-danger)' }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-fg truncate">{exp.description}</div>
-                    <div className="flex flex-wrap gap-1.5 items-center mt-1.5">
-                      <span className="inline-flex items-center h-5 px-2 rounded-full bg-surface-sunken text-2xs font-bold text-fg-subtle border border-border">
-                        {getExpenseCategoryLabel(exp.category)}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
-                        <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(exp.date)}
-                      </span>
-                      {exp.invoiceNumber && (
-                        <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
-                          <Description sx={{ fontSize: 11 }} /> {exp.invoiceNumber}
-                        </span>
-                      )}
-                    </div>
-                    {exp.createdBy && (
-                      <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {exp.createdBy}</div>
-                    )}
-                    {exp.notes && (
-                      <div className="text-2xs text-fg-muted mt-1 line-clamp-2">{exp.notes}</div>
-                    )}
-                  </div>
-                  <div className="text-start shrink-0 flex flex-col items-end gap-1">
-                    <div className="font-extrabold text-base font-num tabular" style={{ color: 'var(--brand-danger)' }}>
-                      {formatCurrency(exp.amount)}
-                    </div>
-                    <div className="flex gap-0.5">
-                      <button
-                        onClick={() => onEdit(exp)}
-                        aria-label="تعديل"
-                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
-                      >
-                        <Edit sx={{ fontSize: 14 }} />
-                      </button>
-                      <button
-                        onClick={() => onDelete(exp.id)}
-                        aria-label="حذف"
-                        className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
-                      >
-                        <Delete sx={{ fontSize: 14 }} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Total + per-user breakdown */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
-            color: '#fff',
-          }}
-        >
-          <button
-            onClick={() => setExpandedBreakdown((v) => !v)}
-            className="w-full flex items-center justify-between p-4 text-start"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold">إجمالي المصروفات</span>
-              {expandedBreakdown ? <ExpandLess sx={{ fontSize: 20 }} /> : <ExpandMore sx={{ fontSize: 20 }} />}
-            </div>
-            <span className="font-extrabold text-xl font-num tabular">
-              {formatCurrency(summary.totalExpenses)}
-            </span>
-          </button>
-          {expandedBreakdown && byUser.length > 0 && (
-            <div className="p-4 pt-0 space-y-2 border-t border-white/10">
-              <div className="text-2xs text-white/70 font-bold tracking-wider mt-3 mb-2">
-                التوزيع حسب المستخدم
-              </div>
-              {byUser.map(([name, total]) => {
-                const pct = summary.totalExpenses > 0 ? (total / summary.totalExpenses) * 100 : 0;
-                return (
-                  <div key={name} className="bg-white/8 rounded-lg p-2.5">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="h-7 w-7 rounded-md bg-white/15 flex items-center justify-center text-sm font-bold shrink-0">
-                          {name.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold truncate">{name}</div>
-                          <div className="text-[0.6rem] text-white/60">{pct.toFixed(1)}%</div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-extrabold font-num tabular">
-                        {formatCurrency(total)}
-                      </div>
-                    </div>
-                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-[width] duration-base"
-                        style={{
-                          width: `${pct}%`,
-                          background: 'linear-gradient(90deg, #F59E0B, #FBBF24)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      <div className="bg-surface-canvas min-h-[40vh]">
+        <div className="px-4 pt-4 space-y-3">
+          {globalFundStats && (
+            <FundBanner title="رصيد العهدة العام المتاح" stats={globalFundStats} />
           )}
+          {currentUserBalanceInfo && (
+            <UserBalanceBanner info={currentUserBalanceInfo} userName={userName} />
+          )}
+        </div>
+
+        <div className="sticky top-0 z-[1] border-b border-border/80 bg-surface-canvas/90 backdrop-blur-md px-4 py-3">
+          <Input
+            leftIcon={<Search sx={{ fontSize: 18 }} />}
+            placeholder="وصف، تصنيف، رقم فاتورة…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="px-4 pb-6 pt-3 space-y-2">
+          {filtered.length === 0 ? (
+            <EmptyState
+              Icon={TrendingDown}
+              title="لا توجد مصروفات"
+              sub={search ? 'لا نتائج مطابقة' : 'أضف أول مصروف'}
+            />
+          ) : (
+            <ul className="space-y-0 rounded-2xl border border-border overflow-hidden bg-surface-panel divide-y divide-border">
+              {filtered.map((exp: Expense, idx: number) => (
+                <li
+                  key={exp.id}
+                  className="flex gap-3 p-4 hover:bg-surface-sunken/50 transition-colors"
+                  style={{ borderInlineEnd: '3px solid var(--brand-danger)' }}
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--brand-danger)_10%,transparent)] text-[0.7rem] font-extrabold text-[color:var(--brand-danger)] tabular">
+                    {String(idx + 1).padStart(2, '0')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-fg leading-snug">{exp.description}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex h-6 items-center rounded-full border border-border bg-surface-sunken px-2 text-[0.65rem] font-bold text-fg-subtle">
+                            {getExpenseCategoryLabel(exp.category)}
+                          </span>
+                          <span className="inline-flex items-center gap-0.5 text-[0.65rem] text-fg-muted font-medium">
+                            <CalendarToday sx={{ fontSize: 11 }} />
+                            {formatDate(exp.date)}
+                          </span>
+                          {exp.invoiceNumber && (
+                            <span className="inline-flex items-center gap-0.5 text-[0.65rem] text-fg-muted">
+                              <Description sx={{ fontSize: 11 }} />
+                              {exp.invoiceNumber}
+                            </span>
+                          )}
+                        </div>
+                        {exp.createdBy && (
+                          <p className="mt-1.5 text-[0.65rem] text-fg-muted">بواسطة {exp.createdBy}</p>
+                        )}
+                        {exp.notes && (
+                          <p className="mt-1 text-[0.65rem] text-fg-muted line-clamp-2 leading-relaxed">{exp.notes}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-end">
+                        <div
+                          className="font-extrabold text-lg font-num tabular leading-none"
+                          style={{ color: 'var(--brand-danger)' }}
+                          dir="ltr"
+                        >
+                          {formatCurrency(exp.amount)}
+                        </div>
+                        <div className="mt-2 flex justify-end gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => onEdit(exp)}
+                            aria-label="تعديل"
+                            className="h-8 w-8 rounded-lg hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors inline-flex items-center justify-center"
+                          >
+                            <Edit sx={{ fontSize: 16 }} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDelete(exp.id)}
+                            aria-label="حذف"
+                            className="h-8 w-8 rounded-lg hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors inline-flex items-center justify-center"
+                          >
+                            <Delete sx={{ fontSize: 16 }} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-xl border border-border bg-surface-panel shadow-xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setExpandedBreakdown((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-start hover:bg-surface-sunken/50 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0 text-fg">
+                <span className="font-extrabold text-sm sm:text-base">التوزيع حسب المستخدم</span>
+                {expandedBreakdown ? <ExpandLess sx={{ fontSize: 22 }} /> : <ExpandMore sx={{ fontSize: 22 }} />}
+              </div>
+              <span
+                className="font-extrabold text-lg sm:text-xl font-num tabular shrink-0 text-[color:var(--brand-danger)]"
+                dir="ltr"
+              >
+                {formatCurrency(summary.totalExpenses)}
+              </span>
+            </button>
+            {expandedBreakdown && byUser.length > 0 && (
+              <div className="px-4 sm:px-5 pb-5 pt-0 space-y-2 border-t border-border">
+                <div className="text-2xs text-fg-muted font-bold tracking-wider pt-3 pb-1">حسب اسم المُدخل</div>
+                {byUser.map(([name, total]) => {
+                  const pct = summary.totalExpenses > 0 ? (total / summary.totalExpenses) * 100 : 0;
+                  return (
+                    <div key={name} className="rounded-lg border border-border bg-surface-sunken p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-surface-panel border border-border flex items-center justify-center text-sm font-bold text-fg shrink-0">
+                            {name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-fg truncate">{name}</div>
+                            <div className="text-[0.65rem] text-fg-muted">{pct.toFixed(1)}٪ من الإجمالي</div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-extrabold font-num tabular text-fg" dir="ltr">
+                          {formatCurrency(total)}
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-border/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-[width] duration-base bg-[color:var(--brand-danger)]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Sheet>
@@ -1433,33 +1567,35 @@ function FundBanner({ title, stats }: any) {
 function UserBalanceBanner({ info, userName }: any) {
   const positive = info.remaining > 0;
   return (
-    <div className="rounded-2xl overflow-hidden border"
-      style={{ borderColor: positive ? 'color-mix(in srgb, var(--brand-success) 25%, transparent)' : 'color-mix(in srgb, var(--brand-danger) 25%, transparent)' }}
+    <div
+      className={cn(
+        'rounded-2xl overflow-hidden border border-border bg-surface-panel shadow-xs',
+        positive ? 'border-s-[3px] border-s-emerald-500' : 'border-s-[3px] border-s-rose-500'
+      )}
     >
-      <div
-        className="p-4 text-white"
-        style={{
-          background: positive
-            ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)'
-            : 'linear-gradient(135deg, #E11D48 0%, #F43F5E 100%)',
-        }}
-      >
-        <div className="flex items-center justify-between">
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-2xs uppercase tracking-wider text-white/80 font-bold">
+            <div className="text-2xs uppercase tracking-wider text-fg-muted font-bold">
               رصيد عهدة — {userName}
             </div>
-            <div className="text-2xl font-extrabold font-num tabular mt-1 leading-none">
+            <div
+              className="text-2xl font-extrabold font-num tabular mt-1 leading-none"
+              style={{ color: positive ? 'var(--brand-success)' : 'var(--brand-danger)' }}
+            >
               {formatCurrency(info.remaining)}
             </div>
           </div>
-          <AccountBalanceWallet sx={{ fontSize: 36, opacity: 0.5 }} />
+          <AccountBalanceWallet
+            sx={{ fontSize: 36, opacity: 0.35 }}
+            style={{ color: positive ? 'var(--brand-success)' : 'var(--brand-danger)' }}
+          />
         </div>
       </div>
-      <div className="grid grid-cols-2 bg-surface-panel">
+      <div className="grid grid-cols-2 border-t border-border bg-surface-sunken/60">
         <div className="p-2.5 text-center border-l border-border rtl:border-l-0 rtl:border-r rtl:border-border">
           <div className="text-2xs text-fg-muted font-bold">إجمالي العهدة</div>
-          <div className="text-sm font-extrabold font-num tabular mt-0.5" style={{ color: 'var(--brand-primary)' }}>
+          <div className="text-sm font-extrabold font-num tabular mt-0.5 text-fg">
             {formatCurrency(info.given)}
           </div>
         </div>
@@ -1471,10 +1607,7 @@ function UserBalanceBanner({ info, userName }: any) {
         </div>
       </div>
       {info.remaining <= 0 && info.given > 0 && (
-        <div
-          className="flex items-center gap-2 px-4 py-2 text-white text-xs font-bold"
-          style={{ background: '#7F1D1D' }}
-        >
+        <div className="flex items-center gap-2 px-4 py-2 text-xs font-bold border-t border-border bg-[color-mix(in_srgb,var(--brand-danger)_10%,transparent)] text-[color:var(--brand-danger)]">
           <WarningAmber sx={{ fontSize: 14 }} />
           تحذير: رصيد العهدة نفد بالكامل
         </div>
@@ -1488,7 +1621,7 @@ function UserBalanceBanner({ info, userName }: any) {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function PaymentsSheet({
-  open, onClose, clientPayments, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
+  open, onClose, client, clientPayments, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
 }: any) {
   const [search, setSearch] = useState('');
   const methodLabel: Record<string, string> = {
@@ -1513,84 +1646,130 @@ function PaymentsSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={`المدفوعات (${clientPayments.length})`}
-      subtitle={`إجمالي: ${formatCurrency(summary.totalPaid)}`}
+      title="المدفوعات"
+      subtitle={client?.name || 'تحصيلات العميل'}
+      toneGradient={PROFILE_SHEET_GRADIENT.payments}
+      headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="دفعة" />}
-      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      headerExtras={
+        <div className="space-y-3">
+          <ProfileModuleHero
+            accent="payments"
+            eyebrow="إجمالي المحصّل"
+            headline={
+              <>
+                +{formatCurrency(summary.totalPaid)}
+              </>
+            }
+            subline={`${clientPayments.length} دفعة مسجّلة — تدفق نقدي موثوق`}
+            Icon={Payment}
+            stats={[
+              { label: 'دفعات', value: clientPayments.length },
+              { label: 'بعد البحث', value: filtered.length },
+            ]}
+          />
+          <PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />
+        </div>
+      }
       maxWidth="lg"
     >
-      <div className="p-4 space-y-3">
-        <Input
-          leftIcon={<Search sx={{ fontSize: 18 }} />}
-          placeholder="ابحث في المدفوعات..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="bg-surface-canvas min-h-[40vh]">
+        <div className="sticky top-0 z-[1] border-b border-border/80 bg-surface-canvas/90 backdrop-blur-md px-4 py-3 pt-4">
+          <Input
+            leftIcon={<Search sx={{ fontSize: 18 }} />}
+            placeholder="مبلغ، طريقة دفع، ملاحظات…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-        {filtered.length === 0 ? (
-          <EmptyState Icon={Payment} title="لا توجد مدفوعات" sub="أضف أول دفعة" />
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((pay: PaymentType) => (
-              <div
-                key={pay.id}
-                className="bg-surface-panel border border-border rounded-xl p-4 content-auto"
-                style={{ borderInlineEndWidth: 3, borderInlineEndColor: 'var(--brand-success)' }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-extrabold text-base font-num tabular" style={{ color: 'var(--brand-success)' }}>
-                      +{formatCurrency(pay.amount)}
+        <div className="px-4 pb-6 pt-3 space-y-3">
+          {filtered.length === 0 ? (
+            <EmptyState Icon={Payment} title="لا توجد مدفوعات" sub="أضف أول دفعة" />
+          ) : (
+            <ul className="space-y-0 rounded-2xl border border-border overflow-hidden bg-surface-panel divide-y divide-border">
+              {filtered.map((pay: PaymentType, idx: number) => (
+                <li
+                  key={pay.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:bg-surface-sunken/50 transition-colors"
+                  style={{ borderInlineEnd: '3px solid var(--brand-success)' }}
+                >
+                  <div className="flex flex-1 gap-3 min-w-0">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--brand-success)_12%,transparent)] text-[color:var(--brand-success)]">
+                      <Payment sx={{ fontSize: 22 }} />
                     </div>
-                    <div className="flex flex-wrap gap-1.5 items-center mt-1.5">
-                      <span
-                        className="inline-flex items-center h-5 px-2 rounded-full text-2xs font-bold"
-                        style={{ background: 'var(--brand-primary-soft)', color: 'var(--brand-primary)' }}
-                      >
-                        {methodLabel[pay.paymentMethod] || pay.paymentMethod}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-2xs text-fg-muted">
-                        <CalendarToday sx={{ fontSize: 11 }} /> {formatDate(pay.paymentDate)}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span
+                          className="text-xl font-extrabold font-num tabular"
+                          style={{ color: 'var(--brand-success)' }}
+                          dir="ltr"
+                        >
+                          +{formatCurrency(pay.amount)}
+                        </span>
+                        <span className="text-[0.65rem] font-bold text-fg-muted tabular">
+                          #{String(idx + 1).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className="inline-flex h-6 items-center rounded-full px-2.5 text-[0.65rem] font-bold border"
+                          style={{
+                            background: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary)',
+                            borderColor: 'color-mix(in srgb, var(--brand-primary) 22%, transparent)',
+                          }}
+                        >
+                          {methodLabel[pay.paymentMethod] || pay.paymentMethod}
+                        </span>
+                        <span className="inline-flex items-center gap-0.5 text-[0.65rem] text-fg-muted font-medium">
+                          <CalendarToday sx={{ fontSize: 11 }} />
+                          {formatDate(pay.paymentDate)}
+                        </span>
+                      </div>
+                      {pay.createdBy && (
+                        <p className="mt-1.5 text-[0.65rem] text-fg-muted">بواسطة {pay.createdBy}</p>
+                      )}
+                      {pay.notes && (
+                        <p className="mt-1 text-[0.65rem] text-fg-muted line-clamp-2 leading-relaxed">{pay.notes}</p>
+                      )}
                     </div>
-                    {pay.createdBy && (
-                      <div className="text-[0.65rem] text-fg-muted mt-1">بواسطة: {pay.createdBy}</div>
-                    )}
-                    {pay.notes && (
-                      <div className="text-2xs text-fg-muted mt-1 line-clamp-2">{pay.notes}</div>
-                    )}
                   </div>
-                  <div className="flex flex-col gap-0.5 shrink-0">
+                  <div className="flex sm:flex-col gap-1 justify-end shrink-0 border-t border-border pt-3 sm:border-t-0 sm:pt-0">
                     <button
+                      type="button"
                       onClick={() => onEdit(pay)}
                       aria-label="تعديل"
-                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                      className="h-9 w-9 rounded-lg hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors inline-flex items-center justify-center"
                     >
-                      <Edit sx={{ fontSize: 14 }} />
+                      <Edit sx={{ fontSize: 16 }} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => onDelete(pay.id)}
                       aria-label="حذف"
-                      className="h-7 w-7 rounded-md hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                      className="h-9 w-9 rounded-lg hover:bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors inline-flex items-center justify-center"
                     >
-                      <Delete sx={{ fontSize: 14 }} />
+                      <Delete sx={{ fontSize: 16 }} />
                     </button>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
 
-        <div
-          className="rounded-2xl p-4 flex items-center justify-between"
-          style={{
-            background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)',
-            color: '#fff',
-          }}
-        >
-          <span className="font-extrabold">إجمالي المحصّل</span>
-          <span className="font-extrabold text-xl font-num tabular">{formatCurrency(summary.totalPaid)}</span>
+          <div className="rounded-xl border border-border bg-surface-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div>
+              <div className="text-2xs font-bold text-fg-muted uppercase tracking-wider">مطابقة المجموع</div>
+              <div className="text-xs text-fg-subtle mt-0.5">مجموع المدفوعات المعروضة أعلاه</div>
+            </div>
+            <span
+              className="font-extrabold text-xl sm:text-2xl font-num tabular sm:text-end text-[color:var(--brand-success)]"
+              dir="ltr"
+            >
+              {formatCurrency(summary.totalPaid)}
+            </span>
+          </div>
         </div>
       </div>
     </Sheet>
@@ -1602,19 +1781,41 @@ function PaymentsSheet({
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function DebtsSheet({
-  open, onClose, clientDebts, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
+  open, onClose, client, clientDebts, summary, pdfLoading, onAdd, onEdit, onDelete, onDownloadPdf, onSharePdf,
 }: any) {
+  const totalPaidDebts = useMemo(
+    () => clientDebts.reduce((s: number, d: StandaloneDebt) => s + (d.paidAmount || 0), 0),
+    [clientDebts]
+  );
+
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={`الديون (${clientDebts.length})`}
-      subtitle={`متبقي: ${formatCurrency(summary.totalDebts)}`}
+      title="الديون"
+      subtitle={client?.name ? `${client.name} · ${clientDebts.length} التزام` : `${clientDebts.length} التزام`}
+      toneGradient={PROFILE_SHEET_GRADIENT.debts}
+      headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="دين" />}
-      headerExtras={<PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />}
+      headerExtras={
+        <div className="space-y-3">
+          <ProfileModuleHero
+            accent="debts"
+            eyebrow="إجمالي المتبقي"
+            headline={formatCurrency(summary.totalDebts)}
+            subline="مستحقات على العميل — راقب السداد والمتبقي بوضوح"
+            Icon={CreditCard}
+            stats={[
+              { label: 'سجلات', value: clientDebts.length },
+              { label: 'تم سداده', value: formatCurrency(totalPaidDebts) },
+            ]}
+          />
+          <PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />
+        </div>
+      }
       maxWidth="lg"
     >
-      <div className="p-4 space-y-2">
+      <div className="bg-surface-canvas min-h-[30vh] p-4 space-y-2">
         {clientDebts.length === 0 ? (
           <EmptyState Icon={CreditCard} title="لا توجد ديون" sub="أضف أول دين" />
         ) : (
@@ -1704,131 +1905,147 @@ function DebtsSheet({
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function WorkersSheet({
-  open, onClose, clientWorkers, summary, pdfLoading, onAdd, onEdit, onDelete, onPay, onDownloadPdf, onSharePdf,
+  open, onClose, client, clientWorkers, summary, pdfLoading, onAdd, onEdit, onDelete, onPay, onDownloadPdf, onSharePdf,
 }: any) {
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={`سجل العمال (${clientWorkers.length})`}
-      subtitle={`متبقي: ${formatCurrency(summary.totalWorkersDue)}`}
+      title="العمال والمقاولون"
+      subtitle={client?.name ? `${client.name} · ${clientWorkers.length} سجل` : `${clientWorkers.length} سجل`}
+      toneGradient={PROFILE_SHEET_GRADIENT.workers}
+      headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="عامل" />}
       headerExtras={
-        <div className="space-y-2">
-          {clientWorkers.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'الاتفاق', val: summary.totalWorkersAgreed, color: '#FBBF24' },
-                { label: 'المدفوع', val: summary.totalWorkersPaid, color: '#6EE7B7' },
-                { label: 'المتبقي', val: summary.totalWorkersDue, color: '#FCA5A5' },
-              ].map((s, i) => (
-                <div key={i} className="text-center bg-white/8 rounded-lg py-2 border border-white/10">
-                  <div className="text-[0.6rem] text-white/60 font-semibold">{s.label}</div>
-                  <div className="text-xs font-extrabold mt-0.5 font-num tabular truncate" style={{ color: s.color }}>
-                    {formatCurrency(s.val)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="space-y-3">
+          <ProfileModuleHero
+            accent="workers"
+            eyebrow="المتبقي الإجمالي"
+            headline={formatCurrency(summary.totalWorkersDue)}
+            subline="اتفاقات، دفعات، وتقدّم لكل عامل أو مقاول"
+            Icon={PersonAdd}
+            stats={[
+              { label: 'الاتفاق', value: formatCurrency(summary.totalWorkersAgreed) },
+              { label: 'المدفوع', value: formatCurrency(summary.totalWorkersPaid) },
+              { label: 'المتبقي', value: formatCurrency(summary.totalWorkersDue) },
+            ]}
+          />
           <PdfBar onDownload={onDownloadPdf} onShare={onSharePdf} loading={pdfLoading} />
         </div>
       }
       maxWidth="lg"
     >
-      <div className="p-4 space-y-2">
+      <div className="bg-surface-canvas p-4 space-y-3 min-h-[30vh]">
         {clientWorkers.length === 0 ? (
-          <EmptyState Icon={PersonAdd} title="لا يوجد عمال بعد" sub="أضف أول عامل / مقاول" />
+          <EmptyState Icon={PersonAdd} title="لا يوجد عمال بعد" sub="أضف أول عامل أو مقاول لتتبع الاتفاق والدفعات." />
         ) : (
           clientWorkers.map((w: any) => {
             const pct = w.totalAmount > 0 ? Math.min(100, (w.paidAmount / w.totalAmount) * 100) : 0;
             const done = w.remainingAmount <= 0;
-            const accent = done ? 'var(--brand-success)' : '#D97706';
+            const accent = done ? 'var(--brand-success)' : 'var(--brand-warning)';
             return (
-              <div key={w.id} className="bg-surface-panel border border-border rounded-2xl overflow-hidden content-auto">
-                <div className="h-1" style={{ background: accent }} />
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
+              <div
+                key={w.id}
+                className="rounded-xl border border-border bg-surface-panel p-4 shadow-xs transition-[box-shadow,border-color] duration-200 hover:border-strong"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
                     <div
-                      className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-extrabold"
+                      className="h-11 w-11 rounded-lg flex items-center justify-center shrink-0 text-sm font-extrabold"
                       style={{
-                        background: done
-                          ? 'color-mix(in srgb, var(--brand-success) 15%, transparent)'
-                          : 'color-mix(in srgb, #F59E0B 15%, transparent)',
+                        backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
                         color: accent,
+                        border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,
                       }}
                     >
-                      {w.name.charAt(0)}
+                      {(w.name || '?').charAt(0)}
                     </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-sm text-fg truncate">{w.name}</div>
-                      <div className="text-2xs text-fg-muted" style={{ color: 'var(--brand-primary)' }}>
+                      <div className="text-2xs text-fg-muted font-medium mt-0.5">
                         {w.jobType || 'عامل / مقاول'}
                       </div>
                     </div>
+
                     <span
-                      className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[0.65rem] font-bold"
+                      className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-2xs font-bold shrink-0 border"
                       style={{
-                        background: done
-                          ? 'color-mix(in srgb, var(--brand-success) 12%, transparent)'
-                          : 'color-mix(in srgb, var(--brand-warning) 14%, transparent)',
+                        backgroundColor: done
+                          ? 'color-mix(in srgb, var(--brand-success) 10%, transparent)'
+                          : 'color-mix(in srgb, var(--brand-warning) 10%, transparent)',
                         color: accent,
+                        borderColor: `color-mix(in srgb, ${accent} 25%, transparent)`,
                       }}
                     >
-                      {done ? <CheckCircle sx={{ fontSize: 11 }} /> : null}
-                      {done ? 'مكتمل' : 'جارٍ'}
+                      {done && <CheckCircle sx={{ fontSize: 14 }} aria-hidden />}
+                      {done ? 'مكتمل' : 'قيد التنفيذ'}
                     </span>
                   </div>
 
-                  <div className="mb-2.5">
-                    <div className="flex items-center justify-between text-[0.65rem] font-bold mb-1">
-                      <span className="text-fg-muted">نسبة الإنجاز</span>
-                      <span style={{ color: accent }}>{Math.round(pct)}%</span>
+                  <div>
+                    <div className="flex items-center justify-between text-2xs font-semibold text-fg-muted mb-1">
+                      <span className="inline-flex items-center gap-1">
+                        <TrendingUp sx={{ fontSize: 14, color: accent }} aria-hidden />
+                        التقدم
+                      </span>
+                      <span className="font-num tabular-nums text-fg">{Math.round(pct)}%</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden border border-border">
                       <div
-                        className="h-full rounded-full transition-[width] duration-base"
-                        style={{ width: `${pct}%`, background: accent }}
+                        className="h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none"
+                        style={{ width: `${pct}%`, backgroundColor: accent }}
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 rounded-lg bg-surface-sunken overflow-hidden mb-2">
+                  <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
                     {[
-                      { label: 'الاتفاق', val: w.totalAmount, color: 'var(--text-primary)' },
-                      { label: 'المدفوع', val: w.paidAmount, color: 'var(--brand-success)' },
-                      { label: 'المتبقي', val: w.remainingAmount, color: w.remainingAmount > 0 ? 'var(--brand-danger)' : 'var(--brand-success)' },
+                      { label: 'الاتفاق', val: w.totalAmount, cls: 'text-fg' },
+                      { label: 'المدفوع', val: w.paidAmount, cls: 'text-[color:var(--brand-success)]' },
+                      {
+                        label: 'المتبقي',
+                        val: w.remainingAmount,
+                        cls: w.remainingAmount > 0 ? 'text-[color:var(--brand-danger)]' : 'text-[color:var(--brand-success)]',
+                      },
                     ].map((s, i) => (
-                      <div
-                        key={i}
-                        className="p-2 text-center"
-                        style={{ borderInlineStart: i > 0 ? '1px solid var(--surface-border)' : undefined }}
-                      >
-                        <div className="text-[0.6rem] text-fg-muted font-bold">{s.label}</div>
-                        <div className="text-xs font-extrabold font-num tabular mt-0.5 truncate" style={{ color: s.color }}>
+                      <div key={i} className="text-center min-w-0">
+                        <div className="text-[0.65rem] text-fg-muted font-semibold">{s.label}</div>
+                        <div className={cn('text-xs font-bold font-num tabular-nums truncate mt-0.5', s.cls)}>
                           {formatCurrency(s.val)}
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button size="sm" block leftIcon={<Payment sx={{ fontSize: 14 }} />} onClick={() => onPay(w)}>
-                      صرف دفعة
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => onPay(w)}
+                      className={cn(
+                        'flex-1 justify-center min-h-[40px]',
+                        done && 'opacity-70'
+                      )}
+                      variant={done ? 'outline' : 'primary'}
+                      leftIcon={<Payment sx={{ fontSize: 16 }} />}
+                    >
+                      {done ? 'صرف (مكتمل)' : 'صرف دفعة'}
                     </Button>
                     <button
+                      type="button"
                       onClick={() => onEdit(w)}
                       aria-label="تعديل"
-                      className="h-9 w-9 rounded-md bg-surface-sunken hover:bg-[color:var(--brand-primary-soft)] text-fg-muted hover:text-[color:var(--brand-primary)] transition-colors flex items-center justify-center"
+                      className="h-10 w-10 min-w-[40px] rounded-lg border border-border bg-surface-sunken text-fg-muted hover:text-fg hover:border-strong transition-colors flex items-center justify-center"
                     >
-                      <Edit sx={{ fontSize: 16 }} />
+                      <Edit sx={{ fontSize: 18 }} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => onDelete(w.id)}
                       aria-label="حذف"
-                      className="h-9 w-9 rounded-md bg-surface-sunken hover:bg-[color:color-mix(in_srgb,var(--brand-danger)_10%,transparent)] text-fg-muted hover:text-[color:var(--brand-danger)] transition-colors flex items-center justify-center"
+                      className="h-10 w-10 min-w-[40px] rounded-lg border border-border bg-surface-sunken text-fg-muted hover:text-[color:var(--brand-danger)] hover:border-[color:color-mix(in_srgb,var(--brand-danger)_35%,transparent)] transition-colors flex items-center justify-center"
                     >
-                      <Delete sx={{ fontSize: 16 }} />
+                      <Delete sx={{ fontSize: 18 }} />
                     </button>
                   </div>
                 </div>
@@ -1846,20 +2063,45 @@ function WorkersSheet({
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function BalancesSheet({
-  open, onClose, clientUserBalances, userBalancesSummary, onAdd, onEdit, onDelete,
+  open, onClose, client, clientUserBalances, userBalancesSummary, onAdd, onEdit, onDelete,
 }: any) {
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const balanceAgg = useMemo(() => {
+    const vals = Object.values(userBalancesSummary || {}) as any[];
+    return {
+      remaining: vals.reduce((s, b) => s + (b.remaining || 0), 0),
+      given: vals.reduce((s, b) => s + (b.given || 0), 0),
+      spent: vals.reduce((s, b) => s + (b.spent || 0), 0),
+    };
+  }, [userBalancesSummary]);
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="أرصدة العميل (العهد)"
-      subtitle={`${clientUserBalances.length} حركة`}
+      title="العهد والأرصدة"
+      subtitle={client?.name ? `${client.name} · ${clientUserBalances.length} حركة` : `${clientUserBalances.length} حركة`}
+      toneGradient={PROFILE_SHEET_GRADIENT.balances}
+      headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="عهدة" />}
+      headerExtras={
+        <ProfileModuleHero
+          accent="balances"
+          eyebrow="إجمالي المتبقي (العهد)"
+          headline={formatCurrency(balanceAgg.remaining)}
+          subline="أرصدة مخصصة للموظفين — إيداع، صرف، ومتابعة لكل مستخدم"
+          Icon={AccountBalanceWallet}
+          stats={[
+            { label: 'إجمالي الممنوح', value: formatCurrency(balanceAgg.given) },
+            { label: 'المصروف من العهد', value: formatCurrency(balanceAgg.spent) },
+            { label: 'المستخدمون', value: Object.keys(userBalancesSummary || {}).length },
+          ]}
+        />
+      }
       maxWidth="lg"
     >
-      <div className="p-4 space-y-4">
+      <div className="bg-surface-canvas p-4 space-y-4">
         {/* Per-user summary */}
         {Object.entries(userBalancesSummary).length > 0 && (
           <section className="space-y-3">
@@ -2311,27 +2553,30 @@ function WorkerFormSheet({ edit, onClose, onSubmit }: any) {
       open
       onClose={onClose}
       title={edit ? 'تعديل عامل' : 'إضافة عامل'}
-      subtitle="بيانات العامل / المقاول"
+      subtitle="بيانات العامل أو المقاول والمبلغ المتفق عليه"
       maxWidth="md"
       footer={
         <div className="flex gap-2">
           <Button variant="outline" block onClick={onClose}>إلغاء</Button>
-          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ' : 'إضافة'}</Button>
+          <Button block onClick={handleSubmit(onSubmit)}>{edit ? 'حفظ التعديلات' : 'إضافة'}</Button>
         </div>
       }
     >
-      <div className="p-4 space-y-3">
-        <Controller name="name" control={control} render={({ field }) => (
-          <Input {...field} label="اسم العامل" placeholder="الاسم الكامل" leftIcon={<Person sx={{ fontSize: 16 }} />} />
-        )} />
-        <Controller name="jobType" control={control} render={({ field }) => (
-          <Input {...field} label="طبيعة العمل" placeholder="بياض، كهرباء، مقاول..." leftIcon={<Business sx={{ fontSize: 16 }} />} />
-        )} />
-        <Controller name="totalAmount" control={control} render={({ field }) => (
-          <Input {...field} label="المبلغ المتفق عليه" type="number" inputMode="decimal" placeholder="0.00"
-            leftIcon={<AccountBalanceWallet sx={{ fontSize: 16 }} />}
-            rightIcon={<span className="text-2xs font-semibold">د.ل</span>} />
-        )} />
+      <div className="p-4">
+        <p className="text-[0.65rem] font-bold uppercase tracking-wider text-fg-muted mb-3">البيانات الأساسية</p>
+        <div className="space-y-3 rounded-xl border border-border bg-surface-panel p-4">
+          <Controller name="name" control={control} render={({ field }) => (
+            <Input {...field} label="اسم العامل" placeholder="الاسم الكامل" leftIcon={<Person sx={{ fontSize: 16 }} />} />
+          )} />
+          <Controller name="jobType" control={control} render={({ field }) => (
+            <Input {...field} label="طبيعة العمل" placeholder="بياض، كهرباء، مقاول…" leftIcon={<Business sx={{ fontSize: 16 }} />} />
+          )} />
+          <Controller name="totalAmount" control={control} render={({ field }) => (
+            <Input {...field} label="المبلغ المتفق عليه" type="number" inputMode="decimal" placeholder="0.00"
+              leftIcon={<AccountBalanceWallet sx={{ fontSize: 16 }} />}
+              rightIcon={<span className="text-2xs font-semibold text-fg-muted">د.ل</span>} />
+          )} />
+        </div>
       </div>
     </Sheet>
   );

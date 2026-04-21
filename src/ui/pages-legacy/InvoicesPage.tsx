@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Add, Search, Description, Receipt } from '@mui/icons-material';
 import { useDataStore } from '../../store/useDataStore';
 import { formatCurrency, formatDate, getStatusLabel } from '../../utils/formatters';
-import { Button, Input } from '../../design-system/primitives';
+import { Button, Input, PageHero } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
 
 type InvoiceStatus = 'paid' | 'partially_paid' | 'draft' | 'overdue' | 'cancelled' | 'pending';
@@ -70,66 +70,60 @@ export const InvoicesPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero ═══ */}
-      <section
-        className="relative overflow-hidden rounded-2xl grain text-white"
-        style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #F59E0B 0%, transparent 70%)', opacity: 0.3 }}
-        />
-        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
-          <div className="flex-1 min-w-0">
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
-              <Receipt sx={{ fontSize: 12, color: '#FBBF24' }} />
-              الفواتير
+      <PageHero
+        accent="warning"
+        eyebrow={
+          <span className="flex items-center gap-1.5 text-inherit">
+            <Receipt sx={{ fontSize: 16 }} />
+            الفواتير
+          </span>
+        }
+        title={`${invoices.length} فاتورة`}
+        subtitle={
+          <>
+            إجمالي مفوتر:{' '}
+            <span className="font-num tabular font-bold text-white money-ltr" dir="ltr">
+              {formatCurrency(stats.total)}
             </span>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
-              {invoices.length} فاتورة
-            </h1>
-            <p className="text-white/75 text-sm mt-1.5">
-              إجمالي مفوتر: <span className="font-num tabular font-bold">{formatCurrency(stats.total)}</span>
-            </p>
-          </div>
+          </>
+        }
+        trailing={
           <button
+            type="button"
             onClick={() => navigate('/invoices/new')}
-            className="shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-xl font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/95 pressable transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-[16px] font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/90 transition-colors shadow-lg"
           >
             <Add sx={{ fontSize: 18 }} />
             إنشاء فاتورة
           </button>
-        </div>
-
-        {/* 3-column stats strip */}
-        <div className="relative grid grid-cols-3 bg-black/15 border-t border-white/10">
-          {[
-            { label: 'المفوتر', val: stats.total, accent: '#fff' },
-            { label: 'المحصّل', val: stats.paid, accent: '#34D399' },
-            { label: 'المستحق', val: stats.pending, accent: '#FBBF24' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className="p-3 sm:p-4 text-center"
-              style={{
-                borderInlineStart: i > 0 ? '1px solid rgba(255,255,255,0.08)' : undefined,
-              }}
-            >
-              <div className="text-[0.6rem] sm:text-2xs text-white/60 font-semibold">{s.label}</div>
-              <div
-                className="text-sm sm:text-base font-extrabold mt-0.5 font-num tabular truncate"
-                style={{ color: s.accent }}
-              >
-                {formatCurrency(s.val)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        }
+        footerStatsTriple={[
+          {
+            label: 'المفوتر',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate text-white" dir="ltr">
+                {formatCurrency(stats.total)}
+              </span>
+            ),
+          },
+          {
+            label: 'المحصّل',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate text-[#FBBF24]" dir="ltr">
+                {formatCurrency(stats.paid)}
+              </span>
+            ),
+          },
+          {
+            label: 'المستحق',
+            value: (
+              <span className="text-sm sm:text-base font-extrabold font-num tabular truncate" style={{ color: '#FBBF24' }} dir="ltr">
+                {formatCurrency(stats.pending)}
+              </span>
+            ),
+          },
+        ]}
+      />
 
       {/* ═══ Search + filter chips ═══ */}
       <section className="space-y-3">
@@ -216,6 +210,7 @@ export const InvoicesPage = () => {
                     <div
                       className="font-extrabold text-base font-num tabular"
                       style={{ color: 'var(--brand-primary)' }}
+                      dir="ltr"
                     >
                       {formatCurrency(inv.total)}
                     </div>

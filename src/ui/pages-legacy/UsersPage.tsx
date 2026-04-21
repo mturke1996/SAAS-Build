@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Container, Typography, Stack, IconButton, Button,
-  TextField, InputAdornment, useTheme, Chip, Avatar,
-  Dialog, Slide, Fade, Grid, Paper, alpha
+  TextField, InputAdornment, Chip, Avatar,
+  Dialog, Slide, Fade, Paper, alpha
 } from '@mui/material';
 import {
   ArrowBack, Add, Search, Delete, Person, Email, Lock, Edit,
   AdminPanelSettings, Close, PersonAdd, VpnKey, SupervisedUserCircle, VerifiedUser
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { PageHero } from '../../design-system/primitives/PageHero';
+import { Button as DsButton } from '../../design-system/primitives';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, where, getDocs, writeBatch } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from 'firebase/auth';
@@ -28,8 +29,6 @@ const Transition = forwardRef(function Transition(
 });
 
 export const UsersPage = () => {
-  const navigate = useNavigate();
-  const theme = useTheme();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,95 +197,45 @@ export const UsersPage = () => {
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const adminCount = users.filter((u) => u.role === 'admin').length;
+
   return (
     <Box sx={{ pb: 10, fontFamily: 'Tajawal, sans-serif' }}>
-      
-      {/* ── Ultra Premium Header ── */}
-      <Box
-        sx={{
-          background: theme.palette.mode === 'light'
-            ? 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%)'
-            : 'linear-gradient(135deg, #0F0D1C 0%, #1B0F3B 100%)',
-          pt: 3,
-          pb: 4,
-          px: 2.5,
-          position: 'relative',
-          overflow: 'hidden',
-          borderBottomLeftRadius: 28,
-          borderBottomRightRadius: 28,
-          boxShadow: '0 12px 32px rgba(109,40,217,0.18)',
-        }}
-      >
-        {/* Subtle glowing orb in background */}
-        <Box sx={{
-          position: 'absolute', top: -40, right: -40, width: 200, height: 200,
-          background: 'radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1, px: 0 }}>
-          
-          {/* Top Navigation Row */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3.5}>
-            <Typography variant="h5" fontWeight={900} sx={{ color: 'white', letterSpacing: '-0.3px', fontSize: '1.35rem' }}>
-              الموظفين
-            </Typography>
-
-            <Button
-              variant="contained"
-              startIcon={<Add sx={{ ml: 0.5, mr: -0.5 }} />}
+      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 2 }}>
+        <PageHero
+          accent="brand"
+          eyebrow={
+            <span className="flex items-center gap-1.5 text-inherit">
+              <SupervisedUserCircle sx={{ fontSize: 16 }} />
+              المستخدمين
+            </span>
+          }
+          title="الموظفون والحسابات"
+          subtitle="إنشاء حسابات، تعديل الأدوار، وإرسال روابط استعادة كلمة المرور."
+          headline={<span dir="ltr">{users.length}</span>}
+          trailing={
+            <DsButton
+              type="button"
+              size="md"
+              className="!bg-white !text-[color:var(--brand-primary)] hover:!bg-white/90 shrink-0"
+              leftIcon={<Add sx={{ fontSize: 18 }} />}
               onClick={() => {
                 setEditingUserId(null);
                 setFormData({ name: '', email: '', password: '', newPassword: '', role: 'editor' });
                 setDialogOpen(true);
               }}
-              sx={{
-                bgcolor: '#ffffff', color: '#6D28D9', fontWeight: 800, borderRadius: 3, 
-                px: 2.5, py: 1, fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                '&:hover': { bgcolor: '#F5F3FF', transform: 'translateY(-2px)' },
-              }}
             >
               موظف جديد
-            </Button>
-          </Stack>
-
-          {/* Quick Stats Row (Compact) */}
-          <Grid container spacing={1.5}>
-            <Grid size={{ xs: 6 }}>
-              <Box sx={{ 
-                p: 2, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.06)', 
-                border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)',
-                display: 'flex', alignItems: 'center', gap: 1.5 
-              }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'rgba(245,158,11,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <SupervisedUserCircle sx={{ color: '#FBBF24', fontSize: 20 }} />
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>إجمالي الحسابات</Typography>
-                  <Typography sx={{ fontSize: '1.1rem', color: 'white', fontWeight: 900, lineHeight: 1.2 }}>{users.length}</Typography>
-                </Box>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <Box sx={{ 
-                p: 2, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.06)', 
-                border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)',
-                display: 'flex', alignItems: 'center', gap: 1.5 
-              }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <VerifiedUser sx={{ color: '#fff', fontSize: 18 }} />
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>المدراء (Admin)</Typography>
-                  <Typography sx={{ fontSize: '1.1rem', color: 'white', fontWeight: 900, lineHeight: 1.2 }}>{users.filter(u => u.role === 'admin').length}</Typography>
-                </Box>
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
+            </DsButton>
+          }
+          footerStats={[
+            { label: 'إجمالي الحسابات', value: users.length },
+            { label: 'حسابات المدراء', value: adminCount },
+          ]}
+        />
       </Box>
 
-      <Container maxWidth="sm" sx={{ mt: -3.5, position: 'relative', zIndex: 2, px: 2 }}>
+      <Container maxWidth="sm" sx={{ mt: 0, position: 'relative', zIndex: 2, px: 2 }}>
         
         {/* Ultra Sleek Search Bar */}
         <Box sx={{ mb: 3 }}>
@@ -327,8 +276,8 @@ export const UsersPage = () => {
                 <Avatar 
                   sx={{ 
                     width: 46, height: 46, borderRadius: 2.5, 
-                    bgcolor: user.role === 'admin' ? alpha('#6D28D9', 0.1) : alpha('#F59E0B', 0.12), 
-                    color: user.role === 'admin' ? '#6D28D9' : '#B45309', 
+                    bgcolor: user.role === 'admin' ? alpha('#2563EB', 0.1) : alpha('#F59E0B', 0.12),
+                    color: user.role === 'admin' ? '#2563EB' : '#B45309',
                     fontWeight: 900, fontSize: '1.1rem' 
                   }}
                 >
@@ -341,7 +290,7 @@ export const UsersPage = () => {
                       {user.displayName}
                     </Typography>
                     {user.role === 'admin' && (
-                      <VerifiedUser sx={{ fontSize: 14, color: '#6D28D9' }} />
+                      <VerifiedUser sx={{ fontSize: 14, color: '#2563EB' }} />
                     )}
                   </Stack>
                   <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} dir="ltr">
@@ -356,7 +305,7 @@ export const UsersPage = () => {
                   onClick={() => handleEditClick(user)} 
                   sx={{ 
                     width: 38, height: 38, borderRadius: 2.5,
-                    bgcolor: 'rgba(109,40,217,0.08)', color: '#6D28D9',
+                    bgcolor: 'rgba(37,99,235,0.08)', color: '#2563EB',
                     '&:hover': { bgcolor: 'rgba(109,40,217,0.14)' } 
                   }}
                 >
@@ -423,17 +372,17 @@ export const UsersPage = () => {
           <Stack spacing={2.5}>
             {/* Input Groups */}
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>الاسم الكامل</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#2563EB" mb={1}>الاسم الكامل</Typography>
               <TextField
                 fullWidth variant="outlined" placeholder="محمد أحمد..."
                 value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                 InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: '#6D6883' }} /></InputAdornment> }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#F5F3FF', '& fieldset': { border: 'none' }, '&:focus-within': { bgcolor: 'white', '& fieldset': { border: '2px solid #6D28D9' } } } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: '#EFF6FF', '& fieldset': { border: 'none' }, '&:focus-within': { bgcolor: 'white', '& fieldset': { border: '2px solid #2563EB' } } } }}
               />
             </Box>
 
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>البريد الإلكتروني</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#2563EB" mb={1}>البريد الإلكتروني</Typography>
               <TextField
                 fullWidth type="email" variant="outlined" placeholder="email@example.com"
                 value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
@@ -445,7 +394,7 @@ export const UsersPage = () => {
 
             {!editingUserId ? (
               <Box>
-                <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>كلمة المرور الأولية</Typography>
+                <Typography fontWeight={800} fontSize="0.8rem" color="#2563EB" mb={1}>كلمة المرور الأولية</Typography>
                 <TextField
                   fullWidth type="password" variant="outlined" placeholder="••••••••"
                   value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
@@ -456,7 +405,7 @@ export const UsersPage = () => {
             ) : (
               <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8f9f8', border: '1px solid rgba(0,0,0,0.04)' }}>
                 <Typography variant="body2" fontWeight={800} color="#1b1424" mb={1.5} display="flex" alignItems="center" gap={1}>
-                  <VpnKey fontSize="small" sx={{ color: '#6D28D9' }}/> إعادة تعيين كلمة المرور
+                  <VpnKey fontSize="small" sx={{ color: '#2563EB' }}/> إعادة تعيين كلمة المرور
                 </Typography>
                 <TextField
                   fullWidth placeholder="كلمة مرور جديدة (اختياري)" type="password" size="small"
@@ -465,7 +414,7 @@ export const UsersPage = () => {
                 />
                 <Button 
                   fullWidth onClick={handleResetPasswordEmail} startIcon={<Email />}
-                  sx={{ borderRadius: 2, py: 1, fontWeight: 700, color: '#6D28D9', bgcolor: 'rgba(109,40,217,0.08)' }}
+                  sx={{ borderRadius: 2, py: 1, fontWeight: 700, color: '#2563EB', bgcolor: 'rgba(37,99,235,0.08)' }}
                 >
                   إرسال رابط استعادة للإيميل
                 </Button>
@@ -473,7 +422,7 @@ export const UsersPage = () => {
             )}
 
             <Box>
-              <Typography fontWeight={800} fontSize="0.8rem" color="#6D28D9" mb={1}>الصلاحية</Typography>
+              <Typography fontWeight={800} fontSize="0.8rem" color="#2563EB" mb={1}>الصلاحية</Typography>
               <Stack direction="row" spacing={1.5}>
                 {[
                   { value: 'editor', label: 'موظف عادي', icon: <Person /> },

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Search, Payments as PaymentsIcon, CalendarToday, TrendingUp } from '@mui/icons-material';
 import { useDataStore } from '../../store/useDataStore';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Input } from '../../design-system/primitives';
+import { Input, PageHero } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
 
 /**
@@ -43,51 +43,29 @@ export const PaymentsPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero card — brand gradient ═══ */}
-      <section
-        className="relative overflow-hidden rounded-2xl grain text-white"
-        style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #10B981 0%, transparent 70%)', opacity: 0.35 }}
-        />
-        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
-          <div className="flex-1 min-w-0">
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
-              <TrendingUp sx={{ fontSize: 12, color: '#34D399' }} />
-              المدفوعات
-            </span>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight mt-2">
-              إجمالي المحصّل
-            </h1>
-            <p className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-1 font-num tabular">
-              {formatCurrency(total)}
-            </p>
+      <PageHero
+        accent="success"
+        eyebrow={
+          <span className="flex items-center gap-1.5 text-inherit">
+            <TrendingUp sx={{ fontSize: 16 }} />
+            المدفوعات
+          </span>
+        }
+        title="إجمالي المحصّل"
+        headline={<span dir="ltr">{formatCurrency(total)}</span>}
+        trailing={
+          <div className="h-14 w-14 rounded-2xl bg-white/12 backdrop-blur border border-white/15 flex items-center justify-center shadow-lg">
+            <PaymentsIcon sx={{ fontSize: 28, color: '#fff' }} />
           </div>
-          <div className="shrink-0 h-14 w-14 rounded-2xl bg-white/12 backdrop-blur border border-white/15 flex items-center justify-center">
-            <PaymentsIcon sx={{ fontSize: 28, color: '#ffffff' }} />
-          </div>
-        </div>
-
-        {/* Inline stats */}
-        <div className="relative grid grid-cols-2 bg-black/15 border-t border-white/10">
-          <div className="p-4 text-center border-l border-white/10 rtl:border-l-0 rtl:border-r rtl:border-white/10">
-            <div className="text-2xs text-white/60 font-semibold">عدد العمليات</div>
-            <div className="text-lg font-extrabold text-white mt-0.5">{payments.length}</div>
-          </div>
-          <div className="p-4 text-center">
-            <div className="text-2xs text-white/60 font-semibold">متوسط الدفعة</div>
-            <div className="text-lg font-extrabold text-white mt-0.5 font-num tabular">
-              {formatCurrency(payments.length ? total / payments.length : 0)}
-            </div>
-          </div>
-        </div>
-      </section>
+        }
+        footerStats={[
+          { label: 'عدد العمليات', value: payments.length },
+          {
+            label: 'متوسط الدفعة',
+            value: <span dir="ltr">{formatCurrency(payments.length ? total / payments.length : 0)}</span>,
+          },
+        ]}
+      />
 
       {/* ═══ Search ═══ */}
       <section>
@@ -156,6 +134,7 @@ export const PaymentsPage = () => {
                   <div
                     className="text-base sm:text-lg font-extrabold font-num tabular shrink-0"
                     style={{ color: 'var(--brand-success)' }}
+                    dir="ltr"
                   >
                     +{formatCurrency(payment.amount)}
                   </div>

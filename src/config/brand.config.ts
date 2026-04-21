@@ -2,9 +2,9 @@ import type { BrandConfig } from './brand.types';
 
 /**
  * ============================================================================
- *  DEFAULT BRAND — "Royal Violet & Amber" + connected Firebase project
+ *  DEFAULT BRAND — "Air Blue & Slate" + connected Firebase project
  * ============================================================================
- *  Palette: distinctive violet / warm amber (Dimensional Layering + Soft UI).
+ *  Palette: trust-forward blue + cool slate surfaces (UI/UX Pro Max · fintech).
  *  Firebase: wired to the live "company-test-adafd" project.
  *
  *  To re-theme or re-wire at runtime, users can edit via /settings/branding —
@@ -27,10 +27,10 @@ export const DEFAULT_BRAND: BrandConfig = {
     letter: 'ت',
   },
 
-  // ═════ Royal Violet & Amber ═════
+  // ═════ Air Blue & Slate (primary = trust / open UI) ═════
   palette: {
-    primary: '#6D28D9',   // violet-700
-    secondary: '#F59E0B', // amber-500
+    primary: '#2563EB',   // blue-600
+    secondary: '#F59E0B', // amber-500 (accents / warmth)
     success: '#059669',   // emerald-600
     warning: '#F59E0B',   // amber-500
     danger: '#E11D48',    // rose-600
@@ -40,7 +40,8 @@ export const DEFAULT_BRAND: BrandConfig = {
   typography: {
     sansStack: "'Inter', 'Outfit', system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
     numericStack: "'Outfit', ui-monospace, monospace",
-    arabicStack: "'Tajawal', 'Cairo', system-ui, sans-serif",
+    /** Cairo-first for SaaS Arabic UI; editable in الإعدادات → العلامة التجارية */
+    arabicStack: "'Cairo', 'Tajawal', system-ui, sans-serif",
   },
 
   contact: {

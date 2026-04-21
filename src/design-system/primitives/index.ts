@@ -9,3 +9,5 @@ export * from './Badge';
 export * from './Modal';
 export * from './Sheet';
 export * from './Skeleton';
+export * from './PageHero';
+export * from './CurrencyAmount';

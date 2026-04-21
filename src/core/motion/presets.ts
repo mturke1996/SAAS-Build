@@ -84,7 +84,7 @@ export function staggerChildren(
       ease: 'power2.out',
       stagger,
       delay,
-      clearProps: 'transform',
+      clearProps: 'transform,opacity,visibility',
     }
   );
 }

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, ChangeEvent } from 'react';
 import { useBrandStore } from '../../stores/useBrandStore';
 import { useBrand } from '../../config/BrandProvider';
-import { Button, Input, Card, IconButton } from '../../design-system/primitives';
+import { Button, Input, Card } from '../../design-system/primitives';
 import { cn } from '../../design-system/primitives/cn';
 import { LogoMark } from '../brand/LogoMark';
 import { pageIntro } from '../../core/motion/presets';
@@ -9,20 +9,18 @@ import {
   Restore,
   CheckCircle,
   CloudUpload,
-  ContentCopy,
-  DataObject,
   Download,
   Upload,
   ChevronRight,
   ExpandMore,
-  WarningAmber,
   Palette,
-  Storage,
   Business,
   Contacts,
+  Lock,
 } from '@mui/icons-material';
 import { hasValidFirebase } from '../../config/firebase';
-import { FirebaseStatusPanel } from './FirebaseStatusPanel';
+import { AppLockSettingsDialog } from '../AppLockSettingsDialog';
+import { useAppLockStore } from '../../stores/useAppLockStore';
 
 /**
  * ============================================================================
@@ -35,7 +33,6 @@ import { FirebaseStatusPanel } from './FirebaseStatusPanel';
  *    • Logo             — URL OR upload (stored as data: URL)
  *    • Palette          — color pickers
  *    • Contact          — phone, email, website, address
- *    • Firebase         — 6 fields OR paste JSON (from Firebase console)
  *    • Backup & restore — export/import entire config as JSON
  * ============================================================================
  */
@@ -48,9 +45,11 @@ export function BrandingSettingsPage() {
     logo: true,
     palette: true,
     contact: false,
-    firebase: true,
     backup: false,
+    security: false,
   });
+  const [appLockDialogOpen, setAppLockDialogOpen] = useState(false);
+  const { isLocked, isAppLockReady } = useAppLockStore();
   const rtl = brand.direction === 'rtl';
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -81,46 +80,6 @@ export function BrandingSettingsPage() {
       flash();
     };
     reader.readAsDataURL(f);
-  };
-
-  // Firebase paste-as-JSON — accepts either the JS object literal from Firebase
-  // console ("const firebaseConfig = { ... };") or a pure JSON string.
-  const [fbJson, setFbJson] = useState('');
-  const [fbError, setFbError] = useState<string | null>(null);
-  const pasteFirebase = () => {
-    setFbError(null);
-    try {
-      // Try JSON first
-      let obj: any;
-      try {
-        obj = JSON.parse(fbJson);
-      } catch {
-        // Try extracting { ... } from code blob
-        const match = fbJson.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('no object');
-        // eslint-disable-next-line no-new-func
-        obj = Function(`"use strict"; return (${match[0]})`)();
-      }
-      if (!obj || typeof obj !== 'object') throw new Error('not an object');
-      const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
-      for (const k of required) {
-        if (!obj[k]) throw new Error(`missing ${k}`);
-      }
-      updateBrand({ firebase: obj });
-      flash();
-      setFbJson('');
-      alert(
-        rtl
-          ? 'تم حفظ إعدادات Firebase. أعد تحميل الصفحة لتطبيق الاتصال الجديد.'
-          : 'Firebase config saved. Reload the page for the new connection to take effect.'
-      );
-    } catch (err: any) {
-      setFbError(
-        rtl
-          ? 'تعذر قراءة الإعدادات. تأكد من نسخ الكائن كاملاً من Firebase console.'
-          : 'Could not read config. Paste the full object from Firebase console.'
-      );
-    }
   };
 
   // Export full brand as JSON download
@@ -196,30 +155,64 @@ export function BrandingSettingsPage() {
         </div>
       </header>
 
-      {/* Firebase connection warning */}
-      {!hasValidFirebase && (
-        <div
-          data-reveal
-          role="alert"
-          className="flex items-start gap-3 p-3 rounded-lg border"
-          style={{
-            borderColor: 'color-mix(in srgb, var(--brand-warning) 40%, transparent)',
-            backgroundColor: 'color-mix(in srgb, var(--brand-warning) 10%, transparent)',
-          }}
-        >
-          <WarningAmber sx={{ fontSize: 20, color: 'var(--brand-warning)' }} className="shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold" style={{ color: 'var(--brand-warning)' }}>
-              {rtl ? 'قاعدة البيانات غير متصلة' : 'Database not connected'}
-            </div>
-            <div className="text-xs text-fg-subtle mt-0.5">
-              {rtl
-                ? 'أدخل إعدادات Firebase أدناه للاتصال بقاعدة البيانات الحقيقية.'
-                : 'Enter Firebase configuration below to connect to a real database.'}
-            </div>
+      {/* App lock — PIN + per-module access (Firestore settings/appLock) */}
+      <SectionCard
+        open={openSections.security}
+        onToggle={() => toggle('security')}
+        Icon={Lock}
+        title={rtl ? 'قفل التطبيق والصلاحيات' : 'App lock & permissions'}
+        subtitle={
+          rtl
+            ? 'رمز سري، أقسام متاحة بدون رمز، واستثناءات مستخدمين. يتطلب اتصال Firebase.'
+            : 'PIN, guest-visible sections, and exempt users. Requires Firebase.'
+        }
+      >
+        <div className="rounded-xl border border-border bg-surface-panel p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-2xs font-bold',
+                isAppLockReady && isLocked
+                  ? 'bg-[color-mix(in_srgb,var(--brand-danger)_12%,transparent)] text-[color:var(--brand-danger)]'
+                  : 'bg-[color-mix(in_srgb,var(--brand-success)_12%,transparent)] text-[color:var(--brand-success)]'
+              )}
+            >
+              <Lock sx={{ fontSize: 14 }} />
+              {isAppLockReady
+                ? isLocked
+                  ? rtl
+                    ? 'القفل مفعّل'
+                    : 'Lock enabled'
+                  : rtl
+                    ? 'لا يوجد رمز — كل الأقسام متاحة'
+                    : 'No PIN — all sections open'
+                : rtl
+                  ? 'جاري تحميل إعدادات القفل…'
+                  : 'Loading lock settings…'}
+            </span>
           </div>
+          <p className="text-sm text-fg-subtle leading-relaxed">
+            {rtl
+              ? 'فعّل رمزًا واختر الأقسام التي يراها الزائر بدون إدخال الرمز. يمكن استثناء مستخدمين بالكامل.'
+              : 'Set a PIN and choose which sections guests see without it. You can exempt specific users.'}
+          </p>
+          <Button
+            variant="primary"
+            leftIcon={<Lock sx={{ fontSize: 18 }} />}
+            onClick={() => setAppLockDialogOpen(true)}
+            disabled={!hasValidFirebase}
+          >
+            {rtl ? 'إدارة الحماية والرمز السري' : 'Manage lock & PIN'}
+          </Button>
+          {!hasValidFirebase && (
+            <p className="text-2xs text-fg-muted">
+              {rtl ? 'اربط Firebase أولاً لحفظ إعدادات القفل في السحابة.' : 'Connect Firebase first to sync lock settings.'}
+            </p>
+          )}
         </div>
-      )}
+      </SectionCard>
+
+      <AppLockSettingsDialog open={appLockDialogOpen} onClose={() => setAppLockDialogOpen(false)} />
 
       {/* Identity */}
       <SectionCard
@@ -420,100 +413,6 @@ export function BrandingSettingsPage() {
             }}
           />
         </div>
-      </SectionCard>
-
-      {/* Firebase */}
-      <SectionCard
-        open={openSections.firebase}
-        onToggle={() => toggle('firebase')}
-        Icon={Storage}
-        title={rtl ? 'قاعدة البيانات — Firebase' : 'Database — Firebase'}
-        subtitle={rtl ? 'الصق إعدادات المشروع من Firebase console' : 'Paste project config from Firebase console'}
-        highlight={!hasValidFirebase}
-      >
-        {/* ── Live connection status ── */}
-        <div className="mb-4">
-          <FirebaseStatusPanel />
-        </div>
-
-        <div className="h-px bg-border my-4" />
-
-        {/* Paste JSON */}
-        <div className="space-y-2 mb-4">
-          <label className="text-xs font-medium text-fg-subtle block">
-            {rtl ? 'الصق كائن الإعدادات (firebaseConfig)' : 'Paste firebaseConfig object'}
-          </label>
-          <textarea
-            value={fbJson}
-            onChange={(e) => {
-              setFbJson(e.target.value);
-              setFbError(null);
-            }}
-            dir="ltr"
-            rows={6}
-            spellCheck={false}
-            className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-xs font-mono text-fg outline-none focus:shadow-focus focus:border-[color:var(--brand-primary)] transition-shadow duration-fast resize-y"
-            placeholder={`const firebaseConfig = {\n  apiKey: "AIza...",\n  authDomain: "myapp.firebaseapp.com",\n  projectId: "myapp",\n  ...\n};`}
-          />
-          {fbError && (
-            <div className="text-xs" style={{ color: 'var(--brand-danger)' }}>{fbError}</div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={pasteFirebase} leftIcon={<DataObject sx={{ fontSize: 16 }} />} disabled={!fbJson.trim()}>
-              {rtl ? 'تحليل وحفظ' : 'Parse & save'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Or edit individual fields */}
-        <details className="rounded-md border border-border bg-surface-sunken">
-          <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-fg-subtle hover:text-fg">
-            {rtl ? 'أو عدّل الحقول يدوياً' : 'Or edit fields manually'}
-          </summary>
-          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border">
-            {(
-              [
-                ['apiKey', rtl ? 'مفتاح API' : 'API key'],
-                ['authDomain', rtl ? 'نطاق المصادقة' : 'Auth domain'],
-                ['projectId', rtl ? 'معرف المشروع' : 'Project ID'],
-                ['storageBucket', rtl ? 'Storage Bucket' : 'Storage bucket'],
-                ['messagingSenderId', rtl ? 'معرف المرسل' : 'Messaging sender ID'],
-                ['appId', rtl ? 'معرف التطبيق' : 'App ID'],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="flex items-end gap-1">
-                <div className="flex-1 min-w-0">
-                  <Input
-                    label={label}
-                    value={(brand.firebase as any)[key] || ''}
-                    onChange={(e) => {
-                      updateBrand({ firebase: { [key]: e.target.value } as any });
-                      flash();
-                    }}
-                    dir="ltr"
-                  />
-                </div>
-                <IconButton
-                  size="sm"
-                  label={rtl ? 'نسخ' : 'Copy'}
-                  onClick={() => {
-                    navigator.clipboard?.writeText((brand.firebase as any)[key] || '');
-                    flash();
-                  }}
-                  className="mb-0"
-                >
-                  <ContentCopy sx={{ fontSize: 14 }} />
-                </IconButton>
-              </div>
-            ))}
-          </div>
-        </details>
-
-        <p className="text-2xs text-fg-muted mt-3 leading-relaxed">
-          {rtl
-            ? '💡 متغيرات البيئة VITE_FIREBASE_* لها الأولوية في الإنتاج. أعد تحميل الصفحة لتفعيل الاتصال الجديد.'
-            : '💡 VITE_FIREBASE_* env vars take priority in production. Reload the page to apply a new connection.'}
-        </p>
       </SectionCard>
 
       {/* Backup & restore */}

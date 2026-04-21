@@ -1,25 +1,53 @@
 rules_version = '2';
 
 // ============================================================================
-//  Firestore security rules for "company-test-adafd"
+//  Firestore Security Rules - Pro Max Security 🚀
 // ============================================================================
-//  DEVELOPMENT-ready: any authenticated user can read/write every document.
-//
-//  Deploy with:  firebase deploy --only firestore:rules
-//
-//  For production, lock down per-collection and validate the shape of writes.
+//  هذه القواعد مخصصة لبيئة الإنتاج (Production).
+//  تمنع أي شخص خارجي من الوصول للبيانات حتى لو امتلك حساباً (عبر تسجيل عشوائي).
+//  لا يتم منح إذن الدخول والوصول للمعلومات (العملاء، الفواتير، العهد...) إلا 
+//  للمستخدمين الموجودة هوياتهم (UID) مسبقاً في مجموعة "users".
 // ============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // 1. التحقق من أن الطلب يأتي من شخص قام بتسجيل الدخول
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Authenticated users get full read/write to all documents.
-    match /{document=**} {
-      allow read, write: if isAuthenticated();
+    // 2. التحقق من أن هذا الشخص هو "موظف موثوق" داخل النظام
+    // يتأكد من وجود وثيقة تحمل الـ UID الخاص به في مجموعة users
+    function isRegisteredEmployee() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // ----------------------------------------------------
+    // مجموعة المستخدمين (users)
+    // ----------------------------------------------------
+    // أي شخص مسجل دخول يمكنه "قراءة" هذه المجموعة فقط لكي يستطيع النظام
+    // التحقق مما إذا كان مسموحاً له بالدخول أم لا.
+    // لكن "الكتابة" أو إضافة موظفين لا تُسمح إلا للموظفين الموثوقين.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isRegisteredEmployee();
+    }
+
+    // ----------------------------------------------------
+    // مجموعة الإعدادات (settings) مثل أقفال التطبيق (AppLock)
+    // ----------------------------------------------------
+    match /settings/{document=**} {
+      allow read, write: if isRegisteredEmployee();
+    }
+
+    // ----------------------------------------------------
+    // كافة قواعد البيانات والملفات الأخرى (العملاء، الفواتير، المصروفات، العهد...)
+    // ----------------------------------------------------
+    // مغلقة بالكامل بأقفال حديدية. 
+    // لا تُقرأ ولا تُعدل إلا إذا كان المستخدم "موظف موثوق".
+    match /{collection}/{document=**} {
+      allow read, write: if isRegisteredEmployee();
     }
   }
 }

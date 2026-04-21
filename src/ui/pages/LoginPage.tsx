@@ -2,6 +2,7 @@ import { FormEvent, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
+import { fadeInUp, staggerChildren } from '../../core/motion/presets';
 import { Mail, Lock, ArrowForward, ArrowBack, Visibility, VisibilityOff, Bolt } from '@mui/icons-material';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useBrand } from '../../config/BrandProvider';
@@ -37,16 +38,15 @@ export function LoginPage() {
   useGSAP(
     () => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      // Intro
-      gsap.from('[data-hero]', { autoAlpha: 0, y: 10, duration: 0.45, ease: 'power2.out' });
-      gsap.from('[data-reveal]', {
-        autoAlpha: 0,
-        y: 10,
-        duration: 0.3,
-        ease: 'power2.out',
-        stagger: 0.06,
-        delay: 0.12,
-      });
+      const root = container.current;
+      const hero = root?.querySelector('[data-hero]');
+      if (reduced) {
+        if (hero) gsap.set(hero, { autoAlpha: 1, y: 0 });
+        if (root) gsap.set(root.querySelectorAll('[data-reveal]'), { autoAlpha: 1, y: 0 });
+      } else {
+        if (hero) fadeInUp(hero, 0, 10);
+        if (root) staggerChildren(root, '[data-reveal]', { duration: 0.3, stagger: 0.06, delay: 0.12 });
+      }
 
       // Aurora drift
       if (!reduced) {
@@ -85,19 +85,46 @@ export function LoginPage() {
     }
   };
 
+  const loginGradient =
+    'linear-gradient(155deg, #0c1222 0%, #1e3a8a 45%, #2563eb 100%)';
+
   return (
-    <div ref={container} className="min-h-[100dvh] bg-surface-canvas flex flex-col lg:flex-row">
-      {/* ═══ Hero — brand aurora mesh ═══ */}
+    <div ref={container} className="min-h-[100dvh] bg-surface-canvas flex flex-col lg:flex-row lg:min-h-screen">
+      {/* Mobile — compact branded strip: form stays above the fold (no 40vh empty hero) */}
+      <div
+        className="lg:hidden relative overflow-hidden shrink-0 grain text-white px-5 pt-[max(12px,env(safe-area-inset-top))] pb-4"
+        style={{ background: loginGradient }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-16 end-0 w-[200px] h-[200px] rounded-full blur-3xl pointer-events-none opacity-50"
+          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)' }}
+        />
+        <div className="relative flex items-start gap-3">
+          <LogoMark size={36} />
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-base text-white leading-tight">{brand.name}</span>
+              <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[0.65rem] font-semibold bg-white/15 border border-white/15">
+                <Bolt sx={{ fontSize: 11, color: '#FBBF24' }} />
+                {rtl ? 'تسجيل الدخول' : 'Sign in'}
+              </span>
+            </div>
+            <p className="text-white/85 text-sm font-medium mt-1.5 leading-snug line-clamp-2">
+              {rtl ? 'فواتير، عملاء، ومدفوعات في مكان واحد.' : brand.tagline || 'Operations, simplified.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop — full aurora hero */}
       <div
         data-hero
-        className="relative overflow-hidden text-white flex-shrink-0 lg:w-1/2 lg:min-h-[100dvh] grain"
+        className="relative overflow-hidden text-white flex-shrink-0 hidden lg:flex lg:w-1/2 lg:min-h-[100dvh] grain"
         style={{
-          background:
-            'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          minHeight: '42dvh',
+          background: loginGradient,
         }}
       >
-        {/* Aurora blobs */}
         <div
           data-blob="1"
           aria-hidden
@@ -117,7 +144,6 @@ export function LoginPage() {
           style={{ background: 'radial-gradient(closest-side, #EC4899, transparent)', opacity: 0.25 }}
         />
 
-        {/* Dot grid (subtle) */}
         <div
           className="absolute inset-0 opacity-[0.05] pointer-events-none"
           style={{
@@ -128,7 +154,7 @@ export function LoginPage() {
           aria-hidden
         />
 
-        <div className="relative h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
+        <div className="relative h-full flex flex-col justify-between p-10 xl:p-14">
           <div className="flex items-center gap-3">
             <LogoMark size={40} />
             <div className="flex flex-col leading-tight">
@@ -139,31 +165,30 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="space-y-4 mt-8 sm:mt-0">
-            {/* Accent badge */}
+          <div className="space-y-4 max-w-lg">
             <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-2xs font-semibold bg-white/15 text-white/90 backdrop-blur border border-white/15">
               <Bolt sx={{ fontSize: 12, color: '#FBBF24' }} />
               {rtl ? 'الإصدار الجديد' : 'New generation'}
             </span>
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight max-w-md">
+            <h1 className="text-3xl xl:text-5xl font-extrabold leading-[1.1] tracking-tight">
               {rtl ? 'إدارة أعمالك — أسرع، أذكى، أجمل.' : brand.tagline || 'Operations, simplified.'}
             </h1>
-            <p className="text-white/80 text-sm sm:text-base max-w-md leading-relaxed hidden sm:block">
+            <p className="text-white/80 text-sm xl:text-base leading-relaxed">
               {rtl
                 ? 'فواتير، عملاء، مدفوعات، ومستندات احترافية — كل ما تحتاجه لإدارة عملك بسلاسة.'
                 : 'Invoices, clients, payments, and professional documents — everything you need.'}
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3 text-sm text-white/70">
+          <div className="flex items-center gap-3 text-sm text-white/70">
             <span className="inline-block h-px w-10 bg-white/40" />
             <span>© {new Date().getFullYear()} {brand.fullName}</span>
           </div>
         </div>
       </div>
 
-      {/* ═══ Form pane ═══ */}
-      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 lg:p-12">
+      {/* Form — priority on mobile: scroll if keyboard open, still starts at top */}
+      <div className="flex-1 flex flex-col justify-start lg:justify-center min-h-0 overflow-y-auto p-5 sm:p-8 lg:p-12 pb-[max(24px,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-sm mx-auto">
           <div data-reveal className="mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">

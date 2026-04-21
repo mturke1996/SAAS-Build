@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -27,11 +27,14 @@ import { useDataStore } from '../../stores/useDataStore';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { useGlobalFundStore } from '../../stores/useGlobalFundStore';
+import { useMyFundStats } from '../../core/hooks/useMyFundStats';
 import { formatCurrency } from '../../core/utils-formatters';
-import { countUp } from '../../core/motion/presets';
+import { countUp, staggerChildren } from '../../core/motion/presets';
 import { useSmartNav } from '../../core/agent/useSmartNav';
-import { Button, IconButton } from '../../design-system/primitives';
+import { Button, IconButton, PageHero } from '../../design-system/primitives';
+import { LogoMark } from '../brand/LogoMark';
 import { cn } from '../../design-system/primitives/cn';
+import { HomeCustodyPledgeCard } from './HomeCustodyPledgeCard';
 
 /**
  * HomePage — "Dimensional Layering" dashboard.
@@ -39,6 +42,7 @@ import { cn } from '../../design-system/primitives/cn';
  *  Hero greeting card with brand gradient + grain.
  *  Float-card KPIs with subtle gradients + GSAP count-up.
  *  Touch-friendly module grid (2-col mobile, 3-col desktop).
+ *  Personal custody (عهدة) card when the user has fund deposits — links to expenses.
  *  Smart-nav "jump back in" chips.
  *
  *  Motion via @gsap/react — auto-cleaned.
@@ -53,6 +57,7 @@ export function HomePage() {
   const { mode, toggleTheme } = useThemeStore();
   const { frequent } = useSmartNav();
   const { getCurrentBalance } = useGlobalFundStore();
+  const myFundStats = useMyFundStats();
 
   const container = useRef<HTMLDivElement>(null);
   const kpiRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -72,21 +77,24 @@ export function HomePage() {
     };
   }, [payments, clients, expenses, invoices, getCurrentBalance]);
 
-  // GSAP intro + count-up
+  useGSAP(
+    () => {
+      const root = container.current;
+      if (!root) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const items = root.querySelectorAll<HTMLElement>('[data-reveal]');
+      if (reduced) {
+        gsap.set(items, { autoAlpha: 1, y: 0 });
+        return;
+      }
+      staggerChildren(root, '[data-reveal]', { duration: 0.3, stagger: 0.05, delay: 0.05 });
+    },
+    { scope: container, dependencies: [] }
+  );
+
   useGSAP(
     () => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduced) {
-        gsap.from('[data-reveal]', {
-          autoAlpha: 0,
-          y: 10,
-          duration: 0.3,
-          ease: 'power2.out',
-          stagger: 0.05,
-          delay: 0.05,
-        });
-      }
-      // Count-up (runs whether reduced or not — just faster if reduced)
       const vals = [stats.collected, stats.totalExpenses, stats.net, stats.clients];
       vals.forEach((v, i) => {
         const el = kpiRefs.current[i];
@@ -108,7 +116,7 @@ export function HomePage() {
   type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'info';
   type ModuleDef = {
     label: string;
-    sub: string;
+    sub: ReactNode;
     path: string;
     Icon: any;
     module: string | null;
@@ -119,7 +127,14 @@ export function HomePage() {
     { label: rtl ? 'العملاء' : 'Clients', sub: `${stats.clients} ${rtl ? 'عميل' : 'total'}`, path: '/clients', Icon: People, module: 'clients' },
     { label: rtl ? 'الفواتير' : 'Invoices', sub: stats.unpaidInvoices > 0 ? (rtl ? `${stats.unpaidInvoices} غير مدفوعة` : `${stats.unpaidInvoices} unpaid`) : (rtl ? 'كل الفواتير' : 'All'), path: '/invoices', Icon: Receipt, module: 'invoices', tone: invoicesTone },
     { label: rtl ? 'المدفوعات' : 'Payments', sub: rtl ? 'التحصيلات' : 'Collections', path: '/payments', Icon: PaymentsIcon, module: 'payments', tone: 'success' },
-    { label: rtl ? 'العهدات' : 'Fund', sub: formatCurrency(stats.fund), path: '/fund', Icon: AccountBalance, module: 'balances', tone: 'brand' },
+    {
+      label: rtl ? 'العهدات' : 'Fund',
+      sub: <span className="money-ltr font-num tabular inline-block">{formatCurrency(stats.fund)}</span>,
+      path: '/fund',
+      Icon: AccountBalance,
+      module: 'balances',
+      tone: 'brand',
+    },
     { label: rtl ? 'المصروفات' : 'Expenses', sub: rtl ? 'تتبع التكاليف' : 'Cost tracking', path: '/expenses', Icon: ReceiptLong, module: 'expenses', tone: 'danger' },
     { label: rtl ? 'الديون' : 'Debts', sub: rtl ? 'إدارة الديون' : 'Receivables', path: '/debts', Icon: Savings, module: 'debts', tone: 'warning' },
     { label: rtl ? 'الرسائل' : 'Letters', sub: rtl ? 'خطابات رسمية' : 'Official docs', path: '/letters', Icon: Description, module: 'letters', tone: 'info' },
@@ -129,50 +144,30 @@ export function HomePage() {
 
   return (
     <div ref={container} className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero greeting card — brand gradient + grain ═══ */}
-      <section
-        data-reveal
-        className="relative overflow-hidden rounded-2xl grain text-white"
-        style={{
-          background: 'linear-gradient(135deg, #1B0F3B 0%, #4C1D95 45%, #6D28D9 100%)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        {/* decorative blobs */}
-        <div
-          aria-hidden
-          className="absolute -top-16 -right-12 w-[220px] h-[220px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #F59E0B 0%, transparent 70%)', opacity: 0.35 }}
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-12 -left-8 w-[200px] h-[200px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)', opacity: 0.4 }}
-        />
-
-        <div className="relative flex items-start justify-between gap-4 p-5 sm:p-7">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 backdrop-blur text-white/90 text-2xs font-semibold border border-white/15">
-                <Bolt sx={{ fontSize: 12, color: '#FBBF24' }} />
-                {greeting}
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight">
-              {rtl ? `أهلاً ${displayName}` : `Welcome, ${displayName}`}
-            </h1>
-            <p className="text-white/75 text-sm mt-1.5">
-              {rtl ? `نظرة عامة على ${brand.name} اليوم.` : `Here's your ${brand.name} overview today.`}
-            </p>
-          </div>
-
-          {/* Quick actions */}
-          <div className="flex items-center gap-1 shrink-0">
+      {/* ═══ Hero — shared PageHero primitive (content + depth, not empty chrome) ═══ */}
+      <PageHero
+        reveal
+        accent="brand"
+        eyebrow={
+          <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/12 backdrop-blur border border-white/15 text-white/90 text-xs font-bold font-arabic shadow-sm">
+            <Bolt sx={{ fontSize: 16, color: '#FBBF24' }} />
+            {greeting}
+          </span>
+        }
+        brand={
+          <LogoMark size={30} showName inverted />
+        }
+        title={rtl ? `أهلاً ${displayName}` : `Welcome, ${displayName}`}
+        subtitle={
+          rtl ? `نظرة عامة على ${brand.name} اليوم.` : `Here's your ${brand.name} overview today.`
+        }
+        trailing={
+          <div className="flex items-center gap-2">
             {brand.features?.enableDarkMode && (
               <button
                 onClick={toggleTheme}
                 aria-label={rtl ? 'تبديل السمة' : 'Toggle theme'}
-                className="h-10 w-10 flex items-center justify-center rounded-md bg-white/12 hover:bg-white/20 text-white/90 backdrop-blur border border-white/15 transition-colors duration-fast pressable cursor-pointer"
+                className="h-11 w-11 flex items-center justify-center rounded-[14px] bg-white/12 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 transition-colors duration-300 shadow-sm"
               >
                 {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
               </button>
@@ -180,13 +175,13 @@ export function HomePage() {
             <button
               onClick={() => navigate('/settings/branding')}
               aria-label={rtl ? 'الإعدادات' : 'Settings'}
-              className="h-10 w-10 flex items-center justify-center rounded-md bg-white/12 hover:bg-white/20 text-white/90 backdrop-blur border border-white/15 transition-colors duration-fast pressable cursor-pointer"
+              className="h-11 w-11 flex items-center justify-center rounded-[14px] bg-white/12 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 transition-colors duration-300 shadow-sm"
             >
               <Settings fontSize="small" />
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* ═══ KPIs (Dimensional Layering) ═══ */}
       {canAccess('stats') && (
@@ -238,6 +233,49 @@ export function HomePage() {
           >
             {rtl ? 'إنشاء فاتورة جديدة' : 'Create new invoice'}
           </Button>
+        </section>
+      )}
+
+      {/* ═══ Personal custody (عهدة) — minimal card, same FIFO stats as Expenses ═══ */}
+      {(canAccess('expenses') || canAccess('balances')) && myFundStats && (
+        <section data-reveal aria-label={rtl ? 'رصيد العهدة الشخصية' : 'Personal custody balance'}>
+          <HomeCustodyPledgeCard
+            stats={myFundStats}
+            rtl={rtl}
+            onNavigateExpenses={() => navigate('/expenses')}
+          />
+        </section>
+      )}
+
+      {/* ═══ Fund Balance Card (visible when user has fund access) ═══ */}
+      {canAccess('balances') && stats.fund > 0 && (
+        <section data-reveal>
+          <button
+            onClick={() => navigate('/fund')}
+            className="w-full group relative overflow-hidden bg-surface-panel border border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-strong transition-all duration-300 text-start cursor-pointer"
+          >
+            <div className="absolute -top-[40%] -right-[20%] w-[60%] h-[80%] rounded-full bg-gradient-to-br from-[var(--brand-primary)]/8 to-transparent blur-[80px] pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[#8b5cf6] text-white shadow-lg">
+                  <AccountBalance sx={{ fontSize: 20 }} />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-fg truncate font-arabic">{rtl ? 'رصيد العهدة' : 'Fund Balance'}</div>
+                  <div className="text-2xs text-fg-muted font-arabic">{rtl ? 'صندوق الإيداعات والمصروفات' : 'Deposits & Expenses fund'}</div>
+                </div>
+              </div>
+              <div className="text-end shrink-0">
+                <div className="text-lg sm:text-xl font-extrabold font-num tabular-nums text-[var(--brand-primary)]">
+                  {formatCurrency(stats.fund)}
+                </div>
+                <div className="inline-flex items-center gap-1 text-2xs text-fg-muted">
+                  <span className="font-arabic">{rtl ? 'عرض التفاصيل' : 'Details'}</span>
+                  <ChevronRow sx={{ fontSize: 14 }} className="group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </button>
         </section>
       )}
 
@@ -352,7 +390,7 @@ function KpiTile({ label, valueRef, initial, tone, Icon }: KpiTileProps) {
 
 interface ModuleTileProps {
   label: string;
-  sub: string;
+  sub: ReactNode;
   Icon: any;
   tone?: 'brand' | 'success' | 'warning' | 'danger' | 'info';
   onClick: () => void;

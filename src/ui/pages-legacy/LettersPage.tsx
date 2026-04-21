@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, Stack, Container,
   IconButton, Dialog, TextField,
@@ -17,6 +16,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useDataStore } from '../../store/useDataStore';
 import { downloadPdf, sharePdf } from '../../utils/pdfService';
 import { LetterPDF } from '../../features/pdf/LetterPDF';
+import { PageHero } from '../../design-system/primitives/PageHero';
 import type { Letter, LetterType } from '../../types';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
@@ -66,7 +66,6 @@ const createDefault = (): Partial<Letter> => ({
 });
 
 export const LettersPage = () => {
-  const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { user } = useAuthStore();
@@ -151,42 +150,59 @@ export const LettersPage = () => {
   const handleDownload = (l: Letter) => withPdf(() => downloadPdf(React.createElement(LetterPDF, { letter: l }), `${typeLabels[l.type]}-${l.refNumber}`));
   const handleShare = (l: Letter) => withPdf(() => sharePdf(React.createElement(LetterPDF, { letter: l }), `${typeLabels[l.type]}-${l.refNumber}`, `${typeLabels[l.type]} - ${l.subject}`));
 
+  const countOfficial = letters.filter((l) => l.type === 'official').length;
+  const countOffer = letters.filter((l) => l.type === 'offer').length;
+  const countEnt = letters.filter((l) => l.type === 'entitlement').length;
+
   return (
     <Box sx={{ pb: 10 }}>
-
-      {/* ── Header ── */}
-      <Box sx={{
-        background: 'linear-gradient(135deg,#1B0F3B 0%,#4C1D95 50%,#6D28D9 100%)',
-        pt: 3, pb: 4, px: 2.5, borderRadius: '0 0 28px 28px',
-        boxShadow: '0 12px 40px rgba(109,40,217,0.25)', position: 'relative', overflow: 'hidden',
-      }}>
-        <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Stack direction="row" alignItems="center" gap={1.5}>
-              <Box>
-                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, textAlign: 'right' }}>الرسائل الرسمية</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, textAlign: 'right', display: 'block' }}>
-                  خطابات وعروض أسعار ومستخلصات
-                </Typography>
-              </Box>
-              <Box sx={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,rgba(245,158,11,0.25),rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Description sx={{ fontSize: 22, color: '#FBBF24' }} />
-              </Box>
-            </Stack>
-          </Stack>
-          <Stack direction="row" spacing={1} sx={{ mt: 2.5 }}>
-            {(['official', 'offer', 'entitlement'] as LetterType[]).map(t => (
-              <Box key={t} sx={{ flex: 1, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 2, py: 1 }}>
-                <Typography sx={{ fontSize: '1.2rem', fontWeight: 900, color: typeColors[t], fontFamily: 'Outfit' }}>{letters.filter(l => l.type === t).length}</Typography>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{typeLabels[t]}</Typography>
-              </Box>
-            ))}
-          </Stack>
-        </Container>
+      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 2 }}>
+        <PageHero
+          accent="warning"
+          eyebrow={
+            <span className="flex items-center gap-1.5 text-inherit">
+              <Description sx={{ fontSize: 16 }} />
+              المراسلات
+            </span>
+          }
+          title="الرسائل الرسمية"
+          subtitle="خطابات رسمية، عروض أسعار، ومستخلصات — مع تصدير PDF."
+          headline={<span dir="ltr">{letters.length}</span>}
+          trailing={
+            <Box
+              sx={{
+                width: 52,
+                height: 52,
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg,rgba(245,158,11,0.28),rgba(245,158,11,0.1))',
+                border: '1px solid rgba(245,158,11,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Description sx={{ fontSize: 26, color: '#FBBF24' }} />
+            </Box>
+          }
+          footerStatsTriple={[
+            {
+              label: typeLabels.official,
+              value: <span style={{ color: typeColors.official, fontFamily: 'Outfit' }}>{countOfficial}</span>,
+            },
+            {
+              label: typeLabels.offer,
+              value: <span style={{ color: typeColors.offer, fontFamily: 'Outfit' }}>{countOffer}</span>,
+            },
+            {
+              label: typeLabels.entitlement,
+              value: <span style={{ color: typeColors.entitlement, fontFamily: 'Outfit' }}>{countEnt}</span>,
+            },
+          ]}
+        />
       </Box>
 
       {/* ── Content ── */}
-      <Container maxWidth="sm" sx={{ mt: -1.5, position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="sm" sx={{ mt: 0, position: 'relative', zIndex: 1 }}>
         {letters.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8, px: 3, bgcolor: cardBg, borderRadius: 0, border: `1px solid ${cardBorder}`, mt: 3 }}>
             <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
@@ -312,19 +328,23 @@ export const LettersPage = () => {
 
       {/* ═══ DIALOG ═══ */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullScreen
-        PaperProps={{ sx: { bgcolor: isDark ? '#151a15' : '#f5f3ef', backgroundImage: 'none' } }}>
+        PaperProps={{ sx: { bgcolor: 'background.default', backgroundImage: 'none' } }}>
         {/* Top bar */}
-        <Box sx={{ bgcolor: isDark ? 'var(--surface-panel)' : '#fff', borderBottom: `1px solid ${cardBorder}`, px: 2, pt: 'calc(env(safe-area-inset-top) + 12px)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <IconButton onClick={() => setDialogOpen(false)} size="small"><Close /></IconButton>
-          <Typography fontWeight={800} sx={{ flex: 1, textAlign: 'center' }}>{editingId ? 'تعديل الرسالة' : 'رسالة جديدة'}</Typography>
-          <Button variant="contained" size="small" onClick={handleSave} sx={{ borderRadius: 1, px: 3, fontWeight: 700 }}>حفظ</Button>
+        <Box sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', px: 2, pt: 'calc(env(safe-area-inset-top) + 12px)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <IconButton onClick={() => setDialogOpen(false)} size="small" aria-label="إغلاق"><Close /></IconButton>
+          <Typography fontWeight={800} sx={{ flex: 1, textAlign: 'center', fontSize: '1rem' }}>{editingId ? 'تعديل الرسالة' : 'رسالة جديدة'}</Typography>
+          <Button variant="contained" color="primary" size="medium" onClick={handleSave} sx={{ borderRadius: 2, px: 2.5, fontWeight: 700, textTransform: 'none', minWidth: 72 }}>حفظ</Button>
         </Box>
 
         <Box sx={{ overflow: 'auto', flex: 1, px: 2, py: 2 }}>
           <Container maxWidth="sm" disableGutters>
-            <Stack spacing={2}>
+            <Stack spacing={2.5}>
 
-              {/* Type */}
+              {/* Meta */}
+              <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                <Typography variant="overline" sx={{ display: 'block', letterSpacing: '0.06em', fontWeight: 800, color: 'text.secondary', mb: 1.5 }}>
+                  النوع والمرجع
+                </Typography>
               <FormControl fullWidth size="small">
                 <InputLabel>نوع الرسالة</InputLabel>
                 <Select value={form.type || 'official'} label="نوع الرسالة" onChange={e => updateForm('type', e.target.value)}>
@@ -334,26 +354,29 @@ export const LettersPage = () => {
                 </Select>
               </FormControl>
 
-              {/* Ref & Date */}
-              <Stack direction="row" spacing={1.5}>
-                <TextField fullWidth size="small" label="رقم المرجع" value={form.refNumber || ''} onChange={e => updateForm('refNumber', e.target.value)} InputProps={{ sx: { fontFamily: 'Outfit' } }} />
+              <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+                <TextField fullWidth size="small" label="رقم المرجع" value={form.refNumber || ''} onChange={e => updateForm('refNumber', e.target.value)} />
                 <TextField fullWidth size="small" label="التاريخ" type="date" value={form.date || ''} onChange={e => updateForm('date', e.target.value)} InputLabelProps={{ shrink: true }} />
               </Stack>
+              </Box>
 
-              {/* ═══ RECIPIENT ═══ */}
-              <Typography variant="subtitle2" fontWeight={700} color="primary">المستلم</Typography>
-              <Stack direction="row" justifyContent="center" sx={{ mb: -0.5 }}>
-                <Stack direction="row" spacing={0.5} sx={{ bgcolor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)', borderRadius: 1, p: 0.5 }}>
-                  <Button size="small" variant={useExistingClient ? 'contained' : 'text'}
+              {/* Recipient */}
+              <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+              <Typography variant="overline" sx={{ display: 'block', letterSpacing: '0.06em', fontWeight: 800, color: 'text.secondary', mb: 1.5 }}>
+                المستلم
+              </Typography>
+              <Stack direction="row" justifyContent="center" sx={{ mb: 1.5 }}>
+                <Stack direction="row" spacing={0.5} sx={{ bgcolor: 'action.hover', borderRadius: 2, p: 0.5, width: '100%', maxWidth: 360 }}>
+                  <Button size="small" fullWidth variant={useExistingClient ? 'contained' : 'text'} color="primary"
                     onClick={() => { setUseExistingClient(true); setSelectedClientId(null); setForm(p => ({ ...p, recipientName: '', recipientAddress: '', recipientPhone: '' })); }}
                     startIcon={<Person sx={{ fontSize: 15 }} />}
-                    sx={{ borderRadius: 0.5, fontSize: '0.72rem', px: 2, fontWeight: 700, ...(useExistingClient ? {} : { color: 'text.secondary' }) }}>
+                    sx={{ borderRadius: 1.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', py: 1, ...(useExistingClient ? {} : { color: 'text.secondary' }) }}>
                     من العملاء
                   </Button>
-                  <Button size="small" variant={!useExistingClient ? 'contained' : 'text'}
+                  <Button size="small" fullWidth variant={!useExistingClient ? 'contained' : 'text'} color="primary"
                     onClick={() => { setUseExistingClient(false); setSelectedClientId(null); setForm(p => ({ ...p, clientId: '', recipientName: '', recipientAddress: '', recipientPhone: '' })); }}
                     startIcon={<PersonAdd sx={{ fontSize: 15 }} />}
-                    sx={{ borderRadius: 0.5, fontSize: '0.72rem', px: 2, fontWeight: 700, ...(!useExistingClient ? { bgcolor: '#c9a54e', '&:hover': { bgcolor: '#b8943d' } } : { color: 'text.secondary' }) }}>
+                    sx={{ borderRadius: 1.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', py: 1, ...(!useExistingClient ? {} : { color: 'text.secondary' }) }}>
                     عميل مؤقت
                   </Button>
                 </Stack>
@@ -370,14 +393,17 @@ export const LettersPage = () => {
               <TextField fullWidth size="small" label="صفة المستلم (اختياري)" value={form.recipientTitle || ''} onChange={e => updateForm('recipientTitle', e.target.value)} />
               <Stack direction="row" spacing={1}>
                 <TextField fullWidth size="small" label="العنوان" value={form.recipientAddress || ''} onChange={e => updateForm('recipientAddress', e.target.value)} />
-                <TextField fullWidth size="small" label="الهاتف" value={form.recipientPhone || ''} onChange={e => updateForm('recipientPhone', e.target.value)} InputProps={{ sx: { fontFamily: 'Outfit' } }} />
+                <TextField fullWidth size="small" label="الهاتف" value={form.recipientPhone || ''} onChange={e => updateForm('recipientPhone', e.target.value)} />
               </Stack>
+              </Box>
 
-              {/* Subject */}
-              <TextField fullWidth size="small" label="الموضوع *" value={form.subject || ''} onChange={e => updateForm('subject', e.target.value)} />
+              <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+              <Typography variant="overline" sx={{ display: 'block', letterSpacing: '0.06em', fontWeight: 800, color: 'text.secondary', mb: 1.5 }}>
+                الموضوع والمحتوى
+              </Typography>
+              <TextField fullWidth size="small" label="الموضوع *" value={form.subject || ''} onChange={e => updateForm('subject', e.target.value)} sx={{ mb: 2 }} />
 
-              {/* ═══ GREETING PRESETS ═══ */}
-              <Typography variant="subtitle2" fontWeight={700} color="primary">البداية</Typography>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1 }}>البداية</Typography>
               <FormControl fullWidth size="small">
                 <InputLabel>اختر بداية</InputLabel>
                 <Select value={GREETINGS.includes(form.greeting || '') ? form.greeting : 'custom'} label="اختر بداية"
@@ -388,10 +414,9 @@ export const LettersPage = () => {
                   <MenuItem value="custom" sx={{ color: 'primary.main', fontWeight: 700 }}>كتابة يدوية</MenuItem>
                 </Select>
               </FormControl>
-              <TextField fullWidth size="small" multiline minRows={2} label="نص البداية" value={form.greeting || ''} onChange={e => updateForm('greeting', e.target.value)} />
+              <TextField fullWidth size="small" multiline minRows={2} label="نص البداية" value={form.greeting || ''} onChange={e => updateForm('greeting', e.target.value)} sx={{ mb: 2 }} />
 
-              {/* Body */}
-              <Typography variant="subtitle2" fontWeight={700} color="primary">نص الرسالة</Typography>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1 }}>نص الرسالة</Typography>
               {(form.bodyParagraphs || ['']).map((para, i) => (
                 <Box key={i} sx={{ position: 'relative' }}>
                   <TextField fullWidth size="small" multiline minRows={2} label={`الفقرة ${i + 1}`} value={para} onChange={e => updateParagraph(i, e.target.value)} />
@@ -403,13 +428,11 @@ export const LettersPage = () => {
                   )}
                 </Box>
               ))}
-              <Button size="small" startIcon={<AddCircleOutline />} onClick={addParagraph} sx={{ alignSelf: 'flex-end', fontSize: '0.75rem' }}>إضافة فقرة</Button>
+              <Button size="small" variant="outlined" startIcon={<AddCircleOutline />} onClick={addParagraph} sx={{ alignSelf: 'flex-end', fontSize: '0.75rem', textTransform: 'none', borderRadius: 2, mb: 2 }}>إضافة فقرة</Button>
 
-              {/* Notes */}
-              <TextField fullWidth size="small" multiline minRows={2} label="ملاحظات (اختياري)" value={form.notes || ''} onChange={e => updateForm('notes', e.target.value)} />
+              <TextField fullWidth size="small" multiline minRows={2} label="ملاحظات (اختياري)" value={form.notes || ''} onChange={e => updateForm('notes', e.target.value)} sx={{ mb: 2 }} />
 
-              {/* ═══ CLOSING PRESETS ═══ */}
-              <Typography variant="subtitle2" fontWeight={700} color="primary">الخاتمة</Typography>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1 }}>الخاتمة</Typography>
               <FormControl fullWidth size="small">
                 <InputLabel>اختر خاتمة</InputLabel>
                 <Select value={CLOSINGS.includes(form.closing || '') ? form.closing : 'custom'} label="اختر خاتمة"
@@ -421,21 +444,25 @@ export const LettersPage = () => {
                 </Select>
               </FormControl>
               <TextField fullWidth size="small" multiline minRows={2} label="نص الخاتمة" value={form.closing || ''} onChange={e => updateForm('closing', e.target.value)} />
+              </Box>
 
-              {/* Signer */}
-              <Typography variant="subtitle2" fontWeight={700} color="primary">التوقيع والختم</Typography>
+              <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+              <Typography variant="overline" sx={{ display: 'block', letterSpacing: '0.06em', fontWeight: 800, color: 'text.secondary', mb: 1.5 }}>
+                التوقيع والختم
+              </Typography>
               <Stack direction="row" spacing={1.5}>
                 <TextField fullWidth size="small" label="اسم الموقع" value={form.signerName || ''} onChange={e => updateForm('signerName', e.target.value)} />
                 <TextField fullWidth size="small" label="الصفة" value={form.signerTitle || ''} onChange={e => updateForm('signerTitle', e.target.value)} />
               </Stack>
-              <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={1}>
-                <Typography variant="body2" fontWeight={600}>إظهار الختم</Typography>
-                <Button variant={form.showStamp ? 'contained' : 'outlined'} size="small" onClick={() => updateForm('showStamp', !form.showStamp)} sx={{ borderRadius: 1, minWidth: 50 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mt: 2 }}>
+                <Typography variant="body2" fontWeight={600} color="text.secondary">إظهار الختم</Typography>
+                <Button variant={form.showStamp ? 'contained' : 'outlined'} color="primary" size="small" onClick={() => updateForm('showStamp', !form.showStamp)} sx={{ borderRadius: 2, minWidth: 56, textTransform: 'none' }}>
                   {form.showStamp ? 'نعم' : 'لا'}
                 </Button>
               </Stack>
+              </Box>
 
-              <Box sx={{ height: 40 }} />
+              <Box sx={{ height: 32 }} />
             </Stack>
           </Container>
         </Box>
