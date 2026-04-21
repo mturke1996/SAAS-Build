@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 import { PageHero } from '../../design-system/primitives/PageHero';
 import { Button as DsButton } from '../../design-system/primitives';
-import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, setDoc, deleteDoc, doc, updateDoc, where, getDocs, writeBatch } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { db, auth } from '../../config/firebase';
@@ -73,7 +73,7 @@ export const UsersPage = () => {
         if (oldName && oldName !== newName) {
           const batch = writeBatch(db);
           
-          const ubQ = query(collection(db, 'userBalances'), where('userName', '==', oldName));
+          const ubQ = query(collection(db, 'user_balances'), where('userName', '==', oldName));
           const ubSnaps = await getDocs(ubQ);
           ubSnaps.forEach(docSnap => batch.update(docSnap.ref, { userName: newName }));
 
@@ -120,12 +120,13 @@ export const UsersPage = () => {
       await updateProfile(userCred.user, { displayName: formData.name });
       await signOut(secondaryAuth);
 
-      await addDoc(collection(db, 'users'), {
+      // Document ID must equal Auth UID — firestore.rules uses exists(.../users/$(request.auth.uid))
+      await setDoc(doc(db, 'users', userCred.user.uid), {
         uid: userCred.user.uid,
         displayName: formData.name,
         email: formData.email,
         role: formData.role,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
 
       toast.success('تم إضافة المستخدم بنجاح');
@@ -153,7 +154,7 @@ export const UsersPage = () => {
         batch.delete(doc(db, 'users', id));
 
         if (oldName) {
-           const ubQ = query(collection(db, 'userBalances'), where('userName', '==', oldName));
+           const ubQ = query(collection(db, 'user_balances'), where('userName', '==', oldName));
            const ubSnaps = await getDocs(ubQ);
            ubSnaps.forEach(docSnap => batch.delete(docSnap.ref));
 

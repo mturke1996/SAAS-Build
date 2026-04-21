@@ -20,6 +20,7 @@ import {
   Brightness4,
   Brightness7,
   Bolt,
+  MonetizationOn,
 } from '@mui/icons-material';
 import { useBrand } from '../../config/BrandProvider';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -28,6 +29,7 @@ import { useAppLockStore } from '../../stores/useAppLockStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { useGlobalFundStore } from '../../stores/useGlobalFundStore';
 import { useMyFundStats } from '../../core/hooks/useMyFundStats';
+import { computeClientsProfitSummary } from '../../core/finance/clientProfitTotals';
 import { formatCurrency } from '../../core/utils-formatters';
 import { countUp, staggerChildren } from '../../core/motion/presets';
 import { useSmartNav } from '../../core/agent/useSmartNav';
@@ -66,10 +68,11 @@ export function HomePage() {
   const stats = useMemo(() => {
     const collected = payments.reduce((s, p) => s + p.amount, 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+    const profitSummary = computeClientsProfitSummary(clients, payments);
     return {
       collected,
       totalExpenses,
-      net: collected - totalExpenses,
+      profitSummary,
       clients: clients.length,
       invoices: invoices.length,
       unpaidInvoices: invoices.filter((i) => i.status !== 'paid' && i.status !== 'cancelled').length,
@@ -95,7 +98,7 @@ export function HomePage() {
   useGSAP(
     () => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const vals = [stats.collected, stats.totalExpenses, stats.net, stats.clients];
+      const vals = [stats.collected, stats.totalExpenses, stats.profitSummary.totalGrossProfit, stats.clients];
       vals.forEach((v, i) => {
         const el = kpiRefs.current[i];
         if (!el) return;
@@ -106,7 +109,15 @@ export function HomePage() {
         });
       });
     },
-    { scope: container, dependencies: [stats.collected, stats.totalExpenses, stats.net, stats.clients] }
+    {
+      scope: container,
+      dependencies: [
+        stats.collected,
+        stats.totalExpenses,
+        stats.profitSummary.totalGrossProfit,
+        stats.clients,
+      ],
+    }
   );
 
   const greeting = getGreeting(rtl);
@@ -205,11 +216,21 @@ export function HomePage() {
             Icon={TrendingDown}
           />
           <KpiTile
-            label={rtl ? 'الصافي' : 'Net'}
+            label={rtl ? 'إجمالي الأرباح' : 'Gross profit'}
+            hint={
+              rtl
+                ? stats.profitSummary.clientsWithProfitRule > 0
+                  ? `مجموع نسب الأرباح من ${stats.profitSummary.clientsWithProfitRule} عميل`
+                  : 'نسبة الربح × المحصّل لكل عميل'
+                : stats.profitSummary.clientsWithProfitRule > 0
+                  ? `From ${stats.profitSummary.clientsWithProfitRule} clients (profit %)`
+                  : 'Collections × profit % per client'
+            }
+            highlight={stats.profitSummary.totalGrossProfit > 0}
             valueRef={(el) => (kpiRefs.current[2] = el)}
             initial={formatCurrency(0)}
-            tone={stats.net >= 0 ? 'brand' : 'danger'}
-            Icon={TrendingUp}
+            tone={stats.profitSummary.totalGrossProfit > 0 ? 'success' : 'neutral'}
+            Icon={MonetizationOn}
           />
           <KpiTile
             label={rtl ? 'العملاء' : 'Clients'}
@@ -336,13 +357,17 @@ export function HomePage() {
 
 interface KpiTileProps {
   label: string;
+  /** Short caption under the title (UI/UX Pro Max: clarify KPI meaning without clutter). */
+  hint?: string;
+  /** Emphasis ring when the metric is “active” (e.g. profit &gt; 0). */
+  highlight?: boolean;
   valueRef: (el: HTMLSpanElement | null) => void;
   initial: string;
   tone: 'brand' | 'success' | 'danger' | 'neutral';
   Icon: any;
 }
 
-function KpiTile({ label, valueRef, initial, tone, Icon }: KpiTileProps) {
+function KpiTile({ label, hint, highlight, valueRef, initial, tone, Icon }: KpiTileProps) {
   const toneColor =
     tone === 'success' ? 'var(--brand-success)' :
     tone === 'danger'  ? 'var(--brand-danger)' :
@@ -356,21 +381,31 @@ function KpiTile({ label, valueRef, initial, tone, Icon }: KpiTileProps) {
 
   return (
     <div
-      className="relative bg-surface-panel border border-border rounded-xl p-3 lg:p-4 shadow-xs hover:shadow-sm transition-all duration-base overflow-hidden"
+      className={cn(
+        'relative bg-surface-panel border rounded-xl p-3 lg:p-4 shadow-xs hover:shadow-md transition-all duration-base overflow-hidden',
+        highlight
+          ? 'border-[color:color-mix(in_srgb,var(--brand-success)_35%,var(--surface-border))] ring-1 ring-[color:color-mix(in_srgb,var(--brand-success)_18%,transparent)]'
+          : 'border-border'
+      )}
       style={{
         backgroundImage: `radial-gradient(140% 70% at 100% 0%, ${toneBg} 0%, transparent 60%)`,
       }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-2xs uppercase tracking-wider text-fg-muted font-bold truncate">
-          {label}
-        </span>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="min-w-0 flex-1">
+          <span className="text-2xs uppercase tracking-wider text-fg-muted font-bold block truncate">
+            {label}
+          </span>
+          {hint && (
+            <p className="text-[0.65rem] leading-snug text-fg-muted mt-1 line-clamp-2 font-arabic">{hint}</p>
+          )}
+        </div>
         <span
           className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
           style={{ background: toneBg, color: toneColor }}
           aria-hidden
         >
-          <Icon sx={{ fontSize: 14 }} />
+          <Icon sx={{ fontSize: 15 }} />
         </span>
       </div>
       <span
