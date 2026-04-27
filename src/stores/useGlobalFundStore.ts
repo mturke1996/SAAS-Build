@@ -3,6 +3,8 @@ import { globalFundTransactionsService } from '../services/firebaseService';
 import type { GlobalFundTransaction } from '../types';
 import { orderBy } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { useNotificationStore } from './useNotificationStore';
+import { formatFirebaseError } from '../core/formatFirebaseError';
 
 interface GlobalFundState {
   transactions: GlobalFundTransaction[];
@@ -67,31 +69,43 @@ export const useGlobalFundStore = create<GlobalFundState>((set, get) => ({
 
   // ─── Actions ───────────────────────────────────
   addTransaction: async (tx) => {
+    const ok = tx.type === 'deposit' ? 'تم إيداع الرصيد بنجاح' : 'تم تسجيل السحب بنجاح';
     try {
       await globalFundTransactionsService.add(tx);
-      toast.success(tx.type === 'deposit' ? 'تم إيداع الرصيد بنجاح' : 'تم تسجيل السحب بنجاح');
+      toast.success(ok);
+      useNotificationStore.getState().push({ type: 'success', title: ok });
     } catch (e) {
-      toast.error('حدث خطأ أثناء تنفيذ العملية');
+      const msg = formatFirebaseError(e);
+      toast.error(msg);
+      useNotificationStore.getState().push({ type: 'error', title: msg });
       throw e;
     }
   },
 
   updateTransaction: async (id, data) => {
+    const ok = 'تم التحديث بنجاح';
     try {
       await globalFundTransactionsService.update(id, data);
-      toast.success('تم التحديث بنجاح');
+      toast.success(ok);
+      useNotificationStore.getState().push({ type: 'success', title: ok });
     } catch (e) {
-      toast.error('حدث خطأ');
+      const msg = formatFirebaseError(e);
+      toast.error(msg);
+      useNotificationStore.getState().push({ type: 'error', title: msg });
       throw e;
     }
   },
 
   deleteTransaction: async (id) => {
+    const ok = 'تم الحذف';
     try {
       await globalFundTransactionsService.delete(id);
-      toast.success('تم الحذف');
+      toast.success(ok);
+      useNotificationStore.getState().push({ type: 'success', title: ok });
     } catch (e) {
-      toast.error('حدث خطأ');
+      const msg = formatFirebaseError(e);
+      toast.error(msg);
+      useNotificationStore.getState().push({ type: 'error', title: msg });
       throw e;
     }
   },

@@ -39,7 +39,7 @@ export function LoginPage() {
   const ArrowIcon = rtl ? ArrowBack : ArrowForward;
 
   const loginGradient =
-    'linear-gradient(160deg, #070b14 0%, #0f1f4a 38%, #1d4ed8 72%, #2563eb 100%)';
+    'linear-gradient(160deg, #050810 0%, #0d1528 38%, #1A2B58 72%, #2a4275 100%)';
 
   useGSAP(
     () => {
@@ -130,17 +130,17 @@ export function LoginPage() {
         <Blob
           n="1"
           className="absolute -top-24 -end-8 w-[280px] h-[280px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)', opacity: 0.55 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(96,130,200,0.45), transparent)', opacity: 0.45 }}
         />
         <Blob
           n="2"
           className="absolute -bottom-20 -start-16 w-[320px] h-[320px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #F59E0B, transparent)', opacity: 0.28 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(196,92,78,0.5), transparent)', opacity: 0.22 }}
         />
         <Blob
           n="3"
           className="absolute top-1/3 start-1/4 w-[200px] h-[200px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #EC4899, transparent)', opacity: 0.22 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(253,226,230,0.35), transparent)', opacity: 0.18 }}
         />
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
@@ -199,17 +199,17 @@ export function LoginPage() {
         <Blob
           n="1"
           className="absolute -top-28 -right-24 w-[340px] h-[340px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #8B5CF6, transparent)', opacity: 0.55 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(96,130,200,0.45), transparent)', opacity: 0.45 }}
         />
         <Blob
           n="2"
           className="absolute -bottom-24 -left-28 w-[420px] h-[420px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #F59E0B, transparent)', opacity: 0.3 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(196,92,78,0.5), transparent)', opacity: 0.22 }}
         />
         <Blob
           n="3"
           className="absolute top-1/3 left-1/4 w-[240px] h-[240px] rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(closest-side, #EC4899, transparent)', opacity: 0.25 }}
+          style={{ background: 'radial-gradient(closest-side, rgba(253,226,230,0.35), transparent)', opacity: 0.18 }}
         />
 
         <div

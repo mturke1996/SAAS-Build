@@ -10,6 +10,7 @@ import { useThemeStore } from '../../stores/useThemeStore';
 import { useBrand } from '../../config/BrandProvider';
 import { IconButton } from '../../design-system/primitives';
 import { AppLockSettingsDialog } from '../AppLockSettingsDialog';
+import { NotificationBell } from '../notifications/NotificationBell';
 import {
   Brightness4,
   Brightness7,
@@ -118,7 +119,7 @@ export function Sidebar() {
         <div className="shrink-0 border-t border-[color-mix(in_oklab,var(--surface-border)_60%,transparent)] bg-[color-mix(in_oklab,var(--surface-panel)_70%,transparent)] p-3 backdrop-blur-xl relative z-10">
           <div className="flex items-center gap-3">
             <div
-              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[var(--brand-primary)] to-[#c084fc] text-white text-sm font-bold shadow-[0_4px_10px_rgba(109,40,217,0.3)] border border-white/20"
+              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-hover)] text-white text-sm font-bold shadow-[0_4px_10px_rgba(26,43,88,0.25)] border border-white/20"
               aria-hidden
             >
               {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
@@ -129,6 +130,7 @@ export function Sidebar() {
               <div className="truncate text-2xs text-fg-muted font-mono">{user?.email}</div>
             </div>
             <div className="flex flex-col gap-1">
+              <NotificationBell size="sm" className="!p-0" />
               <IconButton size="sm" label={rtl ? 'تبديل السمة' : 'Toggle theme'} onClick={toggleTheme} className="bg-surface-sunken hover:bg-surface-hover hover:text-[var(--brand-primary)]">
                 {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
               </IconButton>
@@ -327,7 +329,7 @@ function SidebarLink({
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
         'overflow-hidden',
         active
-          ? 'bg-[var(--surface-raised)] text-[var(--brand-primary)] font-extrabold shadow-[0_2px_12px_rgba(109,40,217,0.08)] border border-[var(--brand-primary-soft)]'
+          ? 'bg-[var(--surface-raised)] text-[var(--brand-primary)] font-extrabold shadow-[0_2px_12px_rgba(26,43,88,0.06)] border border-[var(--brand-primary-soft)]'
           : 'text-fg-subtle hover:bg-surface-hover hover:text-fg font-bold border border-transparent'
       )}
     >
@@ -353,11 +355,11 @@ function SidebarLink({
         className={cn(
           'relative flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] transition-all duration-300',
           active
-            ? 'bg-gradient-to-br from-[var(--brand-primary)] to-[#8b5cf6] text-white shadow-md'
+            ? 'bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-hover)] text-white shadow-md'
             : 'bg-surface-sunken text-fg-muted group-hover:text-[var(--brand-primary)] group-hover:scale-105 group-hover:-rotate-3'
         )}
       >
-        <Icon sx={{ fontSize: active ? 19 : 20 }} className={cn(active && 'animate-pulse-ring rounded-full')} />
+        <Icon sx={{ fontSize: active ? 19 : 20 }} />
       </span>
       <span className="relative min-w-0 flex-1 truncate text-start leading-snug font-arabic tracking-tight">{label}</span>
       {active && <ChevronOut sx={{ fontSize: 18, opacity: 0.9, flexShrink: 0 }} className="relative text-[var(--brand-primary)] transition-transform group-hover:translate-x-1" />}

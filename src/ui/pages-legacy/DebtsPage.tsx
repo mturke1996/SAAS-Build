@@ -90,12 +90,12 @@ export const DebtsPage = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 pb-8 pt-2 sm:px-6 lg:space-y-5 lg:px-8 lg:pb-10 lg:pt-4">
       <PageHero
         accent="danger"
         eyebrow={
-          <span className="flex items-center gap-1.5 text-inherit">
-            <Savings sx={{ fontSize: 16 }} />
+          <span className="flex items-center gap-1 text-inherit">
+            <Savings sx={{ fontSize: 14 }} />
             الديون
           </span>
         }
@@ -105,9 +105,9 @@ export const DebtsPage = () => {
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-[16px] font-bold text-sm text-[color:var(--brand-primary)] bg-white hover:bg-white/90 transition-colors shadow-lg"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-[color:var(--brand-primary)] shadow-sm transition hover:bg-white/92"
           >
-            <Add sx={{ fontSize: 18 }} />
+            <Add sx={{ fontSize: 16 }} />
             جديد
           </button>
         }

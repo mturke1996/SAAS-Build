@@ -156,12 +156,13 @@ export const LettersPage = () => {
 
   return (
     <Box sx={{ pb: 10 }}>
-      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 2 }}>
+      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 1.5 }}>
         <PageHero
+          compact
           accent="warning"
           eyebrow={
-            <span className="flex items-center gap-1.5 text-inherit">
-              <Description sx={{ fontSize: 16 }} />
+            <span className="flex items-center gap-1 text-inherit">
+              <Description sx={{ fontSize: 14 }} />
               المراسلات
             </span>
           }
@@ -171,17 +172,17 @@ export const LettersPage = () => {
           trailing={
             <Box
               sx={{
-                width: 52,
-                height: 52,
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg,rgba(245,158,11,0.28),rgba(245,158,11,0.1))',
-                border: '1px solid rgba(245,158,11,0.35)',
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg,rgba(245,158,11,0.24),rgba(245,158,11,0.08))',
+                border: '1px solid rgba(245,158,11,0.32)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Description sx={{ fontSize: 26, color: '#FBBF24' }} />
+              <Description sx={{ fontSize: 20, color: '#FBBF24' }} />
             </Box>
           }
           footerStatsTriple={[

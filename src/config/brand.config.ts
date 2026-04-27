@@ -2,13 +2,10 @@ import type { BrandConfig } from './brand.types';
 
 /**
  * ============================================================================
- *  DEFAULT BRAND — "Air Blue & Slate" + connected Firebase project
+ *  DEFAULT BRAND — "Navy & Peach" (Stitch-style fintech) + Firebase
  * ============================================================================
- *  Palette: trust-forward blue + cool slate surfaces (UI/UX Pro Max · fintech).
+ *  Deep navy primary, warm off-white canvas, coral/peach for urgent surfaces.
  *  Firebase: wired to the live "company-test-adafd" project.
- *
- *  To re-theme or re-wire at runtime, users can edit via /settings/branding —
- *  no code changes required.
  * ============================================================================
  */
 
@@ -27,18 +24,18 @@ export const DEFAULT_BRAND: BrandConfig = {
     letter: 'ت',
   },
 
-  // ═════ Air Blue & Slate (primary = trust / open UI) ═════
+  // ═════ Navy + peach accent (curator / premium SaaS) ═════
   palette: {
-    primary: '#2563EB',   // blue-600
-    secondary: '#F59E0B', // amber-500 (accents / warmth)
-    success: '#059669',   // emerald-600
-    warning: '#F59E0B',   // amber-500
-    danger: '#E11D48',    // rose-600
-    info: '#0EA5E9',      // sky-500
+    primary: '#1A2B58',   // deep navy — buttons, nav, focus
+    secondary: '#C45C4E', // warm coral (secondary actions / warm accent)
+    success: '#0D9488',   // teal-600
+    warning: '#D97706',   // amber-600
+    danger: '#B91C1C',    // red-700 (matches “action” copy on peach)
+    info: '#0369A1',      // sky-800
   },
 
   typography: {
-    sansStack: "'Inter', 'Outfit', system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    sansStack: "'Inter', 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     numericStack: "'Outfit', ui-monospace, monospace",
     /** Cairo-first for SaaS Arabic UI; editable in الإعدادات → العلامة التجارية */
     arabicStack: "'Cairo', 'Tajawal', system-ui, sans-serif",

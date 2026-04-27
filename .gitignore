@@ -12,6 +12,7 @@ node_modules
 # Build outputs
 dist
 dist-ssr
+dev-dist
 *.tsbuildinfo
 
 # Local env files
@@ -42,3 +43,32 @@ firebase-debug.*.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Local copies of agent/IDE skills (not app source; tools may recreate)
+/.adal/
+/.agents/
+/.augment/
+/.bob/
+/.claude/
+/.codebuddy/
+/.commandcode/
+/.continue/
+/.cortex/
+/.crush/
+/.factory/
+/.goose/
+/.iflow/
+/.junie/
+/.kilocode/
+/.kiro/
+/.kode/
+/.mcpjam/
+/.mux/
+/.neovate/
+/.openhands/
+/.pochi/
+/.qwen/
+/.trae/
+/.vibe/
+/.windsurf/
+/.zencoder/

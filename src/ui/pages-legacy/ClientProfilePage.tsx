@@ -9,7 +9,7 @@ import {
   Payment, TrendingUp, TrendingDown, CreditCard, Business, Person,
   AccountBalanceWallet, Description, PostAdd, PersonAdd, CalendarToday,
   WarningAmber, NoteAlt, CheckCircle, ChevronLeft, ChevronRight,
-  ExpandMore, ExpandLess, Settings,
+  ExpandMore, ExpandLess, Settings, LocationOn,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
@@ -386,7 +386,7 @@ export const ClientProfilePage = () => {
     try {
       await updateClient(clientId, { profitPercentage: pct });
       window.dispatchEvent(new Event('profitPercentageUpdated'));
-      toast.success('تم حفظ النسبة');
+      toast.success('تم حفظ النسبة المتفق عليها');
       setActiveForm(null);
     } catch {
       toast.error('خطأ');
@@ -463,129 +463,187 @@ export const ClientProfilePage = () => {
     { key: 'debts',    title: 'الديون',    count: clientDebts.length,    amount: summary.totalDebts,    Icon: CreditCard,    tone: 'warning', module: 'debts',    onClick: () => setActiveSheet('debts') },
     { key: 'workers',  title: 'العمال',    count: clientWorkers.length,  amount: summary.totalWorkersDue, Icon: PersonAdd,   tone: 'info',    module: 'workers',  onClick: () => setActiveSheet('workers') },
     { key: 'balances', title: 'العهد',     count: clientUserBalances.length, amount: Object.values(userBalancesSummary).reduce((s, b) => s + b.remaining, 0), Icon: AccountBalanceWallet, tone: 'amber', module: 'balances', onClick: () => setActiveSheet('balances') },
-    { key: 'profit',   title: 'الأرباح',   count: summary.profitPercentage, amount: summary.profit,     Icon: TrendingUp,    tone: 'brand',   module: 'stats',    onClick: () => setActiveForm({ kind: 'profit' }) },
+    { key: 'profit',   title: 'النسبة المتفق عليها',   count: summary.profitPercentage, amount: summary.profit,     Icon: TrendingUp,    tone: 'brand',   module: 'stats',    onClick: () => setActiveForm({ kind: 'profit' }) },
   ].filter((m) => canAccess(m.module as any));
 
   return (
-    <div ref={heroRef} className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-10 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Profile hero — Air Blue & Slate (open, trustworthy; matches global tokens) ═══ */}
+    <div ref={heroRef} className="mx-auto max-w-6xl space-y-3 px-4 pb-8 pt-2 sm:px-6 lg:space-y-4 lg:px-8 lg:pb-10 lg:pt-3">
+      {/* شريط ملف العميل — كثافة لوحة (بدون “بطل” مرتفع) */}
       <section
         data-reveal
-        className="relative overflow-hidden rounded-[28px] grain text-white border border-white/[0.08]"
+        className="relative overflow-hidden rounded-2xl border border-white/10 text-white grain"
         style={{
-          background: 'linear-gradient(155deg, #0c1222 0%, #1e3a8a 40%, #2563eb 100%)',
-          boxShadow:
-            '0 22px 56px -16px rgba(30, 58, 138, 0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+          background: 'linear-gradient(150deg, #0a0f1c 0%, #1A2B58 50%, #1e3260 100%)',
+          boxShadow: '0 4px 20px -6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
         <div
           aria-hidden
-          className="absolute -top-[40%] -end-[25%] w-[90%] max-w-[520px] h-[85%] rounded-full blur-[90px] pointer-events-none opacity-[0.38] motion-reduce:opacity-20"
+          className="pointer-events-none absolute -end-[18%] -top-[32%] h-[55%] w-[min(75%,300px)] max-w-full rounded-full opacity-[0.1] blur-[48px] motion-reduce:opacity-0"
           style={{
-            background: 'radial-gradient(closest-side, rgba(125, 211, 252, 0.35) 0%, transparent 72%)',
+            background: 'radial-gradient(closest-side, rgba(255, 230, 234, 0.3) 0%, transparent 70%)',
           }}
         />
         <div
           aria-hidden
-          className="absolute -bottom-[45%] -start-[20%] w-[75%] h-[75%] rounded-full blur-[100px] pointer-events-none opacity-28 motion-reduce:opacity-16"
+          className="pointer-events-none absolute -start-[12%] bottom-[-32%] h-[50%] w-[60%] rounded-full opacity-[0.08] blur-[56px] motion-reduce:opacity-0"
           style={{
-            background: 'radial-gradient(closest-side, rgba(191, 219, 254, 0.22) 0%, transparent 72%)',
+            background: 'radial-gradient(closest-side, rgba(96, 130, 200, 0.4) 0%, transparent 72%)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 to-transparent" />
 
-        {/* Hero body */}
-        <div className="relative p-5 sm:p-7 lg:p-8 z-10">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-            {/* Avatar */}
+        <div className="relative z-10 px-3 py-3 sm:px-4 sm:py-3.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
             <div
-              className="h-20 w-20 sm:h-24 sm:w-24 rounded-[22px] shrink-0 flex items-center justify-center text-3xl sm:text-4xl font-extrabold backdrop-blur-xl border border-white/25 shadow-2xl relative group"
+              className="group relative flex h-14 w-14 shrink-0 items-center justify-center self-center rounded-2xl border border-white/18 text-xl font-extrabold sm:self-start sm:text-2xl"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08))',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.3)',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.06))',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 16px rgba(0,0,0,0.12)',
               }}
             >
-              <div className="absolute inset-0 bg-white/15 opacity-0 group-hover:opacity-100 transition-opacity rounded-[22px]" />
               {initial}
               <div
-                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl shadow-lg flex items-center justify-center border-2 border-white/25"
-                style={{ background: isCompany ? '#0ea5e9' : '#64748b' }}
+                className="absolute -bottom-0.5 -end-0.5 flex h-6 w-6 items-center justify-center rounded-md border border-white/30 shadow"
+                style={{ background: isCompany ? '#0369A1' : '#64748b' }}
               >
-                {isCompany ? <Business sx={{ fontSize: 14, color: '#fff' }} /> : <Person sx={{ fontSize: 14, color: '#fff' }} />}
+                {isCompany ? <Business sx={{ fontSize: 11, color: '#fff' }} /> : <Person sx={{ fontSize: 11, color: '#fff' }} />}
               </div>
             </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0 text-center sm:text-right">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-bold bg-white/12 backdrop-blur border border-white/15 text-white/90 font-arabic">
-                  {isCompany ? 'حساب شركة' : 'حساب فردي'}
-                </span>
-                {summary.profitPercentage > 0 && (
-                  <span className="inline-flex items-center gap-1 h-7 px-3 rounded-full bg-green-500/25 backdrop-blur text-white/95 text-xs font-bold border border-green-400/40 font-num tabular">
-                    <TrendingUp sx={{ fontSize: 14 }} />
-                    {summary.profitPercentage}%
+            <div className="min-w-0 flex-1 text-center sm:text-start">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-between sm:gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  <span className="inline-flex h-6 items-center rounded-full border border-white/12 bg-white/10 px-2.5 text-2xs font-bold text-white/95 backdrop-blur font-arabic">
+                    {isCompany ? 'شركة' : 'فرد'}
                   </span>
-                )}
+                  {summary.profitPercentage > 0 && (
+                    <span className="inline-flex h-6 items-center gap-0.5 rounded-full border border-emerald-400/35 bg-emerald-500/18 px-2 text-2xs font-bold font-num text-white tabular-nums">
+                      <TrendingUp sx={{ fontSize: 12 }} />
+                      {rtl ? 'متفق' : 'Agreed'} {summary.profitPercentage}%
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveForm({ kind: 'editClient' })}
+                  aria-label="تعديل بيانات العميل"
+                  className="ms-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/10 text-white transition hover:bg-white/16 active:scale-[0.97] sm:static"
+                >
+                  <Settings sx={{ fontSize: 20 }} />
+                </button>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight truncate font-arabic drop-shadow-md">
+
+              <h1 className="mt-1.5 font-arabic text-lg font-extrabold leading-snug tracking-tight text-white sm:mt-2 sm:pe-0 sm:text-xl">
                 {client.name}
               </h1>
 
-              {/* Contact info chips */}
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-4">
+              {/* بيانات الاتصال — صفوف مثل بطاقة جهة اتصال (وضوح + مساحة للنص) */}
+              <div
+                className="mt-3 overflow-hidden rounded-xl border border-white/12 sm:mt-3.5"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                }}
+              >
                 <a
                   href={`tel:${client.phone}`}
-                  className="inline-flex items-center gap-2 h-10 px-5 rounded-2xl bg-white/12 hover:bg-white/22 backdrop-blur-sm border border-white/15 text-white text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95"
+                  className="flex items-start gap-3 px-3 py-3.5 transition-colors hover:bg-white/[0.05] sm:items-center sm:gap-3.5 sm:px-4 sm:py-4"
                 >
-                  <Phone sx={{ fontSize: 17 }} className="opacity-85" />
-                  <span className="font-num tabular" dir="ltr">{client.phone}</span>
-                </a>
-                {client.address && (
-                  <span className="inline-flex items-center gap-2 h-10 px-5 rounded-2xl bg-white/8 border border-white/10 text-white/75 text-sm font-medium font-arabic">
-                    📍 {client.address}
+                  <span
+                    className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:mt-0"
+                    style={{
+                      background: 'color-mix(in srgb, #34d399 22%, transparent)',
+                      color: '#a7f3d0',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                    }}
+                  >
+                    <Phone sx={{ fontSize: 20 }} />
                   </span>
-                )}
+                  <div className="min-w-0 flex-1 text-start">
+                    <p className="text-2xs font-bold uppercase tracking-wider text-white/50 font-arabic">
+                      {rtl ? 'الهاتف' : 'Phone'}
+                    </p>
+                    <p
+                      className="mt-1 font-num text-[1.15rem] font-semibold tabular-nums leading-none tracking-wide text-white sm:text-[1.2rem]"
+                      dir="ltr"
+                    >
+                      {client.phone}
+                    </p>
+                    <p className="mt-1 text-2xs text-white/40 font-arabic sm:hidden">
+                      {rtl ? 'اضغط للاتصال' : 'Tap to call'}
+                    </p>
+                  </div>
+                </a>
+
+                <div className="h-px bg-white/10" role="separator" />
+
+                <div className="flex items-start gap-3 px-3 py-3.5 sm:gap-3.5 sm:px-4 sm:py-4">
+                  <span
+                    className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:mt-0"
+                    style={{
+                      background: 'color-mix(in srgb, #93c5fd 16%, transparent)',
+                      color: '#dbeafe',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+                    }}
+                  >
+                    <LocationOn sx={{ fontSize: 20 }} />
+                  </span>
+                  <div className="min-w-0 flex-1 text-start">
+                    <p className="text-2xs font-bold uppercase tracking-wider text-white/50 font-arabic">
+                      {rtl ? 'العنوان' : 'Address'}
+                    </p>
+                    {client.address ? (
+                      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-7 text-white/92 font-arabic">
+                        {client.address}
+                      </p>
+                    ) : (
+                      <p className="mt-1.5 text-sm leading-relaxed text-white/40 font-arabic">
+                        {rtl ? 'لا يوجد عنوان مسجّل بعد.' : 'No address on file.'}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Settings */}
-            <button
-              onClick={() => setActiveForm({ kind: 'editClient' })}
-              aria-label={rtl ? 'خيارات العميل' : 'Client options'}
-              className="group shrink-0 h-12 w-12 flex items-center justify-center rounded-[16px] bg-white/12 hover:bg-white/22 text-white backdrop-blur-sm border border-white/15 transition-all duration-300 shadow-sm"
-            >
-              <Settings className="group-hover:rotate-45 transition-transform duration-500" sx={{ fontSize: 22 }} />
-            </button>
           </div>
         </div>
 
-        {/* Financial Footer Band */}
         {canAccess('stats') && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-white/15 bg-black/25 backdrop-blur-xl relative z-10">
-            <div className="p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
-              <div className="text-xs text-white/60 font-bold font-arabic mb-1">إجمالي المحصّل</div>
-              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-green-400">
+          <div className="grid grid-cols-2 border-t border-white/10 bg-black/18 backdrop-blur-sm lg:grid-cols-4">
+            <div className="border-e border-white/10 p-2 text-center hover:bg-white/[0.03] sm:p-2.5">
+              <div className="text-[0.6rem] font-bold text-white/55 font-arabic sm:text-2xs">إجمالي المحصّل</div>
+              <div className="mt-0.5 text-sm font-extrabold text-emerald-300/95 font-num tabular-nums sm:text-base">
                 <span ref={paidRef}>{formatCurrency(0)}</span>
               </div>
             </div>
-            <div className="p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10" style={{ background: summary.remaining >= 0 ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.08)' }}>
-              <div className="text-xs font-bold font-arabic mb-1" style={{ color: summary.remaining >= 0 ? 'rgba(255,255,255,0.7)' : '#fca5a5' }}>
+            <div
+              className="p-2 text-center hover:bg-white/[0.03] sm:p-2.5"
+              style={{ background: summary.remaining >= 0 ? 'rgba(52,211,153,0.03)' : 'rgba(248,113,113,0.08)' }}
+            >
+              <div
+                className="text-[0.6rem] font-bold font-arabic sm:text-2xs"
+                style={{ color: summary.remaining >= 0 ? 'rgba(255,255,255,0.6)' : '#fecaca' }}
+              >
                 {summary.remaining >= 0 ? 'الصافي المتبقي' : 'عجز مالي'}
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm" style={{ color: summary.remaining >= 0 ? '#d1fae5' : '#ef4444' }}>
+              <div
+                className="mt-0.5 text-sm font-extrabold font-num tabular-nums sm:text-base"
+                style={{ color: summary.remaining >= 0 ? '#d1fae5' : '#f87171' }}
+              >
                 <span ref={netRef}>{formatCurrency(0)}</span>
               </div>
             </div>
-            <div className="hidden lg:block p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
-              <div className="text-xs text-white/60 font-bold font-arabic mb-1">نسبة الربح</div>
-              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-white">
-                 {summary.profitPercentage}%
+            <div className="border-t border-white/10 p-2 text-center hover:bg-white/[0.03] sm:border-t-0 sm:p-2.5 lg:border-s lg:border-t-0">
+              <div className="text-[0.6rem] font-bold text-white/55 font-arabic sm:text-2xs">النسبة المتفق عليها</div>
+              <div className="mt-0.5 text-sm font-extrabold text-white font-num tabular-nums sm:text-base">
+                {summary.profitPercentage}%
               </div>
             </div>
-            <div className="hidden lg:block p-4 sm:p-5 text-center hover:bg-white/5 transition-colors border-s border-white/10">
-              <div className="text-xs text-white/60 font-bold font-arabic mb-1">صافي الربح</div>
-              <div className="text-xl sm:text-2xl font-extrabold font-num tabular drop-shadow-sm text-amber-400">
+            <div className="border-s border-t border-white/10 p-2 text-center hover:bg-white/[0.03] sm:border-s-0 sm:border-t-0 sm:p-2.5 lg:border-s lg:border-white/10">
+              <div className="text-[0.6rem] font-bold text-white/55 font-arabic sm:text-2xs">حصة الأرباح</div>
+              <div className="mt-0.5 text-sm font-extrabold text-amber-300/95 font-num tabular-nums sm:text-base">
                 {formatCurrency(summary.profit)}
               </div>
             </div>
@@ -674,13 +732,20 @@ export const ClientProfilePage = () => {
         </section>
       )}
 
-      {/* ═══ Module Grid ═══ */}
-      <section data-reveal className="space-y-3">
-        <h2 className="text-sm font-bold text-fg">الأقسام</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          {modules.map((m) => (
-            <ModuleCard
+      {/* ═══ الأقسام — قائمة صفوف بشريط لوني (مختلف عن شبكة البطاقات الموحّدة) ═══ */}
+      <section data-reveal className="space-y-2.5">
+        <div className="max-w-3xl">
+          <h2 className="text-sm font-extrabold tracking-tight text-[var(--theme-navy-ink)]">الأقسام</h2>
+          <p className="mt-0.5 text-2xs leading-relaxed text-fg-muted font-arabic">
+            اختر قسماً لفتح التفاصيل، السجلات، والتقارير الخاصة بهذا العميل.
+          </p>
+        </div>
+        <div className="flex max-w-3xl flex-col gap-2">
+          {modules.map((m, index) => (
+            <ClientProfileModuleRow
               key={m.key}
+              index={index}
+              rtl={rtl}
               title={m.title}
               count={m.count}
               amount={m.amount}
@@ -697,7 +762,7 @@ export const ClientProfilePage = () => {
       {/* ═══ PDF reports ═══ */}
       {canAccess('stats') && (
         <section data-reveal className="space-y-3">
-          <h2 className="text-sm font-bold text-fg">التقرير الشامل</h2>
+          <h2 className="text-sm font-extrabold tracking-tight text-[var(--theme-navy-ink)]">التقرير الشامل</h2>
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
@@ -1033,13 +1098,13 @@ export const ClientProfilePage = () => {
       <Modal
         open={activeForm?.kind === 'profit'}
         onClose={() => setActiveForm(null)}
-        title="حساب الأرباح"
-        description="النسبة تطبّق على إجمالي المدفوعات"
+        title="النسبة المتفق عليها"
+        description="تُطبَّق على إجمالي المدفوعات المسجّلة للعميل"
         maxWidth="sm"
       >
         <div className="space-y-3">
           <Input
-            label="نسبة الربح"
+            label="النسبة (%)"
             type="number"
             inputMode="decimal"
             value={profitPercentage}
@@ -1055,12 +1120,12 @@ export const ClientProfilePage = () => {
                 color: 'var(--brand-primary)',
               }}
             >
-              الربح الحالي: {formatCurrency(summary.profit)}
+              الحصة المحتسبة: {formatCurrency(summary.profit)}
             </div>
           )}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" block onClick={() => setActiveForm(null)}>إلغاء</Button>
-            <Button block onClick={handleSaveProfit}>حفظ النسبة</Button>
+            <Button block onClick={handleSaveProfit}>حفظ النسبة المتفق عليها</Button>
           </div>
         </div>
       </Modal>
@@ -1117,39 +1182,85 @@ function KpiTile({ label, value, sub, Icon, tone, onClick }: any) {
   );
 }
 
-function ModuleCard({ title, count, amount, Icon, tone, onClick, ChevronStart, isProfitTile }: any) {
+/** صف قسم — يميّز بشريط لوني ثابت + تموضع أفقي (أقرب لقوائم الإعدادات من شبكة البطاقات المتطابقة) */
+function ClientProfileModuleRow({
+  title,
+  count,
+  amount,
+  Icon,
+  tone,
+  onClick,
+  ChevronStart,
+  isProfitTile,
+  index,
+  rtl: isRtl,
+}: {
+  title: string;
+  count: number;
+  amount: number;
+  Icon: any;
+  tone: string;
+  onClick: () => void;
+  ChevronStart: any;
+  isProfitTile?: boolean;
+  index: number;
+  rtl: boolean;
+}) {
   const t = toneVars(tone);
+  const subline = isProfitTile
+    ? count > 0
+      ? `${count}% متفق · ${formatCurrency(amount)}`
+      : 'اضغط لتحديد النسبة المتفق عليها'
+    : `${count} سجل`;
+
+  const valueLabel = isProfitTile
+    ? isRtl
+      ? 'الحصة'
+      : 'Share'
+    : isRtl
+      ? 'الإجمالي'
+      : 'Total';
+  const valueMain = isProfitTile && count === 0 ? '—' : formatCurrency(amount);
+
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        'group text-start bg-surface-panel border border-border rounded-2xl p-3.5 lg:p-4',
-        'shadow-xs hover:shadow-md hover:border-strong transition-all duration-base',
-        'cursor-pointer pressable focus:outline-none focus-visible:shadow-focus',
-        'min-h-[120px]'
+        'group relative flex w-full items-stretch gap-0 overflow-hidden rounded-2xl border border-border text-start transition-[box-shadow,transform,border-color] duration-200 ease-out',
+        'cursor-pointer focus:outline-none focus-visible:shadow-focus',
+        'hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--brand-primary)_25%,var(--surface-border))] hover:shadow-sm',
+        'active:scale-[0.995] active:transition-transform active:duration-100',
+        index % 2 === 1 && 'bg-[color-mix(in_srgb,var(--surface-sunken)_55%,transparent)]'
       )}
+      style={{ backgroundColor: index % 2 === 0 ? 'var(--surface-panel)' : undefined }}
     >
-      <div className="flex items-start justify-between gap-2 h-full">
-        <div className="flex-1 min-w-0">
-          <span
-            aria-hidden
-            className="inline-flex h-10 w-10 rounded-xl items-center justify-center mb-2.5"
-            style={{ background: t.soft, color: t.fg }}
+      <span aria-hidden className="w-1 shrink-0 self-stretch sm:w-1.5" style={{ background: t.fg }} />
+      <div className="flex min-h-[4.25rem] flex-1 items-center gap-3 px-3 py-2.5 sm:min-h-[4.5rem] sm:gap-3.5 sm:px-4">
+        <span
+          aria-hidden
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl sm:h-12 sm:w-12"
+          style={{ background: t.soft, color: t.fg, boxShadow: 'inset 0 1px 0 color-mix(in srgb, white 18%, transparent)' }}
+        >
+          <Icon sx={{ fontSize: 22 }} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className={cn('font-arabic text-[0.95rem] font-bold leading-snug text-fg sm:text-base', isProfitTile && 'line-clamp-2')}
           >
-            <Icon sx={{ fontSize: 20 }} />
-          </span>
-          <div className="text-[0.9375rem] font-bold text-fg leading-snug truncate">{title}</div>
-          <div className="text-2xs text-fg-muted mt-0.5 truncate font-num tabular">
-            {isProfitTile
-              ? count > 0
-                ? `${count}% — ${formatCurrency(amount)}`
-                : 'اضغط لتحديد النسبة'
-              : `${count} سجل · ${formatCurrency(amount)}`}
+            {title}
           </div>
+          <p className="mt-0.5 text-2xs text-fg-muted font-num tabular-nums sm:text-xs">{subline}</p>
+        </div>
+        <div className={cn('w-[4.5rem] shrink-0 sm:w-[5.75rem]', isRtl ? 'text-start' : 'text-end')}>
+          <p className="text-[0.6rem] font-bold uppercase tracking-wide text-fg-muted sm:text-2xs">{valueLabel}</p>
+          <p className="mt-0.5 text-xs font-extrabold font-num tabular-nums sm:text-base" style={{ color: t.fg }}>
+            {valueMain}
+          </p>
         </div>
         <ChevronStart
-          sx={{ fontSize: 16 }}
-          className="text-fg-muted group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors mt-1 shrink-0"
+          sx={{ fontSize: 18 }}
+          className="shrink-0 text-fg-subtle transition-colors group-hover:text-[color:var(--brand-primary)]"
         />
       </div>
     </button>
@@ -1208,9 +1319,10 @@ function AddHeaderButton({ onClick, label = 'إضافة' }: { onClick: () => voi
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-white text-slate-900 hover:bg-white/95 font-bold text-sm pressable transition-colors shadow-xs shrink-0"
+      type="button"
+      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-white px-2.5 text-xs font-bold text-slate-900 shadow-sm transition-colors hover:bg-white/95 pressable"
     >
-      <Add sx={{ fontSize: 16 }} />
+      <Add sx={{ fontSize: 15 }} />
       {label}
     </button>
   );
@@ -1237,8 +1349,9 @@ function EmptyState({ Icon, title, sub, cta }: { Icon: any; title: string; sub?:
    (ui-ux-pro-max: trust/finance = graphite + navy; color = status chips / borders)
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/** يتماشى مع هيرو البروفايل (كحلي — دون أزرق صارخ في رأس الـSheet) */
 const PROFILE_SHEET_HEADER_BG =
-  'linear-gradient(165deg, #0f172a 0%, #1e3a8a 48%, #2563eb 100%)';
+  'linear-gradient(150deg, #0a0f1c 0%, #1A2B58 50%, #243a68 100%)';
 
 const PROFILE_SHEET_GRADIENT = {
   expenses: PROFILE_SHEET_HEADER_BG,
@@ -1279,47 +1392,46 @@ function ProfileModuleHero({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/15 bg-white/[0.08] backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.22)] px-4 py-4 sm:px-5 sm:py-5 ring-1 ring-white/[0.07] motion-reduce:transition-none',
+        'rounded-xl border border-white/12 bg-white/[0.06] px-3 py-2.5 shadow-sm backdrop-blur-sm sm:px-3.5 sm:py-2.5',
         PROFILE_HERO_ACCENT[accent]
       )}
     >
-      <div className="flex items-start gap-3 sm:gap-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-4">
         {Ico && (
-          <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 border border-white/25 shadow-inner">
-            <Ico sx={{ fontSize: 28, color: '#fff' }} />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10">
+            <Ico sx={{ fontSize: 20, color: '#fff' }} />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-white/65">{eyebrow}</p>
+          <p className="text-[0.6rem] font-bold uppercase tracking-wider text-white/55">{eyebrow}</p>
           <div
-            className="mt-1.5 text-3xl sm:text-[2.05rem] font-black font-num tabular-nums text-white leading-none tracking-tight drop-shadow-sm"
+            className="mt-0.5 text-xl font-bold font-num tabular-nums leading-tight text-white sm:text-2xl"
             dir="ltr"
           >
             {headline}
           </div>
           {subline && (
-            <p className="mt-2 text-xs sm:text-sm text-white/82 font-medium leading-snug max-w-[22rem]">{subline}</p>
+            <p className="mt-0.5 max-w-md text-2xs leading-snug text-white/70 font-arabic sm:text-xs">{subline}</p>
           )}
         </div>
+        {stats && n > 0 && (
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:border-s sm:border-white/10 sm:ps-3">
+            {stats.map((s, i) => (
+              <div
+                key={i}
+                className="flex min-w-0 items-baseline gap-1 rounded-md bg-white/[0.08] px-2 py-1 ring-1 ring-white/5"
+              >
+                <span className="shrink-0 text-[0.55rem] font-bold uppercase tracking-wide text-white/45">
+                  {s.label}
+                </span>
+                <span className="min-w-0 font-num text-xs font-extrabold tabular-nums text-white sm:text-sm">
+                  {s.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      {stats && n > 0 && (
-        <div
-          className={cn(
-            'mt-4 pt-4 border-t border-white/15 grid gap-3',
-            n === 3 && 'grid-cols-3',
-            n === 2 && 'grid-cols-2',
-            n === 4 && 'grid-cols-2 sm:grid-cols-4',
-            n !== 2 && n !== 3 && n !== 4 && 'grid-cols-2 sm:grid-cols-4'
-          )}
-        >
-          {stats.map((s, i) => (
-            <div key={i} className="min-w-0 text-center sm:text-start">
-              <div className="text-[0.58rem] font-bold text-white/55 uppercase tracking-wide truncate">{s.label}</div>
-              <div className="text-sm font-extrabold text-white font-num tabular mt-0.5 truncate">{s.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1363,12 +1475,12 @@ function ExpensesSheet({
       headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="جديد" />}
       headerExtras={
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <ProfileModuleHero
             accent="expenses"
             eyebrow="إجمالي المصروفات"
             headline={formatCurrency(summary.totalExpenses)}
-            subline={`تتبع تكاليف ومصروفات المشروع — ${clientExpenses.length} عملية`}
+            subline={`${clientExpenses.length} عملية مسجّلة`}
             Icon={TrendingDown}
             stats={[
               { label: 'سجلات', value: clientExpenses.length },
@@ -1652,7 +1764,7 @@ function PaymentsSheet({
       headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="دفعة" />}
       headerExtras={
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <ProfileModuleHero
             accent="payments"
             eyebrow="إجمالي المحصّل"
@@ -1661,7 +1773,7 @@ function PaymentsSheet({
                 +{formatCurrency(summary.totalPaid)}
               </>
             }
-            subline={`${clientPayments.length} دفعة مسجّلة — تدفق نقدي موثوق`}
+            subline={`${clientPayments.length} دفعة`}
             Icon={Payment}
             stats={[
               { label: 'دفعات', value: clientPayments.length },
@@ -1798,12 +1910,12 @@ function DebtsSheet({
       headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="دين" />}
       headerExtras={
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <ProfileModuleHero
             accent="debts"
             eyebrow="إجمالي المتبقي"
             headline={formatCurrency(summary.totalDebts)}
-            subline="مستحقات على العميل — راقب السداد والمتبقي بوضوح"
+            subline={`${clientDebts.length} التزام`}
             Icon={CreditCard}
             stats={[
               { label: 'سجلات', value: clientDebts.length },
@@ -1917,12 +2029,12 @@ function WorkersSheet({
       headerGlow={false}
       headerAction={<AddHeaderButton onClick={onAdd} label="عامل" />}
       headerExtras={
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <ProfileModuleHero
             accent="workers"
             eyebrow="المتبقي الإجمالي"
             headline={formatCurrency(summary.totalWorkersDue)}
-            subline="اتفاقات، دفعات، وتقدّم لكل عامل أو مقاول"
+            subline={`${clientWorkers.length} سجل عامل / مقاول`}
             Icon={PersonAdd}
             stats={[
               { label: 'الاتفاق', value: formatCurrency(summary.totalWorkersAgreed) },
@@ -2090,7 +2202,7 @@ function BalancesSheet({
           accent="balances"
           eyebrow="إجمالي المتبقي (العهد)"
           headline={formatCurrency(balanceAgg.remaining)}
-          subline="أرصدة مخصصة للموظفين — إيداع، صرف، ومتابعة لكل مستخدم"
+          subline={`${Object.keys(userBalancesSummary || {}).length} مستخدم بعهدة`}
           Icon={AccountBalanceWallet}
           stats={[
             { label: 'إجمالي الممنوح', value: formatCurrency(balanceAgg.given) },

@@ -23,8 +23,10 @@ import type {
   UserBalance,
   Letter,
 } from '../types';
-import { orderBy, where } from 'firebase/firestore';
+import { orderBy } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { useNotificationStore } from './useNotificationStore';
+import { formatFirebaseError } from '../core/formatFirebaseError';
 
 // ─── localStorage Cache helpers ──────────────────────────────
 const CACHE_PREFIX = 'app-cache-';
@@ -46,14 +48,17 @@ const saveCache = (key: string, data: any[]) => {
   }, 500);
 };
 
-// Helper to handle async operations with toast notifications
+// Helper: toast + in-app activity feed + clearer Firebase error text
 const handleAsync = async (operation: () => Promise<any>, successMessage: string) => {
   try {
     await operation();
     toast.success(successMessage);
+    useNotificationStore.getState().push({ type: 'success', title: successMessage });
   } catch (error) {
     console.error(error);
-    toast.error('حدث خطأ أثناء تنفيذ العملية');
+    const msg = formatFirebaseError(error);
+    toast.error(msg);
+    useNotificationStore.getState().push({ type: 'error', title: msg });
     throw error;
   }
 };

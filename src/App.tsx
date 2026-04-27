@@ -20,7 +20,9 @@ import { AppShell } from './ui/shells/AppShell';
 import { LoginPage } from './ui/pages/LoginPage';
 import { HomePage } from './ui/pages/HomePage';
 import { LoadingScreen } from './ui/feedback/LoadingScreen';
+import { ErrorBoundary } from './ui/feedback/ErrorBoundary';
 import { AppLockGuard } from './ui/AppLockGuard';
+import { PwaAndPushBootstrap } from './pwa/PwaAndPushBootstrap';
 
 // Lazy: settings + feature pages (code-split; only loaded when visited)
 const BrandingSettingsPage   = lazy(() => import('./ui/pages/BrandingSettingsPage').then(m => ({ default: m.BrandingSettingsPage })));
@@ -49,6 +51,43 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function AppRouterBody({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const brand = useBrand();
+  return (
+    <ErrorBoundary rtl={brand.direction === 'rtl'}>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route
+            path="/login"
+            element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />}
+          />
+
+          <Route element={isAuthenticated ? <AppShell /> : <Navigate to="/login" replace />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/settings/branding" element={<BrandingSettingsPage />} />
+
+            <Route path="/clients" element={<AppLockGuard module="clients" requireScreen><ClientsPage /></AppLockGuard>} />
+            <Route path="/clients/:id" element={<AppLockGuard module="clients" requireScreen><ClientProfilePage /></AppLockGuard>} />
+
+            <Route path="/invoices" element={<AppLockGuard module="invoices" requireScreen><InvoicesPage /></AppLockGuard>} />
+            <Route path="/invoices/new" element={<AppLockGuard module="invoices" requireScreen><NewInvoicePage /></AppLockGuard>} />
+            <Route path="/invoices/:id" element={<AppLockGuard module="invoices" requireScreen><InvoiceDetailsPage /></AppLockGuard>} />
+
+            <Route path="/expenses" element={<AppLockGuard module="expenses" requireScreen><ExpensesPage /></AppLockGuard>} />
+            <Route path="/payments" element={<AppLockGuard module="payments" requireScreen><PaymentsPage /></AppLockGuard>} />
+            <Route path="/debts" element={<AppLockGuard module="debts" requireScreen><DebtsPage /></AppLockGuard>} />
+            <Route path="/users" element={<AppLockGuard module="users" requireScreen><UsersPage /></AppLockGuard>} />
+            <Route path="/fund" element={<AppLockGuard module="balances" requireScreen><FundPage /></AppLockGuard>} />
+            <Route path="/letters" element={<AppLockGuard module="letters" requireScreen><LettersPage /></AppLockGuard>} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
 
 function AppContent() {
   const brand = useBrand();
@@ -116,35 +155,8 @@ function AppContent() {
           v7_relativeSplatPath: true,
         }}
       >
-        <Suspense fallback={<LoadingScreen />}>
-          <Routes>
-            <Route
-              path="/login"
-              element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />}
-            />
-
-            <Route element={isAuthenticated ? <AppShell /> : <Navigate to="/login" replace />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/settings/branding" element={<BrandingSettingsPage />} />
-
-              <Route path="/clients" element={<AppLockGuard module="clients" requireScreen><ClientsPage /></AppLockGuard>} />
-              <Route path="/clients/:id" element={<AppLockGuard module="clients" requireScreen><ClientProfilePage /></AppLockGuard>} />
-
-              <Route path="/invoices" element={<AppLockGuard module="invoices" requireScreen><InvoicesPage /></AppLockGuard>} />
-              <Route path="/invoices/new" element={<AppLockGuard module="invoices" requireScreen><NewInvoicePage /></AppLockGuard>} />
-              <Route path="/invoices/:id" element={<AppLockGuard module="invoices" requireScreen><InvoiceDetailsPage /></AppLockGuard>} />
-
-              <Route path="/expenses" element={<AppLockGuard module="expenses" requireScreen><ExpensesPage /></AppLockGuard>} />
-              <Route path="/payments" element={<AppLockGuard module="payments" requireScreen><PaymentsPage /></AppLockGuard>} />
-              <Route path="/debts" element={<AppLockGuard module="debts" requireScreen><DebtsPage /></AppLockGuard>} />
-              <Route path="/users" element={<AppLockGuard module="users" requireScreen><UsersPage /></AppLockGuard>} />
-              <Route path="/fund" element={<AppLockGuard module="balances" requireScreen><FundPage /></AppLockGuard>} />
-              <Route path="/letters" element={<AppLockGuard module="letters" requireScreen><LettersPage /></AppLockGuard>} />
-            </Route>
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <PwaAndPushBootstrap isAuthenticated={isAuthenticated} />
+        <AppRouterBody isAuthenticated={isAuthenticated} />
       </BrowserRouter>
       </div>
     </ThemeProvider>

@@ -105,7 +105,7 @@ export function MobileDrawer({ open, onClose }: Props) {
         <div data-item className="px-5 py-4 border-b border-[var(--surface-border)] shrink-0">
           <div className="flex items-center gap-3">
             <div
-              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[#c084fc] text-white flex items-center justify-center font-bold text-lg shadow-md border border-white/20"
+              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-hover)] text-white flex items-center justify-center font-bold text-lg shadow-md border border-white/20"
               aria-hidden
             >
               {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
@@ -256,7 +256,7 @@ function DrawerLink({
       <span className={cn(
         'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all',
         active
-          ? 'bg-gradient-to-br from-[var(--brand-primary)] to-[#8b5cf6] text-white shadow-md'
+          ? 'bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-hover)] text-white shadow-md'
           : 'bg-surface-sunken text-fg-muted group-hover:text-[var(--brand-primary)] group-hover:scale-105'
       )}>
         <Icon sx={{ fontSize: 20 }} />

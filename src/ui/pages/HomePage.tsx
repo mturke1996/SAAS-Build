@@ -21,7 +21,10 @@ import {
   Brightness7,
   Bolt,
   MonetizationOn,
+  Add,
+  WarningAmber,
 } from '@mui/icons-material';
+import { Fab } from '@mui/material';
 import { useBrand } from '../../config/BrandProvider';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useDataStore } from '../../stores/useDataStore';
@@ -33,7 +36,7 @@ import { computeClientsProfitSummary } from '../../core/finance/clientProfitTota
 import { formatCurrency } from '../../core/utils-formatters';
 import { countUp, staggerChildren } from '../../core/motion/presets';
 import { useSmartNav } from '../../core/agent/useSmartNav';
-import { Button, IconButton, PageHero } from '../../design-system/primitives';
+import { Button, PageHero } from '../../design-system/primitives';
 import { LogoMark } from '../brand/LogoMark';
 import { cn } from '../../design-system/primitives/cn';
 import { HomeCustodyPledgeCard } from './HomeCustodyPledgeCard';
@@ -62,6 +65,7 @@ export function HomePage() {
   const myFundStats = useMyFundStats();
 
   const container = useRef<HTMLDivElement>(null);
+  /** 0–2 currency · 3 clients · 4 unpaid */
   const kpiRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   // Memoized stats
@@ -98,7 +102,13 @@ export function HomePage() {
   useGSAP(
     () => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const vals = [stats.collected, stats.totalExpenses, stats.profitSummary.totalGrossProfit, stats.clients];
+      const vals = [
+        stats.collected,
+        stats.totalExpenses,
+        stats.profitSummary.totalGrossProfit,
+        stats.clients,
+        stats.unpaidInvoices,
+      ];
       vals.forEach((v, i) => {
         const el = kpiRefs.current[i];
         if (!el) return;
@@ -116,6 +126,7 @@ export function HomePage() {
         stats.totalExpenses,
         stats.profitSummary.totalGrossProfit,
         stats.clients,
+        stats.unpaidInvoices,
       ],
     }
   );
@@ -154,107 +165,223 @@ export function HomePage() {
   const modules = allModules.filter((m) => !m.module || canAccess(m.module as any));
 
   return (
-    <div ref={container} className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
-      {/* ═══ Hero — shared PageHero primitive (content + depth, not empty chrome) ═══ */}
+    <div ref={container} className="mx-auto max-w-6xl space-y-3 px-4 pb-8 pt-2 sm:px-6 lg:space-y-4 lg:px-8 lg:pb-10 lg:pt-4">
+      {/* ═══ Hero — مضغوط (مثل مراجع fintech) ═══ */}
       <PageHero
         reveal
+        compact
         accent="brand"
         eyebrow={
-          <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/12 backdrop-blur border border-white/15 text-white/90 text-xs font-bold font-arabic shadow-sm">
-            <Bolt sx={{ fontSize: 16, color: '#FBBF24' }} />
-            {greeting}
-          </span>
+          <>
+            <Bolt sx={{ fontSize: 14, color: 'rgba(255,255,255,0.92)' }} />
+            <span className="font-arabic font-bold">{greeting}</span>
+          </>
         }
         brand={
-          <LogoMark size={30} showName inverted />
+          <LogoMark size={22} showName inverted />
         }
         title={rtl ? `أهلاً ${displayName}` : `Welcome, ${displayName}`}
         subtitle={
           rtl ? `نظرة عامة على ${brand.name} اليوم.` : `Here's your ${brand.name} overview today.`
         }
         trailing={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {brand.features?.enableDarkMode && (
               <button
                 onClick={toggleTheme}
                 aria-label={rtl ? 'تبديل السمة' : 'Toggle theme'}
-                className="h-11 w-11 flex items-center justify-center rounded-[14px] bg-white/12 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 transition-colors duration-300 shadow-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/18"
               >
-                {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
+                {mode === 'dark' ? <Brightness7 sx={{ fontSize: 18 }} /> : <Brightness4 sx={{ fontSize: 18 }} />}
               </button>
             )}
             <button
               onClick={() => navigate('/settings/branding')}
               aria-label={rtl ? 'الإعدادات' : 'Settings'}
-              className="h-11 w-11 flex items-center justify-center rounded-[14px] bg-white/12 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 transition-colors duration-300 shadow-sm"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/18"
             >
-              <Settings fontSize="small" />
+              <Settings sx={{ fontSize: 18 }} />
             </button>
           </div>
         }
       />
 
-      {/* ═══ KPIs (Dimensional Layering) ═══ */}
+      {/* ═══ Snapshot: navy + peach (Stitch-style) + insight card ═══ */}
       {canAccess('stats') && (
-        <section
-          data-reveal
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"
-          aria-label={rtl ? 'الإحصائيات' : 'Key metrics'}
-        >
-          <KpiTile
-            label={rtl ? 'المحصّل' : 'Collected'}
-            valueRef={(el) => (kpiRefs.current[0] = el)}
-            initial={formatCurrency(0)}
-            tone="success"
-            Icon={TrendingUp}
-          />
-          <KpiTile
-            label={rtl ? 'المصروفات' : 'Expenses'}
-            valueRef={(el) => (kpiRefs.current[1] = el)}
-            initial={formatCurrency(0)}
-            tone="danger"
-            Icon={TrendingDown}
-          />
-          <KpiTile
-            label={rtl ? 'إجمالي الأرباح' : 'Gross profit'}
-            hint={
-              rtl
-                ? stats.profitSummary.clientsWithProfitRule > 0
-                  ? `مجموع نسب الأرباح من ${stats.profitSummary.clientsWithProfitRule} عميل`
-                  : 'نسبة الربح × المحصّل لكل عميل'
-                : stats.profitSummary.clientsWithProfitRule > 0
-                  ? `From ${stats.profitSummary.clientsWithProfitRule} clients (profit %)`
-                  : 'Collections × profit % per client'
-            }
-            highlight={stats.profitSummary.totalGrossProfit > 0}
-            valueRef={(el) => (kpiRefs.current[2] = el)}
-            initial={formatCurrency(0)}
-            tone={stats.profitSummary.totalGrossProfit > 0 ? 'success' : 'neutral'}
-            Icon={MonetizationOn}
-          />
-          <KpiTile
-            label={rtl ? 'العملاء' : 'Clients'}
-            valueRef={(el) => (kpiRefs.current[3] = el)}
-            initial="0"
-            tone="neutral"
-            Icon={People}
-          />
-        </section>
+        <>
+          <section
+            data-reveal
+            className="grid grid-cols-2 gap-2.5 sm:gap-3"
+            aria-label={rtl ? 'ملخص سريع' : 'Summary'}
+          >
+            <div
+              className="relative overflow-hidden rounded-2xl bg-[var(--brand-primary)] p-3 text-white shadow-sm ring-1 ring-white/10 sm:p-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-2xs font-semibold uppercase tracking-wide text-white/80">
+                  {rtl ? 'العملاء' : 'Active'}
+                </span>
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10" aria-hidden>
+                  <People sx={{ fontSize: 16 }} />
+                </span>
+              </div>
+              <span
+                ref={(el) => {
+                  kpiRefs.current[3] = el;
+                }}
+                className="mt-1.5 block text-xl font-bold tabular-nums font-num leading-none tracking-tight sm:text-2xl"
+              >
+                0
+              </span>
+              <span className="mt-0.5 block text-2xs text-white/80 font-arabic">
+                {rtl ? 'عميل مسجّل' : 'On file'}
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--theme-peach-fg)_8%,var(--surface-border))] bg-[var(--theme-peach-bg)] p-3 text-[var(--theme-peach-fg)] shadow-sm sm:p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-2xs font-semibold uppercase tracking-wide opacity-90">
+                  {rtl ? 'تنبيه' : 'Action'}
+                </span>
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--theme-peach-fg)_8%,transparent)]"
+                  aria-hidden
+                >
+                  <WarningAmber sx={{ fontSize: 16 }} />
+                </span>
+              </div>
+              <span
+                ref={(el) => {
+                  kpiRefs.current[4] = el;
+                }}
+                className="mt-1.5 block text-xl font-bold tabular-nums font-num leading-none tracking-tight sm:text-2xl"
+              >
+                0
+              </span>
+              <span className="mt-0.5 block text-2xs font-arabic opacity-90">
+                {rtl ? 'غير مدفوعة' : 'Unpaid'}
+              </span>
+            </div>
+          </section>
+
+          <section
+            data-reveal
+            className="overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-sm"
+          >
+            <div className="p-4 sm:p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-fg-muted">
+                    {rtl ? 'إجمالي التحصيل' : 'Total collected'}
+                  </p>
+                  <p
+                    ref={(el) => {
+                      kpiRefs.current[0] = el;
+                    }}
+                    className="mt-2 break-words text-[1.65rem] font-bold leading-none tracking-tight text-[var(--theme-navy-ink)] tabular-nums font-num sm:text-[1.85rem]"
+                  >
+                    {formatCurrency(0)}
+                  </p>
+                  <p className="mt-2 text-2xs leading-relaxed text-fg-subtle font-arabic">
+                    {rtl
+                      ? `${payments.length} عملية دفع مسجّلة`
+                      : `${payments.length} recorded payment${payments.length === 1 ? '' : 's'}`}
+                  </p>
+                </div>
+                <div
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-border bg-surface-sunken text-[color:var(--brand-primary)]"
+                  aria-hidden
+                >
+                  <PaymentsIcon sx={{ fontSize: 22 }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 border-t border-border bg-surface-sunken/45 px-4 py-2.5 sm:px-4">
+              <TrendingUp sx={{ fontSize: 16, color: 'var(--brand-success)' }} className="shrink-0" aria-hidden />
+              <p className="min-w-0 text-2xs leading-relaxed text-fg-muted font-arabic">
+                {(() => {
+                  const share =
+                    stats.invoices > 0
+                      ? Math.round((stats.unpaidInvoices / stats.invoices) * 100)
+                      : 0;
+                  return rtl
+                    ? `${share}% من الفواتير بانتظار المتابعة`
+                    : `${share}% of invoices need follow-up`;
+                })()}
+              </p>
+            </div>
+          </section>
+
+          <section
+            data-reveal
+            className="grid grid-cols-2 gap-2.5 sm:gap-3"
+            aria-label={rtl ? 'تفاصيل مالية' : 'Financial detail'}
+          >
+            <KpiTile
+              label={rtl ? 'المصروفات' : 'Expenses'}
+              valueRef={(el) => {
+                kpiRefs.current[1] = el;
+              }}
+              initial={formatCurrency(0)}
+              tone="danger"
+              Icon={TrendingDown}
+            />
+            <KpiTile
+              label={rtl ? 'إجمالي النسبة' : 'Total share'}
+              hint={
+                rtl
+                  ? stats.profitSummary.clientsWithProfitRule > 0
+                    ? `حصة أرباح من ${stats.profitSummary.clientsWithProfitRule} عميل`
+                    : 'حصة الأرباح المحتسبة من التحصيل'
+                  : stats.profitSummary.clientsWithProfitRule > 0
+                    ? `Share from ${stats.profitSummary.clientsWithProfitRule} clients`
+                    : 'Profit share from collections'
+              }
+              highlight={stats.profitSummary.totalGrossProfit > 0}
+              valueRef={(el) => {
+                kpiRefs.current[2] = el;
+              }}
+              initial={formatCurrency(0)}
+              tone={stats.profitSummary.totalGrossProfit > 0 ? 'success' : 'neutral'}
+              Icon={MonetizationOn}
+            />
+          </section>
+        </>
       )}
 
-      {/* ═══ Primary CTA ═══ */}
+      {/* ═══ Desktop CTA (mobile uses FAB) ═══ */}
       {canAccess('invoices') && (
-        <section data-reveal>
+        <section data-reveal className="hidden lg:block">
           <Button
             size="lg"
-            block
             onClick={() => navigate('/invoices/new')}
             leftIcon={<AddCircleOutline sx={{ fontSize: 20 }} />}
-            className="btn-primary-glow sm:!max-w-xs"
+            className="btn-primary-glow !rounded-2xl"
           >
             {rtl ? 'إنشاء فاتورة جديدة' : 'Create new invoice'}
           </Button>
         </section>
+      )}
+
+      {/* Mobile FAB — above bottom nav */}
+      {canAccess('invoices') && (
+        <Fab
+          color="primary"
+          aria-label={rtl ? 'فاتورة جديدة' : 'New invoice'}
+          onClick={() => navigate('/invoices/new')}
+          className="lg:!hidden !fixed !z-[950] shadow-lg"
+          sx={{
+            insetInlineEnd: 16,
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+            width: 56,
+            height: 56,
+            borderRadius: '18px',
+            boxShadow: 'var(--shadow-brand)',
+          }}
+        >
+          <Add sx={{ fontSize: 28 }} />
+        </Fab>
       )}
 
       {/* ═══ Personal custody (عهدة) — minimal card, same FIFO stats as Expenses ═══ */}
@@ -273,21 +400,21 @@ export function HomePage() {
         <section data-reveal>
           <button
             onClick={() => navigate('/fund')}
-            className="w-full group relative overflow-hidden bg-surface-panel border border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-strong transition-all duration-300 text-start cursor-pointer"
+            className="group relative w-full cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface-panel p-3 text-start shadow-sm transition-all duration-300 hover:border-strong hover:shadow-md sm:p-3.5"
           >
             <div className="absolute -top-[40%] -right-[20%] w-[60%] h-[80%] rounded-full bg-gradient-to-br from-[var(--brand-primary)]/8 to-transparent blur-[80px] pointer-events-none" />
             <div className="relative flex items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[#8b5cf6] text-white shadow-lg">
-                  <AccountBalance sx={{ fontSize: 20 }} />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white shadow-sm">
+                  <AccountBalance sx={{ fontSize: 18 }} />
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-extrabold text-fg truncate font-arabic">{rtl ? 'رصيد العهدة' : 'Fund Balance'}</div>
-                  <div className="text-2xs text-fg-muted font-arabic">{rtl ? 'صندوق الإيداعات والمصروفات' : 'Deposits & Expenses fund'}</div>
+                  <div className="truncate text-sm font-bold text-fg font-arabic">{rtl ? 'رصيد العهدة' : 'Fund Balance'}</div>
+                  <div className="text-2xs text-fg-muted font-arabic">{rtl ? 'الإيداعات والمصروفات' : 'Deposits & expenses'}</div>
                 </div>
               </div>
-              <div className="text-end shrink-0">
-                <div className="text-lg sm:text-xl font-extrabold font-num tabular-nums text-[var(--brand-primary)]">
+              <div className="shrink-0 text-end">
+                <div className="text-base font-bold font-num tabular-nums text-[var(--brand-primary)] sm:text-lg">
                   {formatCurrency(stats.fund)}
                 </div>
                 <div className="inline-flex items-center gap-1 text-2xs text-fg-muted">
@@ -325,7 +452,20 @@ export function HomePage() {
 
       {/* ═══ Module grid ═══ */}
       <section data-reveal className="space-y-3">
-        <h2 className="text-sm font-semibold text-fg">{rtl ? 'الأقسام' : 'Workspace'}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-extrabold text-[var(--theme-navy-ink)] tracking-tight">
+            {rtl ? 'الفئات' : 'Categories'}
+          </h2>
+          {canAccess('invoices') && (
+            <button
+              type="button"
+              onClick={() => navigate('/invoices')}
+              className="text-2xs font-bold uppercase tracking-wider text-fg-subtle hover:text-[color:var(--brand-primary)] transition-colors"
+            >
+              {rtl ? 'عرض الكل' : 'View all'}
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {modules.map((m) => (
             <ModuleTile
@@ -382,35 +522,36 @@ function KpiTile({ label, hint, highlight, valueRef, initial, tone, Icon }: KpiT
   return (
     <div
       className={cn(
-        'relative bg-surface-panel border rounded-xl p-3 lg:p-4 shadow-xs hover:shadow-md transition-all duration-base overflow-hidden',
+        'relative overflow-hidden rounded-2xl border border-border bg-surface-panel p-2.5 shadow-sm sm:p-3',
+        'transition-shadow duration-base hover:shadow-md',
         highlight
-          ? 'border-[color:color-mix(in_srgb,var(--brand-success)_35%,var(--surface-border))] ring-1 ring-[color:color-mix(in_srgb,var(--brand-success)_18%,transparent)]'
-          : 'border-border'
+          ? 'border-[color:color-mix(in_srgb,var(--brand-success)_30%,var(--surface-border))] ring-1 ring-[color:color-mix(in_srgb,var(--brand-success)_12%,transparent)]'
+          : ''
       )}
       style={{
         backgroundImage: `radial-gradient(140% 70% at 100% 0%, ${toneBg} 0%, transparent 60%)`,
       }}
     >
-      <div className="flex items-start justify-between gap-2 mb-1.5">
+      <div className="mb-1.5 flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
-          <span className="text-2xs uppercase tracking-wider text-fg-muted font-bold block truncate">
+          <span className="block truncate text-2xs font-semibold uppercase tracking-wide text-fg-muted">
             {label}
           </span>
           {hint && (
-            <p className="text-[0.65rem] leading-snug text-fg-muted mt-1 line-clamp-2 font-arabic">{hint}</p>
+            <p className="mt-0.5 line-clamp-2 text-[0.65rem] font-arabic leading-snug text-fg-muted">{hint}</p>
           )}
         </div>
         <span
-          className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
           style={{ background: toneBg, color: toneColor }}
           aria-hidden
         >
-          <Icon sx={{ fontSize: 15 }} />
+          <Icon sx={{ fontSize: 14 }} />
         </span>
       </div>
       <span
         ref={valueRef}
-        className="block text-lg lg:text-2xl font-extrabold tabular font-num tracking-tight truncate"
+        className="block truncate text-base font-bold tabular-nums font-num tracking-tight sm:text-lg"
         style={{ color: toneColor }}
       >
         {initial}
@@ -445,23 +586,26 @@ function ModuleTile({ label, sub, Icon, tone, onClick, ChevronRow }: ModuleTileP
     <button
       onClick={onClick}
       className={cn(
-        'group text-start bg-surface-panel border border-border rounded-xl p-3 lg:p-4',
-        'shadow-xs hover:shadow-md hover:border-strong transition-all duration-base',
-        'cursor-pointer pressable focus:outline-none focus-visible:shadow-focus',
-        'min-h-[100px] lg:min-h-[110px]'
+        'group min-h-[92px] cursor-pointer text-start',
+        'rounded-2xl border border-border bg-surface-panel p-2.5 shadow-sm',
+        'transition-[transform,box-shadow,border-color,background-color] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)]',
+        'hover:border-strong hover:shadow-md hover:-translate-y-0.5',
+        'active:scale-[0.98] active:transition-[transform] active:duration-[120ms]',
+        'focus:outline-none focus-visible:shadow-focus',
+        'sm:min-h-[96px] sm:p-3'
       )}
     >
-      <div className="flex items-start justify-between gap-2 h-full">
-        <div className="flex-1 min-w-0">
+      <div className="flex h-full items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <span
-            className="inline-flex h-10 w-10 rounded-lg items-center justify-center mb-2.5"
+            className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg"
             style={{ background: toneBg, color: toneColor }}
             aria-hidden
           >
-            <Icon sx={{ fontSize: 20 }} />
+            <Icon sx={{ fontSize: 18 }} />
           </span>
-          <div className="text-[0.9375rem] font-bold text-fg leading-snug truncate">{label}</div>
-          <div className="text-2xs text-fg-muted mt-0.5 truncate">{sub}</div>
+          <div className="truncate text-sm font-bold leading-snug text-fg">{label}</div>
+          <div className="mt-0.5 truncate text-2xs text-fg-muted">{sub}</div>
         </div>
         <ChevronRow
           sx={{ fontSize: 16 }}

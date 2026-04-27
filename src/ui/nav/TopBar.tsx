@@ -2,10 +2,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { LogoMark } from '../brand/LogoMark';
 import { IconButton } from '../../design-system/primitives';
-import { Menu as MenuIcon, ArrowBack, ArrowForward } from '@mui/icons-material';
+import { Menu as MenuIcon, ArrowBack, ArrowForward, Search } from '@mui/icons-material';
 import { MobileDrawer } from './MobileDrawer';
 import { PRIMARY_NAV, SECONDARY_NAV, navLabel } from './navItems';
 import { useBrand } from '../../config/BrandProvider';
+import { NotificationBell } from '../notifications/NotificationBell';
 
 /**
  * TopBar — Premium mobile header with centered logo/title.
@@ -30,14 +31,14 @@ export function TopBar() {
 
   return (
     <>
-      <header className="lg:hidden sticky top-0 z-[100] frosted border-b border-[var(--surface-border)] pwa-safe-top">
+      <header className="lg:hidden sticky top-0 z-[100] bg-surface-panel/75 supports-[backdrop-filter]:bg-surface-panel/60 backdrop-blur-xl border-b border-[color-mix(in_srgb,var(--surface-border)_60%,transparent)] pwa-safe-top transition-colors duration-300">
         <div className="h-14 px-3 flex items-center gap-2">
           {/* Menu button */}
           <IconButton
             size="md"
             label={rtl ? 'فتح القائمة' : 'Open menu'}
             onClick={() => setDrawerOpen(true)}
-            className="bg-surface-sunken hover:bg-surface-hover"
+            className="bg-surface-sunken/50 hover:bg-surface-hover transition-colors duration-200"
           >
             <MenuIcon sx={{ fontSize: 22 }} />
           </IconButton>
@@ -48,7 +49,7 @@ export function TopBar() {
               size="md"
               label={rtl ? 'رجوع' : 'Back'}
               onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-              className="bg-surface-sunken hover:bg-surface-hover"
+              className="bg-surface-sunken/50 hover:bg-surface-hover transition-colors duration-200"
             >
               <BackIcon sx={{ fontSize: 20 }} />
             </IconButton>
@@ -61,12 +62,25 @@ export function TopBar() {
                 <LogoMark size={28} showName />
               </div>
             ) : (
-              <span className="text-sm font-extrabold text-fg truncate font-arabic">{title}</span>
+              <span className="text-[0.9375rem] font-extrabold text-fg truncate tracking-tight font-arabic drop-shadow-sm">{title}</span>
             )}
           </div>
 
-          {/* Balance spacer */}
-          <div className={`shrink-0 ${!isHome ? 'w-10 h-10' : 'w-10 h-10'}`} />
+          <div className="flex shrink-0 items-center gap-1">
+            <NotificationBell />
+            {isHome ? (
+              <IconButton
+                size="md"
+                label={rtl ? 'بحث في العملاء' : 'Search clients'}
+                onClick={() => navigate('/clients')}
+                className="bg-surface-sunken/50 hover:bg-surface-hover transition-colors duration-200"
+              >
+                <Search sx={{ fontSize: 22 }} />
+              </IconButton>
+            ) : (
+              <div className="w-10 h-10" aria-hidden />
+            )}
+          </div>
         </div>
       </header>
 

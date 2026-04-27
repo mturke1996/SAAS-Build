@@ -202,12 +202,13 @@ export const UsersPage = () => {
 
   return (
     <Box sx={{ pb: 10, fontFamily: 'Tajawal, sans-serif' }}>
-      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 2 }}>
+      <Box sx={{ maxWidth: 1152, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 1.5 }}>
         <PageHero
+          compact
           accent="brand"
           eyebrow={
-            <span className="flex items-center gap-1.5 text-inherit">
-              <SupervisedUserCircle sx={{ fontSize: 16 }} />
+            <span className="flex items-center gap-1 text-inherit">
+              <SupervisedUserCircle sx={{ fontSize: 14 }} />
               المستخدمين
             </span>
           }
@@ -217,9 +218,9 @@ export const UsersPage = () => {
           trailing={
             <DsButton
               type="button"
-              size="md"
-              className="!bg-white !text-[color:var(--brand-primary)] hover:!bg-white/90 shrink-0"
-              leftIcon={<Add sx={{ fontSize: 18 }} />}
+              size="sm"
+              className="!h-9 !bg-white !px-3 !text-xs !font-bold !text-[color:var(--brand-primary)] hover:!bg-white/92 !shadow-sm shrink-0"
+              leftIcon={<Add sx={{ fontSize: 16 }} />}
               onClick={() => {
                 setEditingUserId(null);
                 setFormData({ name: '', email: '', password: '', newPassword: '', role: 'editor' });

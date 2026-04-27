@@ -202,7 +202,7 @@ export function Sheet({
             </div>
           </div>
 
-          {headerExtras && <div className="relative px-4 lg:px-6 pb-3">{headerExtras}</div>}
+          {headerExtras && <div className="relative px-3 pb-2 lg:px-5 lg:pb-2">{headerExtras}</div>}
         </header>
 
         {/* Scrollable body */}

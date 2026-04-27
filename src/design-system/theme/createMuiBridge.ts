@@ -34,14 +34,14 @@ export function createMuiBridge(brand: BrandConfig, mode: ThemeMode = 'light') {
       error: { main: p.danger, contrastText: '#ffffff' },
       info: { main: p.info, contrastText: '#ffffff' },
       background: {
-        default: isDark ? '#0b0d10' : '#f7f8fa',
-        paper: isDark ? '#14171c' : '#ffffff',
+        default: isDark ? '#0a0c12' : '#F3F1EC',
+        paper: isDark ? '#121620' : '#ffffff',
       },
       text: {
-        primary: isDark ? '#e8eaed' : '#1b1f24',
-        secondary: isDark ? '#9aa1aa' : '#5a6371',
+        primary: isDark ? '#e8eaed' : '#0F1A35',
+        secondary: isDark ? '#9aa1aa' : '#3D4A64',
       },
-      divider: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+      divider: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(26,43,88,0.1)',
     },
     typography: {
       fontFamily:
@@ -61,7 +61,7 @@ export function createMuiBridge(brand: BrandConfig, mode: ThemeMode = 'light') {
       button: { fontWeight: 600, textTransform: 'none', letterSpacing: 0 },
       caption: { fontWeight: 500, fontSize: '0.75rem' },
     },
-    shape: { borderRadius: 8 },
+    shape: { borderRadius: 12 },
     components: {
       MuiButton: {
         defaultProps: { disableElevation: true },

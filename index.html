@@ -6,14 +6,13 @@
 
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
-    <link rel="mask-icon" href="/brand/favicon.svg" color="#6D28D9" />
+    <link rel="mask-icon" href="/brand/favicon.svg" color="#1A2B58" />
 
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA: manifest is injected at build (vite-plugin-pwa) from public/manifest.json -->
 
     <!-- Description + color identity -->
     <meta name="description" content="نظام إدارة متكامل — فواتير، عملاء، مدفوعات، تقارير احترافية." />
-    <meta name="theme-color" content="#6D28D9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1A2B58" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0B0A14" media="(prefers-color-scheme: dark)" />
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -40,12 +39,12 @@
     <style>
       :root { color-scheme: light dark; }
       html, body {
-        background: #f8f7fb;
+        background: #F3F1EC;
         margin: 0;
         -webkit-font-smoothing: antialiased;
       }
       @media (prefers-color-scheme: dark) {
-        html, body { background: #0B0A14; }
+        html, body { background: #0B0F19; }
       }
       /* Hide tap flash on iOS */
       * { -webkit-tap-highlight-color: transparent; }
@@ -55,14 +54,14 @@
         position: fixed;
         inset: 0;
         background:
-          radial-gradient(60% 60% at 50% 35%, rgba(139,92,246,0.18), transparent 70%),
-          var(--splash-bg, #f8f7fb);
+          radial-gradient(60% 60% at 50% 35%, rgba(26,43,88,0.14), transparent 70%),
+          var(--splash-bg, #F3F1EC);
       }
       @media (prefers-color-scheme: dark) {
         #root:empty::before {
           background:
-            radial-gradient(60% 60% at 50% 35%, rgba(139,92,246,0.25), transparent 70%),
-            #0B0A14;
+            radial-gradient(60% 60% at 50% 35%, rgba(26,43,88,0.22), transparent 70%),
+            #0B0F19;
         }
       }
       #root { min-height: 100dvh; }
@@ -72,7 +71,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
 

@@ -1,60 +1,23 @@
-import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
 import { PRIMARY_NAV, navLabel } from './navItems';
 import { cn } from '../../design-system/primitives/cn';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import { useBrand } from '../../config/BrandProvider';
 
 /**
- * MobileBottomNav (< lg). Frosted, iOS-style.
- * - 5 primary tabs, 44px+ touch targets
- * - Active pill slides between tabs (GSAP)
- * - Safe-area bottom padding for iPhone home indicator
- * - Press micro-interaction (scale)
+ * MobileBottomNav — Stitch-style: active item = solid navy block + white label/icon.
+ * Safe area for iPhone home indicator.
  */
 export function MobileBottomNav() {
   const brand = useBrand();
   const location = useLocation();
   const navigate = useNavigate();
   const { canAccess } = useAppLockStore();
-  const container = useRef<HTMLDivElement>(null);
 
   const items = PRIMARY_NAV.filter((item) => !item.module || canAccess(item.module as any));
   const activeIndex = items.findIndex((item) =>
     item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path)
   );
-
-  // Slide the active pill between tabs
-  useGSAP(
-    () => {
-      if (activeIndex < 0 || !container.current) return;
-      const pill = container.current.querySelector<HTMLElement>('[data-pill]');
-      const btn = container.current.querySelectorAll<HTMLElement>('[data-tab]')[activeIndex];
-      if (!pill || !btn) return;
-      const c = container.current.getBoundingClientRect();
-      const b = btn.getBoundingClientRect();
-      gsap.to(pill, {
-        x: b.left - c.left + (b.width - 44) / 2,
-        duration: 0.32,
-        ease: 'power3.out',
-      });
-    },
-    { scope: container, dependencies: [activeIndex, items.length] }
-  );
-
-  useEffect(() => {
-    // Ensure pill snaps on first paint (before GSAP tween begins)
-    requestAnimationFrame(() => {
-      const pill = container.current?.querySelector<HTMLElement>('[data-pill]');
-      const btn = container.current?.querySelectorAll<HTMLElement>('[data-tab]')[activeIndex];
-      if (!pill || !btn || !container.current) return;
-      const c = container.current.getBoundingClientRect();
-      const b = btn.getBoundingClientRect();
-      pill.style.transform = `translateX(${b.left - c.left + (b.width - 44) / 2}px)`;
-    });
-  }, [items.length, activeIndex]);
 
   return (
     <nav
@@ -66,39 +29,33 @@ export function MobileBottomNav() {
       )}
     >
       <div
-        ref={container}
-        className="relative grid"
+        className="grid px-1.5 pt-1.5"
         style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}
       >
-        {/* Sliding pill behind active tab icon */}
-        <div
-          data-pill
-          aria-hidden
-          className="absolute top-1.5 h-11 w-11 rounded-2xl pointer-events-none"
-          style={{
-            background: 'var(--brand-primary-soft)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
-          }}
-        />
-
         {items.map((item, i) => {
           const Icon = item.icon;
           const active = i === activeIndex;
           return (
             <button
               key={item.path}
-              data-tab
               onClick={() => navigate(item.path)}
               aria-current={active ? 'page' : undefined}
               aria-label={navLabel(item, brand.direction)}
               className={cn(
-                'relative h-[60px] flex flex-col items-center justify-center gap-0.5 pressable cursor-pointer',
-                'focus:outline-none focus-visible:shadow-focus transition-colors duration-fast',
-                active ? 'text-[color:var(--brand-primary)]' : 'text-fg-muted hover:text-fg'
+                'relative min-h-[56px] flex flex-col items-center justify-center gap-0.5 cursor-pointer',
+                'focus:outline-none focus-visible:shadow-focus',
+                'transition-[background-color,color,transform,box-shadow] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)]',
+                'active:scale-[0.95] active:transition-[transform] active:duration-[120ms]',
+                'rounded-2xl mb-1 mx-0.5',
+                active
+                  ? 'text-white bg-[color:var(--brand-primary)] shadow-[0_4px_12px_-2px_rgba(26,43,88,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]'
+                  : 'text-fg-muted hover:text-fg hover:bg-surface-sunken/80'
               )}
             >
-              <Icon sx={{ fontSize: active ? 22 : 20, transition: 'font-size .18s ease' }} />
-              <span className={cn('text-2xs leading-tight', active ? 'font-bold' : 'font-medium')}>
+              <Icon sx={{ fontSize: active ? 22 : 20, transition: 'font-size .18s ease-out' }} />
+              <span
+                className={cn('text-2xs leading-tight uppercase tracking-wide max-w-full truncate px-0.5', active ? 'font-extrabold' : 'font-semibold')}
+              >
                 {navLabel(item, brand.direction)}
               </span>
             </button>

@@ -234,12 +234,13 @@ export const FundPage = () => {
       className="font-arabic antialiased"
       sx={{ minHeight: '100%', bgcolor: BG, pb: 10, pt: { xs: 1, sm: 2 }, fontFamily: FONT_AR }}
     >
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 2.5 }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, sm: 3 }, mb: 1.5 }}>
         <PageHero
+          compact
           accent="brand"
           eyebrow={
-            <span className="flex items-center gap-1.5 text-inherit">
-              <AccountBalanceWallet sx={{ fontSize: 16 }} />
+            <span className="flex items-center gap-1 text-inherit">
+              <AccountBalanceWallet sx={{ fontSize: 14 }} />
               العهد
             </span>
           }
@@ -253,16 +254,16 @@ export const FundPage = () => {
             isAdmin ? (
               <DsButton
                 type="button"
-                size="md"
-                className="!bg-white !text-[color:var(--brand-primary)] hover:!bg-white/90 shrink-0 !font-semibold !shadow-lg"
-                leftIcon={<Add sx={{ fontSize: 18 }} />}
+                size="sm"
+                className="!h-9 !bg-white !px-3 !text-xs !font-bold !text-[color:var(--brand-primary)] hover:!bg-white/92 !shadow-sm"
+                leftIcon={<Add sx={{ fontSize: 16 }} />}
                 onClick={openAdd}
               >
                 عهدة جديدة
               </DsButton>
             ) : (
-              <div className="h-14 w-14 rounded-2xl bg-white/12 backdrop-blur border border-white/15 flex items-center justify-center shrink-0">
-                <AccountBalanceWallet sx={{ fontSize: 28, color: '#fff' }} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/10 sm:h-10 sm:w-10">
+                <AccountBalanceWallet sx={{ fontSize: 20, color: '#fff' }} />
               </div>
             )
           }

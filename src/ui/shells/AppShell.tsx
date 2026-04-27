@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Sidebar } from '../nav/Sidebar';
 import { TopBar } from '../nav/TopBar';
 import { MobileBottomNav } from '../nav/MobileBottomNav';
+import { NotificationPanel } from '../notifications/NotificationPanel';
 
 /**
  * AppShell — authenticated layout.
@@ -33,6 +34,7 @@ export function AppShell() {
         </main>
       </div>
       <MobileBottomNav />
+      <NotificationPanel />
     </div>
   );
 }

@@ -107,35 +107,34 @@ export const ClientsPage = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-14 space-y-6">
-      
-      {/* Super Hero Section */}
+    <div className="mx-auto max-w-6xl space-y-4 px-4 pb-10 pt-2 sm:px-6 lg:px-8">
       <PageHero
         reveal
+        compact
         accent="brand"
         eyebrow={
-          <span className="flex items-center gap-1.5 text-inherit">
-            <People sx={{ fontSize: 16 }} />
+          <span className="flex items-center gap-1 text-inherit">
+            <People sx={{ fontSize: 14 }} />
             {rtl ? 'إدارة العملاء' : 'Client Management'}
           </span>
         }
         title={rtl ? 'دليل العملاء والشركات' : 'Clients & Companies Directory'}
-        subtitle={rtl ? 'أضف العملاء الجدد وتتبع تفاصيلهم المالية واللوجستية.' : 'Add new clients and track their financial details.'}
+        subtitle={rtl ? 'إضافة ومتابعة تفاصيل مالية في مكان واحد.' : 'Add and track financial details in one place.'}
         headline={filteredClients.length.toString()}
         headlineLabel={rtl ? 'إجمالي العملاء' : 'Total Clients'}
         trailing={
           <button
+            type="button"
             onClick={() => handleOpenDialog()}
-            className="flex items-center gap-2 bg-white text-[var(--brand-primary)] hover:bg-white/90 px-5 py-3 rounded-2xl font-black font-arabic text-sm shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 pointer-events-auto cursor-pointer"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-[var(--brand-primary)] shadow-sm transition hover:bg-white/92 active:scale-[0.98] font-arabic"
           >
-            <Add sx={{ fontSize: 20 }} />
+            <Add sx={{ fontSize: 16 }} />
             {rtl ? 'عميل جديد' : 'New Client'}
           </button>
         }
       />
 
-      {/* Search & Actions */}
-      <div className="relative z-10 -mt-2 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '0.08s' }}>
         <div className="bg-surface-panel backdrop-blur-2xl border border-[var(--surface-border-strong)] rounded-[24px] p-2 shadow-lg flex items-center">
           <div className="pl-4 pr-3 text-fg-muted">
             <Search />

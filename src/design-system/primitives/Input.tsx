@@ -32,7 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         className={cn(
           'flex items-center gap-2 bg-surface-raised border border-border',
           rowSize,
-          'transition-[box-shadow,border-color] duration-fast ease-standard',
+          'transition-[box-shadow,border-color] duration-fast ease-[cubic-bezier(0.23,1,0.32,1)]',
           'focus-within:border-[color:var(--brand-primary)] focus-within:shadow-focus',
           invalid && 'border-[color:var(--brand-danger)] focus-within:border-[color:var(--brand-danger)]'
         )}

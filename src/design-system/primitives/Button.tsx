@@ -15,8 +15,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const base =
   'inline-flex items-center justify-center gap-2 font-semibold rounded-md ' +
-  'transition-all duration-base ease-standard select-none ' +
-  'disabled:opacity-50 disabled:cursor-not-allowed pressable ' +
+  'transition-[transform,box-shadow,background-color,color] duration-base ease-[cubic-bezier(0.23,1,0.32,1)] select-none ' +
+  'disabled:opacity-50 disabled:cursor-not-allowed ' +
+  'active:scale-[0.97] active:transition-[transform] active:duration-[160ms] ' +
   'focus:outline-none focus-visible:shadow-focus';
 
 const sizes: Record<Size, string> = {

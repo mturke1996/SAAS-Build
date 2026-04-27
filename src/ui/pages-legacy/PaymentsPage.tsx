@@ -42,20 +42,20 @@ export const PaymentsPage = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pt-8 lg:pb-14 space-y-5 lg:space-y-7">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 pb-8 pt-2 sm:px-6 lg:space-y-5 lg:px-8 lg:pb-10 lg:pt-4">
       <PageHero
         accent="success"
         eyebrow={
-          <span className="flex items-center gap-1.5 text-inherit">
-            <TrendingUp sx={{ fontSize: 16 }} />
+          <span className="flex items-center gap-1 text-inherit">
+            <TrendingUp sx={{ fontSize: 14 }} />
             المدفوعات
           </span>
         }
         title="إجمالي المحصّل"
         headline={<span dir="ltr">{formatCurrency(total)}</span>}
         trailing={
-          <div className="h-14 w-14 rounded-2xl bg-white/12 backdrop-blur border border-white/15 flex items-center justify-center shadow-lg">
-            <PaymentsIcon sx={{ fontSize: 28, color: '#fff' }} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/10 sm:h-10 sm:w-10">
+            <PaymentsIcon sx={{ fontSize: 20, color: '#fff' }} />
           </div>
         }
         footerStats={[

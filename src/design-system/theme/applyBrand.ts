@@ -64,6 +64,7 @@ export function applyBrandToDocument(brand: BrandConfig) {
   set('--brand-primary-rgb', hexToRgb(p.primary));
   set('--brand-primary-hover', mix(p.primary, 0.12, 'black'));
   set('--brand-primary-soft', mix(p.primary, 0.88, 'white'));
+  set('--brand-primary-tint', mix(p.primary, 0.82, 'white'));
 
   // Secondary
   set('--brand-secondary', p.secondary);

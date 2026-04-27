@@ -41,7 +41,7 @@ export function HomeCustodyPledgeCard({ stats, rtl, onNavigateExpenses }: HomeCu
       type="button"
       onClick={onNavigateExpenses}
       className={cn(
-        'w-full min-h-[52px] text-start rounded-xl border border-border bg-surface-panel',
+        'w-full min-h-[52px] text-start rounded-2xl border border-border bg-surface-panel',
         'shadow-xs hover:shadow-sm hover:border-strong',
         'transition-[box-shadow,border-color] duration-200 ease-out',
         'focus:outline-none focus-visible:shadow-focus',
